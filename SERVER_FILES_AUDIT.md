@@ -76,7 +76,7 @@
    ```
    SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   GEMINI_API_KEY=AIzaSyAUay_xvRT_gcMYs3-7i8Pcli680Or5Zwk
+   GEMINI_API_KEY=AIzaSyCds0FmujbSW88GPJwXeyhIjD8JOdyx5uU
    INTERNAL_SECRET=MySuperSecretKeyForBikeAppOCR123!
    PORT=3000
    ```
