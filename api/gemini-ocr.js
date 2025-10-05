@@ -107,7 +107,7 @@ async function handler(req, res) {
                     return;
                 }
 
-                const model = genAI.getGenerativeModel({ model: 'gemini-gemini-2.0-flash-lite' });
+                const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
                 console.log('Sending to Gemini:', {
                     prompt: prompt.substring(0, 100) + '...',
