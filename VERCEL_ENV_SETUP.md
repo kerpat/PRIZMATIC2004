@@ -19,11 +19,11 @@ GEMINI_API_KEY=AIzaSyAUay_xvRT_gcMYs3-7i8Pcli680Or5Zwk
 TELEGRAM_BOT_TOKEN=8114516631:AAFt6cOFSdhQH1ERv0Q04fXXpBLX3GhEmJo
 YOOKASSA_SHOP_ID=1107459
 YOOKASSA_SECRET_KEY=live_oTnWf7sfV0ePngXm7eGdeoXewCYCbW2RXfn0PacBlrE
-BOT_NOTIFY_URL=https://gemini-npxg.onrender.com/notify
+BOT_NOTIFY_URL=https://gogovorprizmatic.onrender.com/notify
 OCR_WORKER_URL=https://832a1274ed7e.ngrok-free.app
 ADMIN_SECRET_KEY=your_super_secret_admin_key
 INTERNAL_SECRET=MySuperSecretKeyForBikeAppOCR123!
-CONTRACTS_API_URL=https://gemini-npxg.onrender.com
+CONTRACTS_API_URL=https://gogovorprizmatic.onrender.com
 ```
 
 4. Выберите окружения: **Production**, **Preview**, **Development** (или только Production)
