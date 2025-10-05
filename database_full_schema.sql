@@ -347,7 +347,7 @@ $$;
 INSERT INTO public.app_settings (key, value)
 VALUES 
     ('maintenance_mode', '{"enabled": false, "message": "Система на обслуживании"}'::jsonb),
-    ('default_city', '"Воронеж"'::jsonb)
+    ('default_city', '"Москва"'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================

@@ -643,13 +643,26 @@
             <button class="modal-close">&times;</button>
             <h2 style="text-align: center; margin-bottom: 20px;">Выбор города</h2>
             <div class="city-selection-list">
-                <div class="city-option" data-city="Воронеж">
+                <div class="city-option" data-city="Москва">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                    <span>Воронеж</span>
+                    <span>Москва</span>
+                    <svg class="city-check hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="city-option" data-city="Санкт-Петербург">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span>Санкт-Петербург</span>
                     <svg class="city-check hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -1395,8 +1408,27 @@
             const cityOptions = document.querySelectorAll('.city-option');
             const cityModal = document.getElementById('payment-settings-modal');
 
-            function updatePaymentSettingsView() {
-                const savedCity = localStorage.getItem('selectedCity') || 'Воронеж';
+            async function updatePaymentSettingsView() {
+                let savedCity = localStorage.getItem('selectedCity') || 'Москва';
+                
+                // Пытаемся получить город из БД
+                const userId = localStorage.getItem('userId');
+                if (userId && supabase) {
+                    try {
+                        const { data: client, error } = await supabase
+                            .from('clients')
+                            .select('city')
+                            .eq('id', userId)
+                            .single();
+                        
+                        if (!error && client && client.city) {
+                            savedCity = client.city;
+                            localStorage.setItem('selectedCity', savedCity);
+                        }
+                    } catch (err) {
+                        console.error('Ошибка загрузки города из БД:', err);
+                    }
+                }
 
                 cityOptions.forEach(option => {
                     const cityName = option.dataset.city;
@@ -1413,9 +1445,28 @@
             }
 
             cityOptions.forEach(option => {
-                option.addEventListener('click', () => {
+                option.addEventListener('click', async () => {
                     const selectedCity = option.dataset.city;
                     localStorage.setItem('selectedCity', selectedCity);
+
+                    // Сохраняем город в базу данных
+                    const userId = localStorage.getItem('userId');
+                    if (userId && supabase) {
+                        try {
+                            const { error } = await supabase
+                                .from('clients')
+                                .update({ city: selectedCity })
+                                .eq('id', userId);
+                            
+                            if (error) {
+                                console.error('Ошибка обновления города:', error);
+                            } else {
+                                console.log('Город успешно обновлен в БД:', selectedCity);
+                            }
+                        } catch (err) {
+                            console.error('Ошибка при сохранении города:', err);
+                        }
+                    }
 
                     // Обновляем визуальное состояние
                     cityOptions.forEach(opt => {

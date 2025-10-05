@@ -221,10 +221,10 @@ async function processSucceededPayment(notification) {
         const { data: newBooking, error: bookingError } = await supabaseAdmin
             .from('bookings')
             .insert({ 
-                user_id: userId, 
+                user_id: userId,
                 expires_at: expires_at, 
-                status: 'active', 
-                cost_rub: cardPaymentAmount 
+                status: 'active',
+                cost_rub: cardPaymentAmount
             })
             .select('id')
             .single();

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="/api/config"></script>
+    <script src="config.js"></script>
     <title>Карта - Bike App</title>
     <!-- Шрифты Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,62 +18,89 @@
     <!-- Supabase for user data -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
 
-    
+
 
     <script src="transitions.js" defer></script>
 </head>
+
 <body>
-<div class="app-screen">
-    <!-- Основной контейнер для страницы с картой -->
-    <div class="map-page-container">
-        <!-- Элемент, в который будет встроена карта -->
-        <div id="map"></div>?
+    <div class="app-screen">
+        <!-- Основной контейнер для страницы с картой -->
+        <div class="map-page-container">
+            <!-- Элемент, в который будет встроена карта -->
+            <div id="map"></div>?
 
-        <!-- Кнопка для возврата к своей геопозиции -->
-        <button class="recenter-btn" id="recenter-map-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-        </button>
+            <!-- Кнопка для возврата к своей геопозиции -->
+            <button class="recenter-btn" id="recenter-map-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+                </svg>
+            </button>
 
-        <!-- Выдвижная информационная карточка -->
-        <div class="info-card" id="bike-info-card">
-            <div class="card-handle"></div>
-            <h3 id="card-address">Выберите точку на карте</h3>
-            <div class="card-stats">
-                <div class="stat-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="5.5" cy="18.5" r="3.5"></circle>
-                        <circle cx="18.5" cy="18.5" r="3.5"></circle>
-                        <path d="M15 18.5V11l-3-3-3.5 3H5.5"></path>
-                        <path d="M12 8h3"></path>
-                    </svg>
-                    Свободно: <strong id="card-bikes"></strong>
+            <!-- Выдвижная информационная карточка -->
+            <div class="info-card" id="bike-info-card">
+                <div class="card-handle"></div>
+                <h3 id="card-address">Выберите точку на карте</h3>
+                <div class="card-stats">
+                    <div class="stat-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="5.5" cy="18.5" r="3.5"></circle>
+                            <circle cx="18.5" cy="18.5" r="3.5"></circle>
+                            <path d="M15 18.5V11l-3-3-3.5 3H5.5"></path>
+                            <path d="M12 8h3"></path>
+                        </svg>
+                        Свободно: <strong id="card-bikes"></strong>
+                    </div>
+                    <div class="stat-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22c-4.42 0-8-3.58-8-8a8 8 0 0 1 16 0c0 4.42-3.58 8-8 8z" />
+                            <path d="M12 12v-4" />
+                            <path d="M12 12H8" />
+                        </svg>
+                        <span id="card-distance-time"></span>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8a8 8 0 0 1 16 0c0 4.42-3.58 8-8 8z"/><path d="M12 12v-4"/><path d="M12 12H8"/></svg>
-                    <span id="card-distance-time"></span>
-                </div>
+                <button class="btn btn-primary" id="route-button">Проложить маршрут</button>
             </div>
-            <button class="btn btn-primary" id="route-button">Проложить маршрут</button>
         </div>
-    </div>
 
-    <!-- Нижняя навигационная панель -->
-    <nav class="bottom-nav">
-        <a href="index.html" class="nav-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        </a>
-        <a href="stats.html" class="nav-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-        </a>
-        <!-- ИСПРАВЛЕНО: Теперь это ссылка, а не DIV, для единообразия -->
-        <a href="#" class="nav-item active">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        </a>
-        <a href="profile.html" class="nav-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </a>
-    </nav>
-</div>
+        <!-- Нижняя навигационная панель -->
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+            </a>
+            <a href="stats.html" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10" />
+                    <line x1="18" y1="20" x2="18" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="16" />
+                </svg>
+            </a>
+            <!-- ИСПРАВЛЕНО: Теперь это ссылка, а не DIV, для единообразия -->
+            <a href="#" class="nav-item active">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+            </a>
+        </nav>
+    </div>
 
     <!-- Главное меню Prizmatic -->
     <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true">
@@ -92,253 +120,257 @@
 
 
 
-<script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ (ДЛЯ ВСЕХ СТРАНИЦ) ---
-        const appScreen = document.querySelector('.app-screen');
-        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
-        const animationDuration = 400; // Должно совпадать с transition в CSS
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ (ДЛЯ ВСЕХ СТРАНИЦ) ---
+            const appScreen = document.querySelector('.app-screen');
+            const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+            const animationDuration = 400; // Должно совпадать с transition в CSS
 
-        // Анимация появления страницы
-        appScreen.classList.add('page-enter');
-        requestAnimationFrame(() => {
-            appScreen.classList.remove('page-enter');
-            appScreen.classList.add('page-enter-active');
-        });
-
-        // Вешаем обработчики на все ссылки навигации
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                // Если клик по уже активной ссылке, ничего не делаем
-                if (link.classList.contains('active')) {
-                     e.preventDefault();
-                     return;
-                }
-
-                // Для всех остальных ссылок запускаем анимацию ухода
-                e.preventDefault();
-                const destination = e.currentTarget.href;
-
-                appScreen.classList.remove('page-enter-active');
-                appScreen.classList.add('page-exit');
-                requestAnimationFrame(() => {
-                    appScreen.classList.add('page-exit-active');
-                });
-
-                // Переходим на новую страницу после завершения анимации
-                setTimeout(() => {
-                    window.location.href = destination;
-                }, animationDuration);
+            // Анимация появления страницы
+            appScreen.classList.add('page-enter');
+            requestAnimationFrame(() => {
+                appScreen.classList.remove('page-enter');
+                appScreen.classList.add('page-enter-active');
             });
-        });
-    });
 
-    // --- Supabase initialization ---
-    const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // City data
-    const cityData = {
-        'Москва': {
-            coords: [55.705072, 37.598672],
-            address: '5й Донской проезд д15с13',
-            zoom: 14
-        },
-        'Санкт-Петербург': {
-            coords: [59.923419, 30.362895],
-            address: 'Лиговский проспект д.50 Н',
-            zoom: 14
-        },
-        'Воронеж': {
-            coords: [51.653534, 39.191008],
-            address: 'Воронеж, центр',
-            zoom: 14
-        }
-    };
-
-    // --- ЛОГИКА КАРТЫ (ЗАПУСКАЕТСЯ, КОГДА API ГОТОВ) ---
-    async function initMapWithData(userCity) {
-        // 1. Берем данные для города пользователя или Воронеж по умолчанию
-        const cityInfo = cityData[userCity] || cityData['Воронеж'];
-
-        // 2. Создаем карту с центром в этом городе
-        let myMap = new ymaps.Map('map', {
-            center: cityInfo.coords,
-            zoom: cityInfo.zoom,
-            controls: []
-        });
-
-        // Находим элементы для информационной карточки
-        const infoCard = document.getElementById('bike-info-card');
-        const cardAddress = document.getElementById('card-address');
-        const cardBikes = document.getElementById('card-bikes');
-        const cardDistanceTime = document.getElementById('card-distance-time');
-        const routeButton = document.getElementById('route-button');
-        const recenterBtn = document.getElementById('recenter-map-btn');
-        let currentRoute = null;
-
-        // 3. Получаем количество доступных велосипедов из базы
-        let bikeCount = 0;
-        try {
-            const { count, error } = await supabase
-                .from('bikes')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'available');
-            if (!error) {
-                bikeCount = count;
-            }
-        } catch (err) {
-            console.error('Error fetching bike count:', err);
-        }
-
-        // 4. Иконка для пользователя
-        const UserIconLayout = ymaps.templateLayoutFactory.createClass(
-            '<div class="user-placemark">' +
-                '<svg width="26" height="36" viewBox="0 0 13 18" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                    '<path fill-rule="evenodd" clip-rule="evenodd" d="M3.17846 0.843094C5.14483 -0.299453 7.56183 -0.279483 9.50975 0.895405C11.4385 2.09422 12.6108 4.23376 12.5999 6.5353C12.555 8.82174 11.298 10.971 9.72673 12.6325C8.81985 13.5958 7.80535 14.4475 6.70396 15.1704C6.59053 15.236 6.46628 15.2799 6.33734 15.3C6.21324 15.2947 6.09239 15.258 5.98568 15.1933C4.30418 14.1071 2.829 12.7206 1.6311 11.1006C0.628731 9.74823 0.0592531 8.11441 1.99923e-06 6.42098C-0.00129925 4.11502 1.21209 1.98564 3.17846 0.843094ZM4.31507 7.37541C4.64584 8.19086 5.42658 8.72276 6.29276 8.72277C6.86021 8.72684 7.40569 8.49955 7.80765 8.09153C8.20961 7.68352 8.43465 7.12868 8.43264 6.55065C8.43567 5.66834 7.91623 4.87119 7.11686 4.5314C6.31748 4.19162 5.39586 4.37622 4.78231 4.99902C4.16875 5.62182 3.9843 6.55996 4.31507 7.37541Z" fill="#00BABA"/>' +
-                    '<ellipse opacity="0.4" cx="6.29956" cy="17.0999" rx="4.5" ry="0.9" fill="#00BABA"/>' +
-                '</svg>' +
-            '</div>'
-        );
-
-        // 5. Добавляем метку пользователя (обновится с геолокацией)
-        let userPlacemark = null;
-
-        // Пытаемся получить текущую позицию пользователя
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userCoords = [position.coords.latitude, position.coords.longitude];
-                    userPlacemark = new ymaps.Placemark(userCoords, {
-                        balloonContent: `<strong>Моя позиция</strong>`
-                    }, {
-                        iconLayout: UserIconLayout,
-                        iconOffset: [-13, -36]
-                    });
-                    myMap.geoObjects.add(userPlacemark);
-                },
-                (error) => {
-                    console.log('Geolocation error:', error);
-                }
-            );
-        }
-
-        // --- ВОТ ГЛАВНОЕ: ПРОСТО РИСУЕМ ТОЧКУ ---
-
-        // 6. Создаем метку (точку) с координатами из cityInfo
-        const bikePlacemark = new ymaps.Placemark(cityInfo.coords, {
-            // Это текст, который появится во всплывающем окне при клике
-            balloonContent: `<strong>${cityInfo.address}</strong><br>Здесь ${bikeCount} велосипедов`
-        }, {
-            // Это внешний вид точки
-            preset: 'islands#dotIcon',
-            iconColor: '#26b999' // Зеленый цвет
-        });
-
-        // 7. Добавляем эту точку на карту
-        myMap.geoObjects.add(bikePlacemark);
-
-        // 8. Функция для построения маршрута
-        function plotRouteBetweenPoints(startCoords, endCoords, onRouteSuccess) {
-            if (currentRoute) { myMap.geoObjects.remove(currentRoute); }
-            ymaps.modules.require(['multiRouter.MultiRoute'], function (MultiRoute) {
-                currentRoute = new MultiRoute({
-                    referencePoints: [startCoords, endCoords],
-                    params: { routingMode: 'pedestrian' }
-                }, {
-                    boundsAutoApply: false,
-                    routeStrokeColor: '#26b999', routeStrokeWidth: 4,
-                    routeActiveStrokeColor: '#26b999', routeActiveStrokeWidth: 6
-                });
-                myMap.geoObjects.add(currentRoute);
-
-                currentRoute.model.events.add('requestsuccess', function() {
-                    const activeRoute = currentRoute.getActiveRoute();
-                    if (activeRoute) {
-                        const travelTime = activeRoute.properties.get("duration").text;
-                        const distance = activeRoute.properties.get("distance").text;
-                        cardDistanceTime.textContent = `${distance} (${travelTime})`;
-                        if (onRouteSuccess) { onRouteSuccess(); }
-                    } else { cardDistanceTime.textContent = 'Маршрут не найден'; }
-                });
-                currentRoute.model.events.add('error', () => { cardDistanceTime.textContent = 'Ошибка построения маршрута'; });
-            }, () => { cardDistanceTime.textContent = 'Ошибка загрузки модуля'; });
-        }
-
-        // Добавим обработчик клика по точке велосипеда
-        bikePlacemark.events.add('click', () => {
-            cardAddress.textContent = cityInfo.address;
-            cardBikes.textContent = bikeCount.toString();
-            infoCard.classList.add('visible');
-            // Используем позицию пользователя или центр города для маршрута
-            const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
-            plotRouteBetweenPoints(startCoords, cityInfo.coords);
-        });
-
-        // Обработчик кнопки "Проложить маршрут"
-        routeButton.addEventListener('click', () => {
-            infoCard.classList.remove('visible');
-            const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
-            const zoomToStart = () => myMap.setCenter(startCoords, 17, { duration: 800, checkZoomRange: true });
-            if (currentRoute) { zoomToStart(); }
-            else { plotRouteBetweenPoints(startCoords, cityInfo.coords, zoomToStart); }
-        });
-
-        // Обработчик кнопки центрирования
-        recenterBtn.addEventListener('click', () => {
-            const centerCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
-            myMap.setCenter(centerCoords, 14);
-            infoCard.classList.remove('visible');
-            if (currentRoute) {
-                myMap.geoObjects.remove(currentRoute);
-                currentRoute = null;
-            }
-        });
-    }
-
-    function loadYandexMaps() {
-        const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${CONFIG.GOOGLE_API_KEY}`;
-        document.head.appendChild(script);
-        script.onload = () => {
-            ymaps.ready(async function() {
-                const userId = localStorage.getItem('userId');
-                let userCity = 'Воронеж'; // default
-
-                if (userId && supabase) {
-                    try {
-                        const { data: client, error } = await supabase
-                            .from('clients')
-                            .select('city')
-                            .eq('id', userId)
-                            .single();
-                        if (!error && client && client.city) {
-                            userCity = client.city;
-                        }
-                    } catch (err) {
-                        console.error('Error fetching user city:', err);
+            // Вешаем обработчики на все ссылки навигации
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    // Если клик по уже активной ссылке, ничего не делаем
+                    if (link.classList.contains('active')) {
+                        e.preventDefault();
+                        return;
                     }
-                }
-                initMapWithData(userCity);
-            });
-        };
-    }
 
-    loadYandexMaps();
-</script>
-    <script src="menu.js" defer></script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Проверяем, что API Telegram доступен
-        if (window.Telegram && window.Telegram.WebApp) {
-            const tg = window.Telegram.WebApp;
-            
-            // Эта команда говорит Telegram, что цвет шапки должен совпадать с фоном нашего приложения
-            tg.setHeaderColor('#ffffff');
+                    // Для всех остальных ссылок запускаем анимацию ухода
+                    e.preventDefault();
+                    const destination = e.currentTarget.href;
+
+                    appScreen.classList.remove('page-enter-active');
+                    appScreen.classList.add('page-exit');
+                    requestAnimationFrame(() => {
+                        appScreen.classList.add('page-exit-active');
+                    });
+
+                    // Переходим на новую страницу после завершения анимации
+                    setTimeout(() => {
+                        window.location.href = destination;
+                    }, animationDuration);
+                });
+            });
+        });
+
+        // --- Supabase initialization ---
+        const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
+        let supabase = null;
+
+        // Wait for Supabase to load
+        function initSupabase() {
+            if (window.supabase && window.supabase.createClient) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else {
+                // Retry after a short delay
+                setTimeout(initSupabase, 100);
+            }
         }
-    });
-</script>
+        initSupabase();
+
+        // City data
+        const cityData = {
+            'Москва': {
+                coords: [55.705072, 37.598672],
+                address: '5й Донской проезд д15с13',
+                zoom: 14
+            },
+            'Санкт-Петербург': {
+                coords: [59.923419, 30.362895],
+                address: 'Лиговский проспект д.50 Н',
+                zoom: 14
+            }
+        };
+
+        // Функция для нормализации названия города
+        function normalizeCityName(city) {
+            if (!city) return 'Москва';
+            const cityLower = city.toLowerCase().trim();
+
+            // Варианты для Санкт-Петербурга
+            if (cityLower.includes('петербург') || cityLower === 'спб' ||
+                cityLower === 'питер' || cityLower === 'санкт-петербург') {
+                return 'Санкт-Петербург';
+            }
+
+            // Варианты для Москвы
+            if (cityLower.includes('москв') || cityLower === 'мск') {
+                return 'Москва';
+            }
+
+            // По умолчанию Москва
+            return 'Москва';
+        }
+
+        // --- ЛОГИКА КАРТЫ (ЗАПУСКАЕТСЯ, КОГДА API ГОТОВ) ---
+        function initMapWithData(userCity) {
+            const normalizedCity = normalizeCityName(userCity);
+            const cityInfo = cityData[normalizedCity] || cityData['Москва'];
+            const bikePointData = {
+                coords: cityInfo.coords,
+                address: cityInfo.address,
+                bikes: 100
+            };
+
+            let myMap = new ymaps.Map('map', {
+                center: cityInfo.coords,
+                zoom: cityInfo.zoom,
+                controls: []
+            });
+
+            const infoCard = document.getElementById('bike-info-card');
+            const cardAddress = document.getElementById('card-address');
+            const cardBikes = document.getElementById('card-bikes');
+            const cardDistanceTime = document.getElementById('card-distance-time');
+            const routeButton = document.getElementById('route-button');
+            const recenterBtn = document.getElementById('recenter-map-btn');
+            let currentRoute = null;
+
+            const UserIconLayout = ymaps.templateLayoutFactory.createClass(
+                '<div class="user-placemark">' +
+                '<svg width="26" height="36" viewBox="0 0 13 18" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                '<path fill-rule="evenodd" clip-rule="evenodd" d="M3.17846 0.843094C5.14483 -0.299453 7.56183 -0.279483 9.50975 0.895405C11.4385 2.09422 12.6108 4.23376 12.5999 6.5353C12.555 8.82174 11.298 10.971 9.72673 12.6325C8.81985 13.5958 7.80535 14.4475 6.70396 15.1704C6.59053 15.236 6.46628 15.2799 6.33734 15.3C6.21324 15.2947 6.09239 15.258 5.98568 15.1933C4.30418 14.1071 2.829 12.7206 1.6311 11.1006C0.628731 9.74823 0.0592531 8.11441 1.99923e-06 6.42098C-0.00129925 4.11502 1.21209 1.98564 3.17846 0.843094ZM4.31507 7.37541C4.64584 8.19086 5.42658 8.72276 6.29276 8.72277C6.86021 8.72684 7.40569 8.49955 7.80765 8.09153C8.20961 7.68352 8.43465 7.12868 8.43264 6.55065C8.43567 5.66834 7.91623 4.87119 7.11686 4.5314C6.31748 4.19162 5.39586 4.37622 4.78231 4.99902C4.16875 5.62182 3.9843 6.55996 4.31507 7.37541Z" fill="#00BABA"/>' +
+                '<ellipse opacity="0.4" cx="6.29956" cy="17.0999" rx="4.5" ry="0.9" fill="#00BABA"/>' +
+                '</svg>' +
+                '</div>'
+            );
+
+            // Add user location placemark (will be updated with geolocation)
+            let userPlacemark = null;
+
+            // Try to get user's current location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userCoords = [position.coords.latitude, position.coords.longitude];
+                        userPlacemark = new ymaps.Placemark(userCoords, {
+                            balloonContent: `<strong>Моя позиция</strong>`
+                        }, {
+                            iconLayout: UserIconLayout,
+                            iconOffset: [-13, -36]
+                        });
+                        myMap.geoObjects.add(userPlacemark);
+                    },
+                    (error) => {
+                        console.log('Geolocation error:', error);
+                    }
+                );
+            }
+
+            const bikePlacemark = new ymaps.Placemark(bikePointData.coords, {
+                balloonContent: `<strong>${bikePointData.address}</strong><br>Свободно: ${bikePointData.bikes} велосипедов`
+            }, {
+                preset: 'islands#dotIcon',
+                iconColor: '#26b999'
+            });
+            myMap.geoObjects.add(bikePlacemark);
+
+            function plotRouteBetweenPoints(startCoords, endCoords, onRouteSuccess) {
+                if (currentRoute) { myMap.geoObjects.remove(currentRoute); }
+                ymaps.modules.require(['multiRouter.MultiRoute'], function (MultiRoute) {
+                    currentRoute = new MultiRoute({
+                        referencePoints: [startCoords, endCoords],
+                        params: { routingMode: 'pedestrian' }
+                    }, {
+                        boundsAutoApply: false,
+                        routeStrokeColor: '#26b999', routeStrokeWidth: 4,
+                        routeActiveStrokeColor: '#26b999', routeActiveStrokeWidth: 6
+                    });
+                    myMap.geoObjects.add(currentRoute);
+
+                    currentRoute.model.events.add('requestsuccess', function () {
+                        const activeRoute = currentRoute.getActiveRoute();
+                        if (activeRoute) {
+                            const travelTime = activeRoute.properties.get("duration").text;
+                            const distance = activeRoute.properties.get("distance").text;
+                            cardDistanceTime.textContent = `${distance} (${travelTime})`;
+                            if (onRouteSuccess) { onRouteSuccess(); }
+                        } else { cardDistanceTime.textContent = 'Маршрут не найден'; }
+                    });
+                    currentRoute.model.events.add('error', () => { cardDistanceTime.textContent = 'Ошибка построения маршрута'; });
+                }, () => { cardDistanceTime.textContent = 'Ошибка загрузки модуля'; });
+            }
+
+            bikePlacemark.events.add('click', () => {
+                cardAddress.textContent = bikePointData.address;
+                cardBikes.textContent = bikePointData.bikes;
+                infoCard.classList.add('visible');
+                // Use user's current location or city center for routing
+                const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
+                plotRouteBetweenPoints(startCoords, bikePointData.coords);
+            });
+
+            routeButton.addEventListener('click', () => {
+                infoCard.classList.remove('visible');
+                const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
+                const zoomToStart = () => myMap.setCenter(startCoords, 17, { duration: 800, checkZoomRange: true });
+                if (currentRoute) { zoomToStart(); }
+                else { plotRouteBetweenPoints(startCoords, bikePointData.coords, zoomToStart); }
+            });
+
+            recenterBtn.addEventListener('click', () => {
+                const centerCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
+                myMap.setCenter(centerCoords, 14);
+                infoCard.classList.remove('visible');
+                if (currentRoute) {
+                    myMap.geoObjects.remove(currentRoute);
+                    currentRoute = null;
+                }
+            });
+        }
+
+        function loadYandexMaps() {
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${window.APP_CONFIG.YANDEX_MAPS_API_KEY}`;
+            document.head.appendChild(script);
+            script.onload = () => {
+                ymaps.ready(async function () {
+                    const userId = localStorage.getItem('userId');
+                    let userCity = 'Москва'; // default
+
+                    if (userId && supabase) {
+                        try {
+                            const { data: client, error } = await supabase
+                                .from('clients')
+                                .select('city')
+                                .eq('id', userId)
+                                .single();
+                            if (!error && client && client.city) {
+                                userCity = client.city;
+                            }
+                        } catch (err) {
+                            console.error('Error fetching user city:', err);
+                        }
+                    }
+                    initMapWithData(userCity);
+                });
+            };
+        }
+
+        loadYandexMaps();
+    </script>
+    <script src="menu.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Проверяем, что API Telegram доступен
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+
+                // Эта команда говорит Telegram, что цвет шапки должен совпадать с фоном нашего приложения
+                tg.setHeaderColor('#ffffff');
+            }
+        });
+    </script>
 </body>
+
 </html>
