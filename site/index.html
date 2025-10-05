@@ -2166,9 +2166,14 @@
                         
                         // Если нет великов - показываем только название и предупреждение
                         if (!isAvailable) {
-                            item.innerHTML = `<strong>${t.title}</strong><span style="color: #ff6b6b;">Нет свободных велосипедов</span>`;
-                            item.style.opacity = '0.5';
+                            item.innerHTML = `
+                                <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                                    <strong>${t.title}</strong>
+                                    <span style="color: #ff4757 !important; font-weight: 600 !important; font-size: 0.9em;">Нет свободных велосипедов</span>
+                                </div>
+                            `;
                             item.style.cursor = 'not-allowed';
+                            item.style.pointerEvents = 'none';
                         } else {
                             // Если есть - показываем описание
                             item.innerHTML = `<strong>${t.title}</strong><span>${t.short_description || ''}</span>`;
