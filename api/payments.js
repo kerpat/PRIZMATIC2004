@@ -39,7 +39,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
     const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const [tariffResult, clientResult] = await Promise.all([
         supabaseAdmin.from('tariffs').select('price_rub, duration_days').eq('id', tariffId).single(),
-        supabaseAdmin.from('clients').select('balance_rub').eq('id', userId).single()
+        supabaseAdmin.from('clients').select('balance_rub, city').eq('id', userId).single()
     ]);
 
     if (tariffResult.error || !tariffResult.data) throw new Error('Tariff not found.');
@@ -48,6 +48,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
     const rentalCost = amount || tariffResult.data.price_rub;
     const duration = days || tariffResult.data.duration_days;
     const userBalance = clientResult.data.balance_rub;
+    const userCity = clientResult.data.city;
 
     if (userBalance < rentalCost) {
         return { status: 400, body: { error: 'Client has insufficient balance.' } };
@@ -80,26 +81,27 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         bikeId = bike.id;
         console.log(`[БАЛАНС] Выбран конкретный велосипед #${bikeId}`);
     } else {
-        // Найти случайный свободный велосипед (копируем из webhook'а)
-        console.log(`[БАЛАНС] Поиск свободного велосипеда для тарифа ${tariffId}...`);
+        // Найти случайный свободный велосипед с учетом города
+        console.log(`[БАЛАНС] Поиск свободного велосипеда для тарифа ${tariffId} в городе ${userCity}...`);
         const { data: availableBikes, error: bikesError } = await supabaseAdmin
             .from('bikes')
-            .select('id')
+            .select('id, bike_code')
             .eq('status', 'available')
-            .eq('tariff_id', tariffId);
+            .eq('tariff_id', tariffId)
+            .eq('city', userCity);
 
         if (bikesError) throw new Error(`Ошибка при поиске велосипедов: ${bikesError.message}`);
 
         if (!availableBikes || availableBikes.length === 0) {
-            console.error(`[БАЛАНС] Нет свободных велосипедов для тарифа ${tariffId}!`);
+            console.error(`[БАЛАНС] Нет свободных велосипедов для тарифа ${tariffId} в городе ${userCity}!`);
             // ВАЖНО: Вместо возврата денег через ЮKassa, просто возвращаем ошибку клиенту.
             // Деньги мы еще не списали!
-            return { status: 400, body: { error: 'К сожалению, все велосипеды по вашему тарифу сейчас заняты.' } };
+            return { status: 400, body: { error: `К сожалению, все велосипеды по вашему тарифу в городе ${userCity} сейчас заняты.` } };
         }
 
         const randomBike = availableBikes[Math.floor(Math.random() * availableBikes.length)];
         bikeId = randomBike.id;
-        console.log(`[БАЛАНС] Найден и выбран велосипед #${bikeId}`);
+        console.log(`[БАЛАНС] Найден и выбран велосипед #${bikeId} (код: ${randomBike.bike_code})`);
     }
 
     // Теперь, когда мы знаем, что велосипед есть, можно безопасно списать деньги.

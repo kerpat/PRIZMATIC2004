@@ -127,10 +127,30 @@ async function processSucceededPayment(notification) {
             if (error) { /* ... логика возврата ... */ throw new Error('Failed to debit from balance.'); }
         }
 
-        // Логика создания аренды
-        const { data: availableBikes, error: bikesError } = await supabaseAdmin.from('bikes').select('id').eq('status', 'available').eq('tariff_id', tariffId);
-        if (bikesError || !availableBikes || availableBikes.length === 0) { throw new Error(`Нет свободных велосипедов для тарифа ${tariffId}.`); }
+        // Получаем город клиента для поиска велосипеда
+        const { data: clientData, error: clientError } = await supabaseAdmin
+            .from('clients')
+            .select('city')
+            .eq('id', userId)
+            .single();
+        
+        const userCity = clientData?.city || 'Москва'; // По умолчанию Москва
+        console.log(`[АРЕНДА] Город клиента: ${userCity}`);
+        
+        // Логика создания аренды с учетом города
+        const { data: availableBikes, error: bikesError } = await supabaseAdmin
+            .from('bikes')
+            .select('id, bike_code')
+            .eq('status', 'available')
+            .eq('tariff_id', tariffId)
+            .eq('city', userCity);
+        
+        if (bikesError || !availableBikes || availableBikes.length === 0) { 
+            throw new Error(`Нет свободных велосипедов для тарифа ${tariffId} в городе ${userCity}.`); 
+        }
+        
         const bikeId = availableBikes[0].id;
+        console.log(`[АРЕНДА] Выбран велосипед #${bikeId} (код: ${availableBikes[0].bike_code})`);
         await supabaseAdmin.from('bikes').update({ status: 'rented' }).eq('id', bikeId);
         
         // Определяем длительность аренды: используем days из metadata или берем из тарифа
