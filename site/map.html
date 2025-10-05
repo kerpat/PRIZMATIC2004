@@ -300,7 +300,7 @@
     function loadYandexMaps() {
         const script = document.createElement('script');
         script.type = 'text/javascript';
-        script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${window.APP_CONFIG.YANDEX_MAPS_API_KEY}`;
+        script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${CONFIG.GOOGLE_API_KEY}`;
         document.head.appendChild(script);
         script.onload = () => {
             ymaps.ready(async function() {

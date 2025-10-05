@@ -364,8 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Конец блока для карты ---
 
     // --- Supabase Initialization ---
-    const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
+    const SUPABASE_URL = CONFIG.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Вспомогательная функция для выполнения fetch-запросов с аутентификацией
