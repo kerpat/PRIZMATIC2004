@@ -2164,18 +2164,14 @@
                         item.dataset.tariff = key;
                         item.dataset.tariffId = t.id;
                         
-                        // Добавляем индикатор доступности
-                        const availabilityBadge = isAvailable 
-                            ? '<span style="color: #26b999; font-size: 0.85em;">✓ Доступно</span>'
-                            : `<span style="color: #ff6b6b; font-size: 0.85em;">⚠ Нет великов в городе ${userCity}</span>`;
-                        
-                        item.innerHTML = `<strong>${t.title}</strong><span>${t.short_description || ''}</span>${availabilityBadge}`;
-                        
-                        // Если нет великов, делаем тариф неактивным
+                        // Если нет великов - показываем только название и предупреждение
                         if (!isAvailable) {
+                            item.innerHTML = `<strong>${t.title}</strong><span style="color: #ff6b6b;">Нет свободных велосипедов</span>`;
                             item.style.opacity = '0.5';
                             item.style.cursor = 'not-allowed';
                         } else {
+                            // Если есть - показываем описание
+                            item.innerHTML = `<strong>${t.title}</strong><span>${t.short_description || ''}</span>`;
                             // Навешиваем обработчик выбора тарифа только для доступных
                             item.addEventListener('click', () => {
                                 showTariffDetail(key);
