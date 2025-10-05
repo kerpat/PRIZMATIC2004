@@ -828,12 +828,18 @@
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || 'Ошибка сервера');
 
+                    console.log('[БРОНЬ] Ответ от API:', data);
+
                     if (data.confirmation_url) {
                         // Сценарий 1: Карты нет, нужен редирект на оплату.
+                        console.log('[БРОНЬ] Редирект на оплату:', data.confirmation_url);
                         window.location.href = data.confirmation_url;
-                    } else if (data.status === 'succeeded' || data.status === 'pending') {
+                        return; // Важно! Останавливаем выполнение
+                    }
+
+                    if (data.status === 'succeeded' || data.status === 'pending') {
                         // Сценарий 2: Оплата с привязанной карты прошла. НЕ ПЕРЕЗАГРУЖАЕМ!
-                        console.log('Оплата с привязанной карты прошла. Запускаем опрос...');
+                        console.log('[БРОНЬ] Оплата с привязанной карты, статус:', data.status);
 
                         // Закрываем модалку и показываем экран ожидания
                         document.getElementById('confirm-booking-modal').classList.add('hidden');
@@ -852,9 +858,8 @@
                         // Успех! Рендерим экран брони
                         renderActiveBookingView(booking, mainContent);
                         showToast(bookingSuccessToast);
-
                     } else {
-                        throw new Error('Не удалось обработать платеж.');
+                        throw new Error('Не удалось обработать платеж. Статус: ' + (data.status || 'неизвестен'));
                     }
                 } else {
                     // --- БЕСПЛАТНАЯ БРОНЬ ---
@@ -868,6 +873,7 @@
                 }
 
             } catch (err) {
+                console.error('[БРОНЬ] Ошибка:', err);
                 alert('Не удалось создать бронь: ' + err.message);
                 toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
             }
@@ -2593,7 +2599,8 @@
         <div class="modal-content">
             <button class="modal-close" id="prompt-modal-close-btn">&times;</button>
             <h2>Почти готово!</h2>
-            <p>Дождитесь, пока администратор подберет для вас оборудование. После этого вы сможете подписать договор.</p>
+            <p>Дождитесь, пока администратор подберет для вас оборудование. После этого вы сможете подписать договор.
+            </p>
             <button id="go-to-profile-btn" class="btn btn-primary">Понятно</button>
         </div>
     </div>
