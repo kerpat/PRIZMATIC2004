@@ -35,7 +35,7 @@ TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8114516631:AAFt6cOFSdhQH1ERv0Q04fXXpBLX
 WEBAPP_REGISTER_API = 'https://prizmatic-2004.vercel.app/api/telegram-register'
 BOT_REGISTER_API = 'https://prizmatic-2004.vercel.app/api/auth'
 ADMIN_SECRET_KEY = 'your_super_secret_admin_key' # Секрет для уведомлений от админки
-WEB_APP_URL = 'https://go-go-b-ike.vercel.app' # URL вашего основного веб-приложения
+WEB_APP_URL = 'https://prizmatic-2004.vercel.app/' # URL вашего основного веб-приложения
 
 # --- ВОТ ЭТОТ НОВЫЙ БЛОК ---
 # Добавь сюда ID админов, которым будут приходить уведомления
