@@ -1,12 +1,5 @@
 {
   "regions": ["iad1"],
-  "_crons_disabled": [
-    {
-      "path": "/api/process-renewals",
-      "schedule": "0 3 * * *",
-      "comment": "Disabled to avoid Vercel limits - re-enable when needed"
-    }
-  ],
   "functions": {
     "api/auth.js": {
       "memory": 1024,
