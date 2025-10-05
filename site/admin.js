@@ -705,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(extArr)) {
             extArr.forEach(ext => {
                 const d = ext?.days || ext?.duration;
-                const c = ext?.cost || ext?.price;
+                const c = ext?.price_rub || ext?.cost || ext?.price;
                 addExtensionRow(d || '', c || '');
             });
         }
@@ -715,9 +715,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!extensionsList) return [];
         return Array.from(extensionsList.querySelectorAll('.extension-row')).map(row => {
             const days = parseInt(row.querySelector('.ext-days').value, 10);
-            const cost = parseInt(row.querySelector('.ext-price').value, 10);
-            return { days, cost };
-        }).filter(ext => !isNaN(ext.days) && !isNaN(ext.cost) && ext.days > 0 && ext.cost >= 0);
+            const price_rub = parseInt(row.querySelector('.ext-price').value, 10);
+            return { days, price_rub };
+        }).filter(ext => !isNaN(ext.days) && !isNaN(ext.price_rub) && ext.days > 0 && ext.price_rub >= 0);
     }
 
     if (addExtensionBtn) {
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatExtensionsForDisplay(exts) {
         if (!Array.isArray(exts) || exts.length === 0) return 'Не заданы';
-        return exts.map(e => `${e.days} дн. - ${e.cost} ₽`).join('<br>');
+        return exts.map(e => `${e.days} дн. - ${e.price_rub || e.cost || 0} ₽`).join('<br>');
     }
 
     async function loadTariffs() {
@@ -1195,6 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- НОВЫЙ БЛОК: Batteries CRUD ---
 
     let currentBatteryStep = 1;
+    let originalSerialNumber = null; // Track original serial number for edit mode
 
     function showBatteryModal(battery = null) {
         currentBatteryStep = 1;
@@ -1204,6 +1205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             batteryModalTitle.textContent = 'Редактировать аккумулятор';
             batteryIdInput.value = battery.id;
             batterySerialNumberInput.value = battery.serial_number;
+            originalSerialNumber = battery.serial_number; // Store original
             batteryCapacityInput.value = battery.capacity_wh || '';
             batteryDescriptionInput.value = battery.description || '';
             batteryStatusSelect.value = battery.status;
@@ -1211,6 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
             batteryModalTitle.textContent = 'Новый аккумулятор';
             batteryIdInput.value = '';
             batterySerialNumberInput.value = '';
+            originalSerialNumber = null; // Reset for new battery
             batteryCapacityInput.value = '';
             batteryDescriptionInput.value = '';
             batteryStatusSelect.value = 'available';
@@ -1325,17 +1328,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (batterySaveBtn) {
         batterySaveBtn.addEventListener('click', async () => {
             const id = batteryIdInput.value;
+            const serialNumber = batterySerialNumberInput.value.trim();
+            
+            // Validate serial number
+            if (!serialNumber) {
+                alert('Серийный номер обязателен');
+                return;
+            }
+
             const batteryData = {
-                serial_number: batterySerialNumberInput.value.trim(),
+                serial_number: serialNumber,
                 capacity_wh: batteryCapacityInput.value ? parseInt(batteryCapacityInput.value, 10) : null,
                 description: batteryDescriptionInput.value.trim() || null,
                 status: batteryStatusSelect.value,
             };
 
             try {
+                // Check if serial number already exists
+                // Only check if: 1) new battery OR 2) editing and serial number changed
+                const serialNumberChanged = id && originalSerialNumber !== serialNumber;
+                
+                if (!id || serialNumberChanged) {
+                    const { data: existing } = await supabase
+                        .from('batteries')
+                        .select('id')
+                        .eq('serial_number', serialNumber)
+                        .maybeSingle();
+                    
+                    if (existing && existing.id !== parseInt(id)) {
+                        alert(`Аккумулятор с серийным номером "${serialNumber}" уже существует`);
+                        return;
+                    }
+                }
+
                 const { error } = id
                     ? await supabase.from('batteries').update(batteryData).eq('id', id)
                     : await supabase.from('batteries').insert([batteryData]);
+                    
                 if (error) throw error;
                 await loadBatteries();
                 hideBatteryModal();
