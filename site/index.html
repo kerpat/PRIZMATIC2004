@@ -1429,6 +1429,20 @@
             const payBtn = document.getElementById('pay-sbp-btn');
             const amountInput = document.getElementById('amount-input');
 
+            // Фикс для input в Telegram WebApp
+            if (amountInput) {
+                amountInput.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: true });
+
+                amountInput.addEventListener('focus', () => {
+                    // Прокручиваем к input при фокусе
+                    setTimeout(() => {
+                        amountInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            }
+
             // Элементы для модального окна бронирования
             const confirmBookingModal = document.getElementById('confirm-booking-modal');
             const confirmBookingCloseBtn = document.getElementById('confirm-booking-close-btn');
@@ -2345,7 +2359,14 @@
                 if (balance) {
                     e.preventDefault();
                     const modal = document.getElementById('topup-modal');
-                    if (modal) modal.classList.remove('hidden');
+                    const amountInput = document.getElementById('amount-input');
+                    if (modal) {
+                        modal.classList.remove('hidden');
+                        // Устанавливаем фокус после небольшой задержки для корректной работы
+                        setTimeout(() => {
+                            if (amountInput) amountInput.focus();
+                        }, 100);
+                    }
                     return;
                 }
 
@@ -2665,6 +2686,12 @@
 
                 // Устанавливаем фиксированный цвет шапки
                 tg.setHeaderColor('#ffffff');
+
+                // Разрешаем вертикальные свайпы (чтобы не конфликтовало с прокруткой)
+                tg.disableVerticalSwipes();
+
+                // Включаем возможность закрытия при свайпе вниз
+                tg.enableClosingConfirmation();
             }
         });
     </script>
