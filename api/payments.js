@@ -172,7 +172,7 @@ async function handleSaveCard({ userId }) {
     if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
 
     const amount = 1.00; // Small amount for card verification
-    const description = 'Привязка карты для GoGoBike';
+    const description = 'Привязка карты для PRIZMATIC';
     const idempotenceKey = crypto.randomUUID();
 
     const paymentData = {
@@ -270,7 +270,7 @@ async function handleCreatePayment(body) {
     } else if (amountFromClient) {
         paymentType = 'top-up';
         successRedirectUrl = 'https://prizmatic-2004.vercel.app/?topup_success=true';
-        description = 'Пополнение баланса GoGoBike';
+        description = 'Пополнение баланса PRIZMATIC';
         amount = Number.parseFloat(amountFromClient);
     } else {
         throw new Error('Invalid request: amount or tariffId is missing.');

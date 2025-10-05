@@ -1,5 +1,5 @@
 -- ============================================
--- GoGoBike Database Migration Script
+-- PRIZMATIC Database Migration Script
 -- Adds missing columns and functions
 -- ============================================
 

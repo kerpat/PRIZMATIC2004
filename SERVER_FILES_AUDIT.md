@@ -67,7 +67,7 @@
    SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    TELEGRAM_BOT_TOKEN=8114516631:AAFt6cOFSdhQH1ERv0Q04fXXpBLX3GhEmJo
-   BOT_USERNAME=gogobikebot (или ваше актуальное имя)
+   BOT_USERNAME=PRIZMATICbot (или ваше актуальное имя)
    WEBAPP_NAME=app
    PORT=10000
    ```

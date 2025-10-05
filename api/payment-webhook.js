@@ -49,6 +49,8 @@ async function processSucceededPayment(notification) {
     const cardPaymentAmount = Number.parseFloat(payment.amount?.value ?? '0');
     const yookassaPaymentId = payment.id;
     const supabaseAdmin = createSupabaseAdmin();
+    
+    console.log(`[WEBHOOK] payment_id: ${yookassaPaymentId}, payment_type: ${payment_type}, userId: ${userId}, tariffId: ${tariffId}`);
 
     // Сохраняем метод оплаты, если он есть и userId указан
     if (payment.payment_method?.id && userId) {
@@ -105,6 +107,19 @@ async function processSucceededPayment(notification) {
 
     if (tariffId) {
         console.log(`[АРЕНДА] Обработка для userId: ${userId}`);
+        
+        // Проверка на дубликат платежа
+        const { data: existingPayment } = await supabaseAdmin
+            .from('payments')
+            .select('id')
+            .eq('yookassa_payment_id', yookassaPaymentId)
+            .maybeSingle();
+        
+        if (existingPayment) {
+            console.log(`[АРЕНДА] Платеж ${yookassaPaymentId} уже обработан, пропускаем`);
+            return;
+        }
+        
         const amountToDebit = Number.parseFloat(debit_from_balance) || 0;
         if (amountToDebit > 0) {
             console.log(`[АРЕНДА] Списываем с баланса ${amountToDebit} ₽`);
@@ -130,8 +145,23 @@ async function processSucceededPayment(notification) {
         endDate.setDate(startDate.getDate() + rentalDays);
         const totalPaid = cardPaymentAmount + amountToDebit;
         
-        console.log(`[АРЕНДА] Создаем аренду на ${rentalDays} дней`);
-        const { data: newRental } = await supabaseAdmin.from('rentals').insert({ user_id: userId, bike_id: bikeId, tariff_id: tariffId, starts_at: startDate.toISOString(), current_period_ends_at: endDate.toISOString(), status: 'awaiting_battery_assignment', total_paid_rub: totalPaid }).select('id').single();
+        console.log(`[АРЕНДА] Создаем аренду на ${rentalDays} дней со статусом awaiting_battery_assignment`);
+        const { data: newRental, error: rentalInsertError } = await supabaseAdmin.from('rentals').insert({ 
+            user_id: userId, 
+            bike_id: bikeId, 
+            tariff_id: tariffId, 
+            starts_at: startDate.toISOString(), 
+            current_period_ends_at: endDate.toISOString(), 
+            status: 'awaiting_battery_assignment', 
+            total_paid_rub: totalPaid 
+        }).select('id, status').single();
+        
+        if (rentalInsertError) {
+            console.error('[АРЕНДА] Ошибка создания аренды:', rentalInsertError);
+            throw new Error('Не удалось создать аренду: ' + rentalInsertError.message);
+        }
+        
+        console.log(`[АРЕНДА] Создана аренда #${newRental.id} со статусом: ${newRental.status}`);
 
         // Определяем способ оплаты из данных ЮKassa
         const paymentMethod = getPaymentMethodFromYookassa(payment);
@@ -166,16 +196,63 @@ async function processSucceededPayment(notification) {
 
     if (payment_type === 'booking') {
         console.log(`[БРОНЬ] Обработка для userId: ${userId}`);
+        
+        // Проверяем на дубликат платежа
+        const { data: existingPayment } = await supabaseAdmin
+            .from('payments')
+            .select('id')
+            .eq('yookassa_payment_id', yookassaPaymentId)
+            .maybeSingle();
+        
+        if (existingPayment) {
+            console.log(`[БРОНЬ] Платеж ${yookassaPaymentId} уже обработан, пропускаем`);
+            return;
+        }
+        
         const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-        const { data: newBooking } = await supabaseAdmin.from('bookings').insert({ user_id: userId, expires_at: expires_at, status: 'active', cost_rub: cardPaymentAmount }).select('id').single();
+        
+        console.log('[БРОНЬ] Попытка создать бронь с данными:', {
+            user_id: userId,
+            expires_at: expires_at,
+            status: 'active',
+            cost_rub: cardPaymentAmount
+        });
+        
+        const { data: newBooking, error: bookingError } = await supabaseAdmin
+            .from('bookings')
+            .insert({ 
+                user_id: userId, 
+                expires_at: expires_at, 
+                status: 'active', 
+                cost_rub: cardPaymentAmount 
+            })
+            .select('id')
+            .single();
 
+        console.log('[БРОНЬ] Результат insert:', { data: newBooking, error: bookingError });
+
+        if (bookingError || !newBooking) {
+            console.error('[БРОНЬ] Ошибка создания брони:', JSON.stringify(bookingError, null, 2));
+            throw new Error('Не удалось создать бронь: ' + (bookingError?.message || 'Unknown error'));
+        }
+
+        console.log(`[БРОНЬ] Создана бронь #${newBooking.id}`);
         console.log(`[БРОНЬ -> БАЛАНС] Пополняем баланс на ${cardPaymentAmount} ₽`);
-        await supabaseAdmin.rpc('add_to_balance', { client_id_to_update: userId, amount_to_add: cardPaymentAmount });
+        
+        const { error: balanceError } = await supabaseAdmin.rpc('add_to_balance', { 
+            client_id_to_update: userId, 
+            amount_to_add: cardPaymentAmount 
+        });
+
+        if (balanceError) {
+            console.error('[БРОНЬ] Ошибка пополнения баланса:', balanceError);
+            throw new Error('Не удалось пополнить баланс: ' + balanceError.message);
+        }
 
         // Определяем способ оплаты из данных ЮKassa
         const paymentMethod = getPaymentMethodFromYookassa(payment);
         
-        await supabaseAdmin.from('payments').insert({ 
+        const { error: paymentError } = await supabaseAdmin.from('payments').insert({ 
             client_id: userId, 
             booking_id: newBooking.id, 
             amount_rub: cardPaymentAmount, 
@@ -184,7 +261,12 @@ async function processSucceededPayment(notification) {
             method: paymentMethod,
             yookassa_payment_id: yookassaPaymentId 
         });
-        console.log(`[БРОНЬ] Успешно создана бронь #${newBooking.id}`);
+
+        if (paymentError) {
+            console.error('[БРОНЬ] Ошибка записи платежа:', paymentError);
+        }
+
+        console.log(`[БРОНЬ] Успешно создана бронь #${newBooking.id}, баланс пополнен на ${cardPaymentAmount} ₽`);
         return;
     }
 

@@ -1,8 +1,8 @@
-# Gemini Project Context: GoGoBike Bike Rental
+# Gemini Project Context: PRIZMATIC Bike Rental
 
 ## Project Overview
 
-This project is **GoGoBike**, a full-stack electric bike rental service. The system is designed to operate primarily within the Telegram ecosystem as a **Telegram Mini App**.
+This project is **PRIZMATIC**, a full-stack electric bike rental service. The system is designed to operate primarily within the Telegram ecosystem as a **Telegram Mini App**.
 
 The architecture consists of three main components:
 1.  **Frontend**: A static vanilla JavaScript, HTML, and CSS application located in the `site/` directory. It serves as the main user interface for both regular users and administrators and is designed to be launched from within Telegram.

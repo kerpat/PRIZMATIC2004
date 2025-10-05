@@ -1,5 +1,5 @@
 -- ============================================
--- GoGoBike Full Database Schema
+-- PRIZMATIC Full Database Schema
 -- Creates all tables from scratch
 -- ============================================
 

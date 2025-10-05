@@ -1,6 +1,6 @@
 // Ensure the header always shows the brand title without greeting flicker
 (function () {
-  var BRAND = 'GoGoBike';
+  var BRAND = 'PRIZMATIC';
   function setBrand() {
     var header = document.querySelector('.app-header');
     if (!header) return;

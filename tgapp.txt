@@ -46,7 +46,7 @@
             const loadingHTML = `
                 <div class="app-screen loading-container" style="display: flex; text-align: center; justify-content: center; align-items: center; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; background: white; z-index: 1000;">
                     <div class="app-content" style="justify-content: center;">
-                        <header class="app-header"><h1>GoGoBike</h1></header>
+                        <header class="app-header"><h1>PRIZMATIC</h1></header>
                         <main class="app-main">
                             <h2>Авторизация...</h2>
                             <p style="color: var(--text-secondary); margin: 20px 0;">Проверяем ваши данные в Telegram.</p>
@@ -914,22 +914,22 @@ function initializeMainScreenEventListeners() {
         const rentSuccessToast = document.getElementById('rent-success-toast');
         const bookingSuccessToast = document.getElementById('booking-success-toast');
 
-        // Элементы для работы с GoGoBike тарифами
+        // Элементы для работы с PRIZMATIC тарифами
         const tariffModal = document.getElementById('tariff-modal');
         const tariffModalCloseBtn = document.getElementById('tariff-modal-close-btn');
 
         /**
          * Настраиваем внешний вид кнопок на главном экране в зависимости
-         * от выбранного способа оплаты (QR или GoGoBike). По умолчанию
+         * от выбранного способа оплаты (QR или PRIZMATIC). По умолчанию
          * отображается кнопка «Сканировать QR‑код» и три дополнительных
-         * действия. При выборе провайдера GoGoBike основная кнопка
+         * действия. При выборе провайдера PRIZMATIC основная кнопка
          * переименовывается в «Тарифы», а второстепенные кнопки для
          * сканирования и бронирования скрываются, оставляя только
          * возможность ввести ID.
          */
         function applyProviderUI() {
-            const provider = localStorage.getItem('paymentProvider') || 'GoGoBike';
-            if (provider === 'GoGoBike') {
+            const provider = localStorage.getItem('paymentProvider') || 'PRIZMATIC';
+            if (provider === 'PRIZMATIC') {
                 // Переименовываем основную кнопку
                 scanBtn.textContent = 'Тарифы';
                 // Скрываем иконку для сканирования и кнопку бронирования
@@ -962,7 +962,7 @@ function initializeMainScreenEventListeners() {
                 const _bookingBtn = document.getElementById('booking-btn');
                 const _provider = localStorage.getItem('paymentProvider') || 'qr';
                 if (!_scanBtn) return;
-                if (_provider === 'GoGoBike') {
+                if (_provider === 'PRIZMATIC') {
                     _scanBtn.textContent = 'Тарифы';
                     if (_scanIconBtn) _scanIconBtn.style.display = 'none';
                     if (_bookingBtn) _bookingBtn.style.display = '';
@@ -996,7 +996,7 @@ function initializeMainScreenEventListeners() {
 
         /**
          * Обновляет подпись на изображении велосипеда. Если пользователь
-         * выбирает тариф GoGoBike, мы отображаем название тарифа (Бронза,
+         * выбирает тариф PRIZMATIC, мы отображаем название тарифа (Бронза,
          * Серебро или Золото). В других случаях отображаем номер
          * велосипеда, например «00001». После обновления сразу
          * сохраняем состояние, чтобы подпись сохранилась при перезагрузке.
@@ -1058,7 +1058,7 @@ function initializeMainScreenEventListeners() {
             showToast(bookingSuccessToast);
         };
 
-        // === ЛОГИКА ДЛЯ ТАРИФОВ GoGoBike ===
+        // === ЛОГИКА ДЛЯ ТАРИФОВ PRIZMATIC ===
         // Определяем данные по тарифам: стоимость и длительность аренды (в днях)
         const tariffData = {
             bronze: { title: 'Бронза', cost: 1000, days: 3, deposit: 0 },
@@ -1090,7 +1090,7 @@ function initializeMainScreenEventListeners() {
         } catch (err) {
             console.warn('Failed to parse tariffMap', err);
         }
-        // Обработчик аренды по выбранному тарифу GoGoBike
+        // Обработчик аренды по выбранному тарифу PRIZMATIC
         const processTariffRental = async (tariffKey, selectedExt = null) => {
             const tariff = tariffData[tariffKey];
             if (!tariff || !tariff.id) {
@@ -1479,14 +1479,14 @@ function initializeMainScreenEventListeners() {
             if (e.target === tariffModal) tariffModal.classList.add('hidden');
         });
 
-        // ========== ПОДДЕРЖКА ДИНАМИЧЕСКОЙ ЗАГРУЗКИ ТАРИФОВ GoGoBike ==========
+        // ========== ПОДДЕРЖКА ДИНАМИЧЕСКОЙ ЗАГРУЗКИ ТАРИФОВ PRIZMATIC ==========
         /**
          * Загружает список тарифов из API (или localStorage, если сеть недоступна).
          * Обновляет содержимое списка в модальном окне и сохраняет map в sessionStorage,
          * чтобы функции оформления аренды могли использовать актуальные данные (цена,
          * длительность, депозит, extensions).
          */
-        async function loadGoGoBikeTariffs() {
+        async function loadPRIZMATICTariffs() {
             let data;
             try {
                 const { data: supabaseData, error } = await supabase
@@ -1584,9 +1584,9 @@ function initializeMainScreenEventListeners() {
         scanBtn.addEventListener('click', () => {
             // В зависимости от выбранного способа оплаты открываем соответствующее окно
             const provider = localStorage.getItem('paymentProvider') || 'qr';
-            if (provider === 'GoGoBike') {
+            if (provider === 'PRIZMATIC') {
                 // Перед открытием окна подгружаем актуальные тарифы
-                loadGoGoBikeTariffs().then(() => {
+                loadPRIZMATICTariffs().then(() => {
                     tariffModal.classList.remove('hidden');
                 });
             } else {
@@ -1721,7 +1721,7 @@ function initializeMainScreenEventListeners() {
             if (scan) {
                 e.preventDefault();
                 // Всегда открываем модальное окно с тарифами
-                loadGoGoBikeTariffs().then(() => {
+                loadPRIZMATICTariffs().then(() => {
                     const modal = document.getElementById('tariff-modal');
                     if (modal) modal.classList.remove('hidden');
                 });
@@ -1779,7 +1779,7 @@ function initializeMainScreenEventListeners() {
         });
 });
 </script>
-    <!-- Общий скрипт меню GoGoBike, подключается после основного скрипта -->
+    <!-- Общий скрипт меню PRIZMATIC, подключается после основного скрипта -->
     <script src="menu.js" defer></script>
 
     <!-- Geolocation Tracking Script -->

@@ -1,7 +1,7 @@
 {
-  "name": "GoGoBike-vercel-app",
+  "name": "PRIZMATIC-vercel-app",
   "version": "1.0.0",
-  "description": "GoGoBike Web App and Telegram Bot for Vercel",
+  "description": "PRIZMATIC Web App and Telegram Bot for Vercel",
   "main": "telegram-bot.js",
   "scripts": {
     "start": "node telegram-bot.js",
@@ -24,11 +24,11 @@
   "keywords": [
     "telegram",
     "bot",
-    "GoGoBike",
+    "PRIZMATIC",
     "webapp",
     "vercel"
   ],
-  "author": "GoGoBike",
+  "author": "PRIZMATIC",
   "license": "MIT",
   "repository": {
     "type": "git",
