@@ -31,7 +31,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8114516631:AAFt6cOFSdhQH1ERv0Q04fXXpBLX3GhEmJo')
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8126548981:AAGC86ZaJ0SYLICC0WbpS7aGOhU9t8iz_a4')
 WEBAPP_REGISTER_API = 'https://prizmatic-2004.vercel.app/api/telegram-register'
 BOT_REGISTER_API = 'https://prizmatic-2004.vercel.app/api/auth'
 ADMIN_SECRET_KEY = 'your_super_secret_admin_key' # Секрет для уведомлений от админки

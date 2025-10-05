@@ -11,7 +11,7 @@
 - `process.env.SUPABASE_URL` - URL Supabase
 - `process.env.SUPABASE_SERVICE_ROLE_KEY` - Service Role ключ
 - `process.env.TELEGRAM_BOT_TOKEN` - токен Telegram бота
-- `process.env.BOT_USERNAME` - имя пользователя бота (default: 'dasdsaads12321xczbot')
+- `process.env.BOT_USERNAME` - имя пользователя бота (default: 'pr1zmaticbot')
 - `process.env.WEBAPP_NAME` - короткое имя Web App (default: 'app')
 
 **Что делает**:
@@ -66,7 +66,7 @@
    ```
    SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   TELEGRAM_BOT_TOKEN=8114516631:AAFt6cOFSdhQH1ERv0Q04fXXpBLX3GhEmJo
+   TELEGRAM_BOT_TOKEN=8126548981:AAGC86ZaJ0SYLICC0WbpS7aGOhU9t8iz_a4
    BOT_USERNAME=PRIZMATICbot (или ваше актуальное имя)
    WEBAPP_NAME=app
    PORT=10000
@@ -82,7 +82,7 @@
    ```
 
 3. **BOT_USERNAME** - проверить актуальное имя бота:
-   - Текущее значение по умолчанию: `dasdsaads12321xczbot`
+   - Текущее значение по умолчанию: `pr1zmaticbot`
    - Нужно обновить на реальное имя вашего бота
 
 ### 📝 Рекомендации:
