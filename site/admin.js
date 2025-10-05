@@ -364,8 +364,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Конец блока для карты ---
 
     // --- Supabase Initialization ---
-    const SUPABASE_URL = CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
+    // Check if CONFIG is loaded
+    if (typeof window.CONFIG === 'undefined') {
+        console.error('CONFIG is not loaded! Make sure config.js is loaded before admin.js');
+        alert('Configuration error. Please check console.');
+        return;
+    }
+    
+    const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
+    const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Вспомогательная функция для выполнения fetch-запросов с аутентификацией
@@ -3186,7 +3193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Step 2: Generate return act PDF
-                const pdfServerUrl = CONFIG.CONTRACTS_API_URL + '/api/user';
+                const pdfServerUrl = window.CONFIG.CONTRACTS_API_URL + '/api/user';
                 const pdfResponse = await fetch(pdfServerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

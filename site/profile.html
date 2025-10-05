@@ -683,9 +683,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
     <script src="config.js"></script>
     <script>
-        const SUPABASE_URL = CONFIG.SUPABASE_URL;
-        const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
-        const CONTRACTS_API_URL = CONFIG.CONTRACTS_API_URL;
+        const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
+        const CONTRACTS_API_URL = window.CONFIG.CONTRACTS_API_URL;
 
         document.addEventListener('DOMContentLoaded', () => {
             if (window.location.hash === '#support') {
