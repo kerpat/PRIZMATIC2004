@@ -1,9 +1,10 @@
 {
   "regions": ["iad1"],
-  "crons": [
+  "_crons_disabled": [
     {
       "path": "/api/process-renewals",
-      "schedule": "0 3 * * *"
+      "schedule": "0 3 * * *",
+      "comment": "Disabled to avoid Vercel limits - re-enable when needed"
     }
   ],
   "functions": {
