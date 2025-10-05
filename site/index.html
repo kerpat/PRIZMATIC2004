@@ -1085,11 +1085,6 @@
                                 case 'awaiting_contract_signing': // Ожидает подписания
                                     renderAwaitingContractView(rental, mainContent);
                                     break;
-                                case 'awaiting_contract_signing':
-                                    // Теперь этот статус снова означает "надо подписать"
-                                    // Можно показать специальное уведомление или сразу перенаправить
-                                    renderAwaitingContractView(rental, mainContent);
-                                    break;
                                 case 'active':
                                     await renderActiveRentalView(rental, mainContent);
                                     break;
@@ -2597,9 +2592,9 @@
     <div id="post-rental-prompt-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="modal-close" id="prompt-modal-close-btn">&times;</button>
-            <h2>Аренда оформлена!</h2>
-            <p>Пожалуйста, перейдите в уведомления в своем профиле, чтобы подписать договор.</p>
-            <button id="go-to-profile-btn" class="btn btn-primary">Перейти в профиль</button>
+            <h2>Почти готово!</h2>
+            <p>Дождитесь, пока администратор подберет для вас оборудование. После этого вы сможете подписать договор.</p>
+            <button id="go-to-profile-btn" class="btn btn-primary">Понятно</button>
         </div>
     </div>
 
