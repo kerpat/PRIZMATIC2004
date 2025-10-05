@@ -181,7 +181,7 @@ async function handleSaveCard({ userId }) {
         description,
         metadata: { userId, payment_type: 'save_card' }, // Special metadata
         save_payment_method: true,
-        confirmation: { type: 'redirect', return_url: 'https://go-go-b-ike.vercel.app/profile.html?card_saved=true' }, // Redirect back to profile
+        confirmation: { type: 'redirect', return_url: 'https://prizmatic-2004.vercel.app/profile.html?card_saved=true' }, // Redirect back to profile
         receipt: {
             customer: { phone: normalizedPhone },
             items: [{
@@ -236,7 +236,7 @@ async function handleCreatePayment(body) {
     // Determine payment type and calculate amounts
     if (type === 'renewal') {
         paymentType = 'renewal';
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?renewal_success=true';
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?renewal_success=true';
         description = `Продление аренды`;
         const renewalCost = Number.parseFloat(amountFromClient);
 
@@ -250,12 +250,12 @@ async function handleCreatePayment(body) {
         }
     } else if (type === 'booking') {
         paymentType = 'booking';
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?booking_success=true';
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?booking_success=true';
         description = `Бронирование велосипеда`;
         amount = Number.parseFloat(amountFromClient);
     } else if (tariffId && amountFromClient) {
         paymentType = 'rental';
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?rental_success=true';
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?rental_success=true';
         const tariffCost = Number.parseFloat(amountFromClient);
         description = `Аренда велосипеда`;
 
@@ -269,7 +269,7 @@ async function handleCreatePayment(body) {
         }
     } else if (amountFromClient) {
         paymentType = 'top-up';
-        successRedirectUrl = 'https://go-go-b-ike.vercel.app/?topup_success=true';
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?topup_success=true';
         description = 'Пополнение баланса GoGoBike';
         amount = Number.parseFloat(amountFromClient);
     } else {
