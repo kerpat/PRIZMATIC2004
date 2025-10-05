@@ -1410,7 +1410,7 @@
 
             async function updatePaymentSettingsView() {
                 let savedCity = localStorage.getItem('selectedCity') || 'Москва';
-                
+
                 // Пытаемся получить город из БД
                 const userId = localStorage.getItem('userId');
                 if (userId && supabase) {
@@ -1420,7 +1420,7 @@
                             .select('city')
                             .eq('id', userId)
                             .single();
-                        
+
                         if (!error && client && client.city) {
                             savedCity = client.city;
                             localStorage.setItem('selectedCity', savedCity);
@@ -1457,7 +1457,7 @@
                                 .from('clients')
                                 .update({ city: selectedCity })
                                 .eq('id', userId);
-                            
+
                             if (error) {
                                 console.error('Ошибка обновления города:', error);
                             } else {

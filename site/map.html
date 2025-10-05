@@ -162,8 +162,8 @@
         });
 
         // --- Supabase initialization ---
-        const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
-        const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
+        const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
         let supabase = null;
 
         // Wait for Supabase to load
@@ -331,7 +331,7 @@
         function loadYandexMaps() {
             const script = document.createElement('script');
             script.type = 'text/javascript';
-            script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${window.APP_CONFIG.YANDEX_MAPS_API_KEY}`;
+            script.src = `https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${window.CONFIG.YANDEX_MAPS_API_KEY}`;
             document.head.appendChild(script);
             script.onload = () => {
                 ymaps.ready(async function () {
