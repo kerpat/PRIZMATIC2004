@@ -47,7 +47,7 @@
       <nav id="admin-nav">
         <button type="button" data-section="dashboard-main" class="active">Dashboard</button>
         <button type="button" data-section="assignments">Заявки</button>
-        <button type="button" data-section="tariffs">Тарифы</button>
+        <button type="button" data-section="tariffs">Тарифы</button>sss
         <button type="button" data-section="clients">Клиенты</button>
         <button type="button" data-section="rentals">Аренды</button>
         <button type="button" data-section="payments">Платежи</button>
