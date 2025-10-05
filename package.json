@@ -1,0 +1,41 @@
+{
+  "name": "GoGoBike-vercel-app",
+  "version": "1.0.0",
+  "description": "GoGoBike Web App and Telegram Bot for Vercel",
+  "main": "telegram-bot.js",
+  "scripts": {
+    "start": "node telegram-bot.js",
+    "dev": "nodemon telegram-bot.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.11.3",
+    "@supabase/supabase-js": "^2.41.0",
+    "@tiptap/core": "^3.4.6",
+    "@tiptap/extension-underline": "^3.4.6",
+    "@tiptap/starter-kit": "^3.4.6",
+    "busboy": "^1.6.0",
+    "node-fetch": "^2.6.7",
+    "node-telegram-bot-api": "^0.66.0",
+    "playwright-aws-lambda": "^0.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "GoGoBike",
+    "webapp",
+    "vercel"
+  ],
+  "author": "GoGoBike",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kerpat/prizmalol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kerpat/prizmalol/issues"
+  },
+  "homepage": "https://github.com/kerpat/prizmalol#readme"
+}

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="config.js"></script>
+    <title>GoGoBike - Статистика</title>
+    <link rel="stylesheet" href="style.css?v=7.7">
+    <link rel="stylesheet" href="blend.css">
+    <style>
+        /* === НОВЫЕ СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА "ДЕТАЛИ ПЛАТЕЖА" === */
+
+        /* --- Оверлей (полупрозрачный фон) --- */
+        #payment-detail-modal.overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Чуть светлее фон */
+            backdrop-filter: blur(8px);
+            /* Эффект размытия фона */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+            padding: 20px;
+        }
+
+        #payment-detail-modal.overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- Само модальное окно --- */
+        #payment-detail-modal .modal {
+            background-color: var(--white);
+            border-radius: 24px;
+            /* Фирменные скругления */
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            /* Внутренние отступы для карточек */
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transform: scale(1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #payment-detail-modal.overlay.hidden .modal {
+            transform: scale(0.95);
+        }
+
+        /* --- Заголовок окна (ИЗМЕНЕНИЯ ЗДЕСЬ) --- */
+        #payment-detail-modal .modal-header {
+            display: flex;
+            justify-content: center;
+            /* <<< ИЗМЕНЕНИЕ: Центрируем контент */
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: none;
+            position: relative;
+            /* <<< ДОБАВЛЕНО: Для позиционирования кнопки */
+        }
+
+        #payment-detail-modal .modal-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--dark-green);
+        }
+
+        #payment-detail-modal .close-btn {
+            position: absolute;
+            /* <<< ДОБАВЛЕНО: Вынимаем кнопку из потока */
+            right: 20px;
+            /* <<< ДОБАВЛЕНО: Прибиваем к правому краю */
+            background: var(--card-bg);
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--dark-green);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        #payment-detail-modal .close-btn:hover {
+            background-color: var(--progress-bar-bg);
+        }
+
+        /* --- Основной контент (самое важное) --- */
+        #payment-detail-modal .payment-details {
+            padding: 10px 10px 20px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* Расстояние между строками */
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 14px;
+            /* Скругляем каждую строку */
+            background-color: var(--card-bg);
+            /* Светло-зеленый фон */
+            border: none;
+            /* Убираем линии-разделители */
+        }
+
+        .detail-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #556f6b;
+            /* Вторичный цвет текста */
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark-green);
+            text-align: right;
+        }
+
+        /* --- Главный акцент на сумме (ИЗМЕНЕНИЯ ЗДЕСЬ) --- */
+        .detail-row.highlight {
+            background-color: var(--dark-green);
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 20px;
+        }
+
+        .detail-row.highlight .detail-label {
+            color: var(--white);
+            /* <<< ИЗМЕНЕНИЕ: Цвет текста "Сумма" стал белым */
+            opacity: 0.8;
+            /* <<< ДОБАВЛЕНО: Делаем его чуть менее ярким, чем сама сумма */
+            font-size: 1rem;
+        }
+
+        .detail-row.highlight .detail-value {
+            color: var(--white);
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .history-icon-wrapper.initial {
+            background-color: #26b999;
+        }
+
+        .history-icon-wrapper.renewal {
+            background-color: #3182ce;
+        }
+
+        .history-icon-wrapper.top-up {
+            background-color: #38a169;
+        }
+
+        .history-icon-wrapper.invoice {
+            background-color: #e53e3e;
+        }
+
+        .history-icon-wrapper.adjustment {
+            background-color: #d69e2e;
+        }
+
+        .history-icon-wrapper.balance_debit {
+            background-color: #e53e3e;
+        }
+
+        .history-icon-wrapper.save_card {
+            background-color: #805ad5;
+        }
+
+        .history-icon-wrapper.refund_to_balance {
+            background-color: #38a169;
+        }
+
+        .history-cost {
+            white-space: nowrap;
+        }
+
+        .payment-details {
+            padding: 10px 0;
+        }
+
+        .detail-row {
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--progress-bar-bg);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-row strong {
+            display: inline-block;
+            min-width: 120px;
+            color: var(--primary-color);
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Подключаем библиотеку Supabase до основного скрипта, чтобы window.supabase был доступен -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+
+    <script src="transitions.js" defer></script>
+</head>
+
+<body>
+    <div class="app-screen">
+        <div class="app-content">
+            <header class="app-header header-centered">
+                <h1>История</h1>
+            </header>
+            <main class="app-main">
+                <div class="stats-graph">
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-0"></div><span class="day">Пн</span>
+                    </div>
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-1"></div><span class="day">Вт</span>
+                    </div>
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-2"></div><span class="day">Ср</span>
+                    </div>
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-3"></div><span class="day">Чт</span>
+                    </div>
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-4"></div><span class="day">Пт</span>
+                    </div>
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-5"></div><span class="day">Сб</span>
+                    </div>
+                    <div class="graph-bar-item">
+                        <div class="bar" id="day-6"></div><span class="day">Вс</span>
+                    </div>
+                </div>
+
+                <div class="info-cards">
+                    <div class="card">
+                        <div class="icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                        </div>
+                        <div class="text-content">
+                            <span>Всего пополнений</span>
+                            <strong id="total-topups">0 ₽</strong>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                                <line x1="4" y1="22" x2="4" y2="15" />
+                            </svg>
+                        </div>
+                        <div class="text-content">
+                            <span>Всего расходов</span>
+                            <strong id="total-expenses">0 ₽</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="history-list" id="history-list-container">
+                    <!-- Сюда будут добавляться записи из истории -->
+                </div>
+            </main>
+        </div>
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+            </a>
+            <div class="nav-item active">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10" />
+                    <line x1="18" y1="20" x2="18" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="16" />
+                </svg>
+            </div>
+            <a href="map.html" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Модальное окно с деталями платежа -->
+    <div id="payment-detail-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Детали платежа</h3>
+                <button id="payment-detail-close-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="payment-detail-content">
+                <!-- Детали платежа будут загружены сюда -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Главное меню GoGoBike -->
+    <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true">
+        <div class="menu-container">
+            <button id="main-menu-close-btn" class="menu-close-btn" aria-label="Закрыть меню">&times;</button>
+            <div class="menu-items">
+                <button class="menu-item-btn primary" id="menu-tariffs-btn">Тарифы GoGoBike</button>
+                <button class="menu-item-btn secondary" id="menu-my-rentals-btn">Мои аренды</button>
+                <button class="menu-item-btn secondary" id="menu-topup-btn">Пополнить баланс</button>
+                <button class="menu-item-btn secondary" id="menu-map-btn">Карта</button>
+                <button class="menu-item-btn secondary" id="menu-stats-btn">Статистика</button>
+                <button class="menu-item-btn secondary" id="menu-profile-btn">Профиль</button>
+                <button class="menu-item-btn secondary" id="menu-support-btn">Поддержка/FAQ</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // --- Подключение к Supabase ---
+        const SUPABASE_URL = CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY;
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
+            const appScreen = document.querySelector('.app-screen');
+            const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+            const animationDuration = 400;
+
+            appScreen.classList.add('page-enter');
+            requestAnimationFrame(() => {
+                appScreen.classList.remove('page-enter');
+                appScreen.classList.add('page-enter-active');
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (link.parentElement.classList.contains('active')) {
+                        e.preventDefault();
+                        return;
+                    }
+                    e.preventDefault();
+                    const destination = e.currentTarget.href;
+                    appScreen.classList.remove('page-enter-active');
+                    appScreen.classList.add('page-exit');
+                    requestAnimationFrame(() => {
+                        appScreen.classList.add('page-exit-active');
+                    });
+                    setTimeout(() => {
+                        window.location.href = destination;
+                    }, animationDuration);
+                });
+            });
+
+
+            // --- ЛОГИКА, СПЕЦИФИЧНАЯ ДЛЯ stats.html ---
+            const historyContainer = document.getElementById('history-list-container');
+            const totalTopupsEl = document.getElementById('total-topups');
+            const totalExpensesEl = document.getElementById('total-expenses');
+
+            let allPayments = []; // Глобальная переменная для хранения платежей
+
+            const icons = {
+                'rental': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
+                'initial': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
+                'renewal': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>`,
+                'top-up': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+                'booking': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+                'invoice': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
+                'adjustment': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></circle></svg>`,
+                'balance_debit': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`,
+                'save_card': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+                'refund_to_balance': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`
+            };
+
+            const paymentTypeLabels = {
+                'rental': 'Аренда',
+                'initial': 'Аренда',
+                'renewal': 'Продление',
+                'top-up': 'Пополнение баланса',
+                'booking': 'Бронирование',
+                'invoice': 'Списание по счёту',
+                'adjustment': 'Корректировка баланса',
+                'balance_debit': 'Списание с баланса',
+                'refund_to_balance': 'Возврат на баланс'
+            };
+
+            const paymentStatusLabels = {
+                succeeded: 'Успешно',
+                pending: 'Ожидает',
+                canceled: 'Отменён',
+                failed: 'Ошибка',
+                refunded: 'Возвращено'
+            };
+
+            // === ЗАГРУЗКА ИСТОРИИ ПЛАТЕЖЕЙ ИЗ SUPABASE ===
+            async function loadPaymentHistory() {
+                // --- ШАГ 1: Подсветка СЕГОДНЯШНЕГО дня (это уже работает правильно) ---
+                const jsDayIndex = new Date().getDay();
+                const todayGraphIndex = (jsDayIndex === 0) ? 6 : jsDayIndex - 1;
+
+                // Сбрасываем все столбики
+                for (let i = 0; i < 7; i++) {
+                    const bar = document.getElementById(`day-${i}`);
+                    if (bar) {
+                        bar.style.height = '5%';
+                        bar.classList.remove('active');
+                        if (i === todayGraphIndex) {
+                            bar.classList.add('active');
+                        }
+                    }
+                }
+
+                // --- ШАГ 2: Проверка пользователя (без изменений) ---
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    console.error("User ID not found, can't load history.");
+                    historyContainer.innerHTML = '<p class="empty-history">Не удалось определить пользователя.</p>';
+                    totalTopupsEl.textContent = '0 ₽';
+                    totalExpensesEl.textContent = '0 ₽';
+                    return;
+                }
+
+                // --- ШАГ 3: Загрузка данных (без изменений) ---
+                historyContainer.innerHTML = '<p class="empty-history">Загрузка истории...</p>';
+
+                const { data: payments, error } = await supabase
+                    .from('payments')
+                    .select('id, amount_rub, payment_type, method, status, created_at, description')
+                    .eq('client_id', userId)
+                    .eq('status', 'succeeded')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Ошибка загрузки истории:', error);
+                    historyContainer.innerHTML = '<p class="empty-history">Не удалось загрузить историю платежей.</p>';
+                    return;
+                }
+
+                if (!payments || payments.length === 0) {
+                    allPayments = [];
+                    historyContainer.innerHTML = '<p class="empty-history">Здесь будет отображаться история ваших платежей.</p>';
+                    totalTopupsEl.textContent = '0 ₽';
+                    totalExpensesEl.textContent = '0 ₽';
+                    return;
+                }
+
+                allPayments = payments;
+
+                // --- ОБНОВЛЕНИЕ ГРАФИКА (ЛОГИКА ИЗМЕНЕНА НА ПОДСЧЕТ КОЛИЧЕСТВА ОПЕРАЦИЙ) ---
+                const today = new Date();
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(today.getDate() - 6);
+                sevenDaysAgo.setHours(0, 0, 0, 0);
+
+                // Создаем массив для подсчета количества операций, а не суммы
+                const weeklyOperationsCount = Array(7).fill(0);
+                payments.forEach(payment => {
+                    const paymentDate = new Date(payment.created_at);
+                    // Проверяем, что операция была за последнюю неделю
+                    if (paymentDate >= sevenDaysAgo) {
+                        // Убираем проверку на отрицательную сумму, считаем ВСЕ операции
+                        const paymentDayJs = paymentDate.getDay(); // 0=Вс, 1=Пн, ...
+                        const graphIndex = (paymentDayJs === 0) ? 6 : paymentDayJs - 1; // 0=Пн, ..., 6=Вс
+
+                        // Вместо суммирования денег, просто увеличиваем счетчик на 1
+                        weeklyOperationsCount[graphIndex] += 1;
+                    }
+                });
+
+                // Находим максимальное количество операций за день для пропорционального отображения
+                const maxOperations = Math.max(...weeklyOperationsCount, 1); // Добавляем 1, чтобы избежать деления на ноль
+                weeklyOperationsCount.forEach((count, index) => {
+                    const bar = document.getElementById(`day-${index}`);
+                    if (bar) {
+                        // Рассчитываем высоту в процентах от максимального количества
+                        const heightPercentage = Math.max((count / maxOperations) * 100, 5); // 5% - минимальная высота
+                        bar.style.height = `${heightPercentage}%`;
+                    }
+                });
+
+                // --- ОТОБРАЖЕНИЕ СТАТИСТИКИ И СПИСКА (без изменений) ---
+                let totalTopups = 0;
+                let totalExpenses = 0;
+                payments.forEach(payment => {
+                    const amount = parseFloat(payment.amount_rub) || 0;
+                    if (amount > 0) {
+                        totalTopups += amount;
+                    } else {
+                        totalExpenses += Math.abs(amount);
+                    }
+                });
+                totalTopupsEl.textContent = `${totalTopups.toLocaleString('ru-RU')} ₽`;
+                totalExpensesEl.textContent = `${totalExpenses.toLocaleString('ru-RU')} ₽`;
+
+                const expenseTypes = ['initial', 'renewal', 'balance_debit', 'invoice']; // Убедись, что этот массив есть выше в коде
+
+                historyContainer.innerHTML = '';
+                payments.forEach(payment => {
+                    const typeLabel = paymentTypeLabels[payment.payment_type] || payment.payment_type;
+                    const desc = payment.description && payment.description.trim() ? payment.description.replace(/\n/g, ' ') : new Date(payment.created_at).toLocaleString('ru-RU');
+                    const amount = parseFloat(payment.amount_rub) || 0;
+
+                    // --- ИСПРАВЛЕННАЯ ЛОГИКА ОТОБРАЖЕНИЯ СУММЫ ---
+                    const isExpense = expenseTypes.includes(payment.payment_type);
+                    const sign = isExpense ? '−' : '+'; // Используем красивый минус
+                    const amountDisplay = Math.abs(amount).toLocaleString('ru-RU');
+                    const costClass = isExpense ? 'negative' : 'positive'; // Класс для возможной стилизации (например, красный/зеленый)
+
+                    // Получаем иконку с фолбэком
+                    console.log('Payment type:', payment.payment_type, 'Icon exists:', !!icons[payment.payment_type]);
+                    const iconSvg = icons[payment.payment_type] || icons['adjustment'] || `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+
+                    const historyItemHTML = `
+                    <div class="history-item" data-payment-id="${payment.id}" style="cursor: pointer;">
+                        <div class="history-item-left">
+                            <div class="history-icon-wrapper ${payment.payment_type}">
+                                ${iconSvg}
+                            </div>
+                            <div class="history-details">
+                                <span class="history-title">${typeLabel}</span>
+                                <span class="history-subtitle">${desc}</span>
+                            </div>
+                        </div>
+                        <div class="history-cost ${costClass}">${sign}${amountDisplay} ₽</div>
+                    </div>
+                `;
+                    historyContainer.insertAdjacentHTML('beforeend', historyItemHTML);
+                });
+            }
+            // Запускаем загрузку истории
+            loadPaymentHistory();
+
+            // --- Обработчик кликов по элементам истории ---
+            const paymentDetailModal = document.getElementById('payment-detail-modal');
+            const paymentDetailCloseBtn = document.getElementById('payment-detail-close-btn');
+            const paymentDetailContent = document.getElementById('payment-detail-content');
+
+            // Функция для отображения детальной информации о платеже
+            function showPaymentDetails(payment) {
+                const typeLabel = paymentTypeLabels[payment.payment_type] || payment.payment_type;
+                const statusLabel = paymentStatusLabels[payment.status] || payment.status;
+
+                // Определяем метод оплаты из поля method
+                const paymentMethodLabels = {
+                    'card': 'Карта',
+                    'sbp': 'СБП',
+                    'balance': 'Баланс',
+                    'yoo_money': 'ЮMoney'
+                };
+
+                const method = payment.method ? paymentMethodLabels[payment.method] || payment.method : 'Не указан';
+
+                const amount = parseFloat(payment.amount_rub) || 0;
+                const date = new Date(payment.created_at).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }).replace(',', '');
+                const desc = payment.description || 'Без описания';
+
+                const detailsHTML = `
+                <div class="payment-details">
+                    <!-- Самый важный блок с суммой -->
+                    <div class="detail-row highlight">
+                        <span class="detail-label">Сумма</span>
+                        <span class="detail-value">${Math.abs(amount).toLocaleString('ru-RU')} ₽</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Тип операции</span>
+                        <span class="detail-value">${typeLabel}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Статус</span>
+                        <span class="detail-value">${statusLabel}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Метод оплаты</span>
+                        <span class="detail-value">${method}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Дата и время</span>
+                        <span class="detail-value">${date}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Описание</span>
+                        <span class="detail-value">${desc}</span>
+                    </div>
+                </div>
+            `;
+
+                paymentDetailContent.innerHTML = detailsHTML;
+                paymentDetailModal.classList.remove('hidden');
+            }
+
+            // Обработчик кликов по элементам истории
+            historyContainer.addEventListener('click', (e) => {
+                const historyItem = e.target.closest('.history-item');
+                if (historyItem && historyItem.dataset.paymentId) {
+                    const paymentId = historyItem.dataset.paymentId;
+                    // Находим платеж в глобальном массиве allPayments
+                    const payment = allPayments.find(p => p.id == paymentId);
+                    if (payment) {
+                        showPaymentDetails(payment);
+                    }
+                }
+            });
+
+            // Закрытие модального окна
+            paymentDetailCloseBtn.addEventListener('click', () => {
+                paymentDetailModal.classList.add('hidden');
+            });
+
+            paymentDetailModal.addEventListener('click', (e) => {
+                if (e.target === paymentDetailModal) {
+                    paymentDetailModal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+    <script src="menu.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Проверяем, что API Telegram доступен
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+
+                // Эта команда говорит Telegram, что цвет шапки должен совпадать с фоном нашего приложения
+                tg.setHeaderColor('#ffffff');
+            }
+        });
+    </script>
+</body>
+
+</html>

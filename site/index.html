@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="config.js"></script>
+    <title>Bike App</title>
+    <link rel="stylesheet" href="style.css?v=8.2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
+    <script src="transitions.js" defer></script>
+    <style>
+        /* Центрируем лейбл в модальном окне ввода ID */
+        #id-input-modal .modal-form-group {
+            text-align: center;
+        }
+
+        /* === СТИЛИ ДЛЯ ИНФОРМАЦИИ ОБ АКБ === */
+
+        .battery-info-container {
+            margin: 16px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .battery-info-chip {
+            display: inline-block;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            color: var(--dark-green);
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .battery-info-chip strong {
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // Функция инициализации Telegram WebApp
+        async function initializeTelegramAuth() {
+            // Даем время на загрузку Telegram WebApp API
+            let attempts = 0;
+            const maxAttempts = 50; // 5 секунд максимум
+
+            while (attempts < maxAttempts) {
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                    console.log('Telegram WebApp detected!');
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            const isInTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+            const userId = localStorage.getItem('userId');
+
+
+            // Скрываем основной экран заранее, если нужно авторизоваться
+            const appScreen = document.querySelector('.app-screen');
+            if (appScreen) appScreen.style.display = 'none';
+
+            if (isInTelegram && !userId) {
+                // ИЗМЕНЕНИЕ 1: Убрали текст "GoGoBike" из заголовка экрана загрузки для лучшего центрирования.
+                const loadingHTML = `
+                <div class="app-screen loading-container" style="display: flex; text-align: center; justify-content: center; align-items: center; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; background: white; z-index: 1000;">
+                    <div class="app-content" style="justify-content: center;">
+                        <header class="app-header"><h1></h1></header>
+                        <main class="app-main">
+                            <h2>Авторизация...</h2>
+                            <p style="color: var(--text-secondary); margin: 20px 0;">Проверяем ваши данные в Telegram.</p>
+                            <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto;"></div>
+                        </main>
+                    </div>
+                </div>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>`;
+                document.body.insertAdjacentHTML('afterbegin', loadingHTML);
+
+                try {
+                    const tg = window.Telegram.WebApp;
+
+                    // Важно: расширяем WebApp для полного экрана
+                    tg.expand();
+
+                    const initData = tg.initData;
+                    console.log('Sending initData to server:', initData ? 'Data present' : 'No data');
+
+                    const response = await fetch('/api/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'login',
+                            initData: initData || '',
+                            platform: tg.platform || 'unknown'
+                        })
+                    });
+
+                    console.log('Fetch status:', response.status, response.ok);
+                    const data = await response.json();
+                    console.log('Server response:', data);
+
+                    if (response.ok && data.success) {
+                        // Login successful
+                        localStorage.setItem('userId', data.user.id);
+                        localStorage.setItem('userName', data.user.name);
+                        localStorage.setItem('isRegistered', 'true');
+                        // Reload to load the app
+                        window.location.reload();
+                    } else {
+                        // Login failed, show styled message and redirect to bot for registration
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'app-screen';
+                        messageDiv.style.display = 'flex';
+                        messageDiv.style.position = 'fixed';
+                        messageDiv.style.top = '0';
+                        messageDiv.style.left = '0';
+                        messageDiv.style.width = '100vw';
+                        messageDiv.style.height = '100vh';
+                        messageDiv.style.zIndex = '10000';
+                        // ИЗМЕНЕНИЕ 2: Заменили "Bike App" на "GoGoBike" и добавили элемент для отсчета.
+                        messageDiv.innerHTML = `
+                        <div class="app-content" style="justify-content: center;">
+                            <header class="app-header" style="text-align: center;"><h1>GoGoBike</h1></header>
+                            <main class="app-main" style="text-align: center;">
+                                <h2>Вы не зарегистрированы</h2>
+                                <p style="color: var(--text-secondary); margin: 20px 0;">Пройдите пожалуйста быструю регистрацию и вам откроется доступ к приложению.</p>
+                                <p id="countdown" style="color: var(--text-secondary); margin: 10px 0;">Перенаправление через 5 секунд...</p>
+                                <button class="btn btn-primary" id="redirect-btn">Зарегистрироваться</button>
+                            </main>
+                        </div>
+                    `;
+                        document.body.appendChild(messageDiv);
+
+                        // ИЗМЕНЕНИЕ 4: Добавили видимый отсчет и правильное закрытие окна.
+                        let countdown = 5;
+                        const countdownEl = document.getElementById('countdown');
+
+                        const redirect = () => {
+                            const botUsername = 'gogobikebot';
+                            const registrationLink = `https://t.me/${botUsername}?start=register`;
+
+                            // Сначала отправляем команду на регистрацию...
+                            tg.openTelegramLink(registrationLink);
+
+                            // ...а через долю секунды даем команду закрыть само приложение.
+                            setTimeout(() => {
+                                tg.close();
+                            }, 100); // 100 миллисекунд достаточно, чтобы первая команда ушла
+                        };
+
+                        const interval = setInterval(() => {
+                            countdown--;
+                            if (countdownEl) countdownEl.textContent = `Перенаправление через ${countdown} секунд...`;
+                            if (countdown <= 0) {
+                                clearInterval(interval);
+                                redirect();
+                            }
+                        }, 1000);
+
+                        document.getElementById('redirect-btn').addEventListener('click', () => {
+                            clearInterval(interval); // Останавливаем таймер при клике
+                            redirect();
+                        });
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    // Show error and registration option
+                    document.querySelector('.loading-container').innerHTML = `
+                    <div class="app-content" style="justify-content: center;">
+                        <header class="app-header"><h1>Bike App</h1></header>
+                        <main class="app-main">
+                            <h2>Ошибка авторизации</h2>
+                            <p style="color: var(--text-secondary); margin: 20px 0;">Попробуйте зарегистрироваться.</p>
+                            <p id="countdown" style="color: var(--text-secondary); margin: 10px 0;">Перенаправление через 5 секунд...</p>
+                            <button id="redirect-to-bot-btn" class="btn btn-primary">Зарегистрироваться</button>
+                        </main>
+                    </div>`;
+
+                    // Add countdown for error screen too
+                    let countdown = 5;
+                    const countdownEl = document.getElementById('countdown');
+                    const interval = setInterval(() => {
+                        countdown--;
+                        if (countdownEl) countdownEl.textContent = `Перенаправление через ${countdown} секунд...`;
+                        if (countdown <= 0) {
+                            clearInterval(interval);
+                            const tg = window.Telegram.WebApp;
+                            const botUsername = 'gogobikebot';
+                            const registrationLink = `https://t.me/${botUsername}?start=register`;
+
+                            // Сначала отправляем команду на регистрацию...
+                            tg.openTelegramLink(registrationLink);
+
+                            // ...а через долю секунды даем команду закрыть само приложение.
+                            setTimeout(() => {
+                                tg.close();
+                            }, 100);
+                        }
+                    }, 1000);
+
+                    // Button click
+                    const btn = document.getElementById('redirect-to-bot-btn');
+                    btn.addEventListener('click', () => {
+                        clearInterval(interval);
+                        const tg = window.Telegram.WebApp;
+                        const botUsername = 'gogobikebot';
+                        const registrationLink = `https://t.me/${botUsername}?start=register`;
+
+                        // Сначала отправляем команду на регистрацию...
+                        tg.openTelegramLink(registrationLink);
+
+                        // ...а через долю секунды даем команду закрыть само приложение.
+                        setTimeout(() => {
+                            tg.close();
+                        }, 100);
+                    });
+                }
+            } else {
+                // For browser or already logged in users
+                console.log('Not in Telegram or already logged in');
+                const appScreen = document.querySelector('.app-screen');
+                if (appScreen) appScreen.style.display = 'flex';
+            }
+        }
+
+        // Запускаем инициализацию при загрузке страницы
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeTelegramAuth);
+        } else {
+            // DOMContentLoaded уже произошел
+            initializeTelegramAuth();
+        }
+    </script>
+
+    <div class="app-screen">
+        <div class="app-content">
+            <header class="app-header">
+                <h1></h1>
+            </header>
+            <main class="app-main">
+                <div class="bike-image-wrapper">
+                    <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image"
+                        width="1536" height="1024" decoding="async" fetchpriority="high">
+                    <div id="bike-label" class="bike-label"></div>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar-fill"></div>
+                    </div>
+                    <div class="progress-labels">
+                        <span id="progress-start-label"></span>
+                        <span id="progress-end-label"></span>
+                    </div>
+                </div>
+                <h2></h2>
+                <div class="info-cards">
+                    <div class="card">
+                        <div class="icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <div class="text-content">
+                            <span></span>
+                            <strong id="available-bikes-count"></strong>
+                        </div>
+                    </div>
+                    <div class="card" id="balance-card">
+                        <div class="icon-wrapper dollar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23" />
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                        </div>
+                        <div class="text-content">
+                            <span></span>
+                            <strong id="balance-amount"></strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="scan-qr-btn"></button>
+                    <div class="secondary-actions">
+                        <button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                            </svg></button>
+                        <button class="btn btn-secondary text-btn" id="id-input-btn"></button>
+                        <button class="btn btn-secondary text-btn" id="extend-row-btn"></button>
+                        <button class="btn btn-secondary text-btn" id="booking-btn"></button>
+                    </div>
+                </div>
+                <div id="extend-container" class="hidden extend-container">
+                    <button id="extend-rental-btn" class="btn btn-primary"></button>
+                </div>
+            </main>
+        </div>
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg></a>
+            <a href="stats.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10" />
+                    <line x1="18" y1="20" x2="18" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="16" />
+                </svg></a>
+            <a href="map.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg></a>
+            <a href="profile.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg></a>
+        </nav>
+    </div>
+    <div id="qr-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="qr-modal-close-btn">&times;</button>
+            <h2>Вы арендуете<br>Электровелосипед #00001</h2>
+            <div class="bike-specs">
+                <div class="spec-item"><span class="spec-label">Максималка:</span><span class="spec-value">25
+                        км/ч</span></div>
+                <div class="spec-item"><span class="spec-label">Пробег:</span><span class="spec-value">до 40 км</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Мощность:</span><span class="spec-value">240 Вт</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Батарея:</span><span class="spec-value">60В/20Ah</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Зарядка:</span><span class="spec-value">6 ч</span></div>
+                <div class="spec-item"><span class="spec-label">Привод:</span><span class="spec-value">задний</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Тормоза:</span><span
+                        class="spec-value">гидравлика</span></div>
+            </div>
+            <div class="modal-info">
+                <span>Цена: <strong id="tariff-price">3750 ₽</strong></span>
+                <span>Срок: <strong id="tariff-duration">7 дней</strong></span>
+            </div>
+            <p id="tariff-description" style="margin: 10px 0; font-size: 0.9rem; color: var(--text-secondary);"></p>
+            <p class="disclaimer-text">Оплачивая, вы соглашаетесь с условиями сервиса и автоплатежами.</p>
+            <button class="btn btn-primary" id="rent-btn" data-action="rent">Арендовать</button>
+        </div>
+    </div>
+    <div id="id-input-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="id-input-modal-close-btn">&times;</button>
+            <h2>Ввести ID велосипеда</h2>
+            <div class="modal-form-group">
+                <label for="bike-id-input">ID велосипеда</label>
+                <input type="text" id="bike-id-input" placeholder="Например: 00001">
+            </div>
+            <button class="btn btn-primary" id="confirm-id-btn">Найти и арендовать</button>
+        </div>ф
+    </div>
+    <div id="booking-list-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="booking-list-modal-close-btn">&times;</button>
+            <h2>Выберите велосипед для брони</h2>
+            <div class="bike-list">
+                <div class="bike-list-item" data-bike-id="00001"><strong>Электровелосипед #00001</strong><span>300
+                        м</span></div>
+                <div class="bike-list-item" data-bike-id="00002"><strong>Электровелосипед #00002</strong><span>850
+                        м</span></div>
+                <div class="bike-list-item" data-bike-id="00003"><strong>Электровелосипед #00003</strong><span>1.1
+                        км</span></div>
+                <div class="bike-list-item" data-bike-id="00004"><strong>Электровелосипед #00004</strong><span>2.4
+                        км</span></div>
+                <div class="bike-list-item" data-bike-id="00005"><strong>Электровелосипед #00005</strong><span>4.0
+                        км</span></div>
+            </div>
+        </div>
+    </div>
+    <!-- +++ НОВОЕ МОДАЛЬНОЕ ОКНО ДЛЯ ПОДТВЕРЖДЕНИЯ БРОНИ +++ -->
+    <div id="confirm-booking-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="confirm-booking-close-btn">&times;</button>
+            <h2>Бронирование велосипеда</h2>
+            <p id="booking-main-text" style="color: var(--text-secondary); margin: 20px 0; line-height: 1.5;">
+                Вы забронируете электровелосипед на <strong>2 часа</strong>. Пожалуйста, подъедьте к точке выдачи до
+                истечения этого времени.
+            </p>
+            <div id="booking-cost-info"
+                style="display: none; background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin: 15px 0;">
+                <p style="margin: 0; font-weight: 500;">Стоимость бронирования: <span id="booking-cost-amount"
+                        style="font-weight: 600;"></span></p>
+                <p id="booking-payment-method-text"
+                    style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-secondary);"></p>
+            </div>
+            <p class="disclaimer-text">Если вы не заберете велосипед, бронь отменится, а деньги останутся на вашем
+                балансе.</p>
+            <button class="btn btn-primary" id="confirm-booking-btn">Забронировать и оплатить</button>
+        </div>
+    </div>
+    <div id="tariff-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="tariff-modal-close-btn">&times;</button>
+            <h2>Тарифы</h2>
+            <div class="bike-list">
+                <div class="bike-list-item tariff-option" data-tariff="bronze"><strong>Бронза</strong><span>1000 ₽ / 3
+                        дня</span></div>
+                <div class="bike-list-item tariff-option" data-tariff="silver"><strong>Серебро</strong><span>2000 ₽ / 5
+                        дней</span></div>
+                <div class="bike-list-item tariff-option" data-tariff="gold"><strong>Золото</strong><span>3750 ₽ / 7
+                        дней</span></div>
+            </div>
+            <p class="disclaimer-text">Оплачивая, вы соглашаетесь с условиями сервиса и автоплатежами.</p>
+        </div>
+    </div>
+    <div id="tariff-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="tariff-detail-close-btn">&times;</button>
+            <h2 id="tariff-detail-title"></h2>
+            <p id="tariff-detail-description" class="tariff-description"></p>
+
+            <!-- Новый блок для выбора вариантов -->
+            <div class="tariff-options-list" id="tariff-options-list">
+                <!-- Сюда JavaScript будет вставлять варианты -->
+            </div>
+
+            <button class="btn btn-primary" id="select-tariff-btn">Выбрать тариф</button>
+        </div>
+    </div>
+    <div id="topup-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="topup-modal-close-btn">&times;</button>
+            <h2>Пополнение баланса</h2>
+            <div class="modal-form-group">
+                <label for="amount-input" style="text-align: center;">Сумма пополнения</label>
+                <input type="number" id="amount-input" placeholder="Введите сумму в ₽">
+            </div>
+            <button class="btn btn-primary" id="pay-sbp-btn">Пополнить</button>
+        </div>
+    </div>
+    <div id="extend-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="extend-close-btn">&times;</button>
+            <h2>Продлить аренду</h2>
+            <ul id="extend-options" class="extend-options-list"></ul>
+            <div class="modal-actions" style="display:flex;gap:10px;margin-top:20px;">
+                <button type="button" id="extend-cancel-btn" class="btn btn-secondary" style="flex:1;">Отмена</button>
+                <button type="button" id="extend-select-btn" class="btn btn-primary" style="flex:1;">Продлить</button>
+            </div>
+        </div>
+    </div>
+    <div id="notification-toast" class="toast-container hidden">
+        <p class="toast-message">На вашем счету недостаточно средств.</p>
+    </div>
+    <div id="success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Баланс пополнен на <strong id="success-amount"></strong>!</p>
+    </div>
+    <div id="rent-success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Успешно! Перейдите в уведомления в профиле, чтобы подписать договор.</p>
+    </div>
+    <div id="booking-success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Велосипед забронирован на 2 часа!</p>
+    </div>
+    <div id="renewal-success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Аренда успешно продлена!</p>
+    </div>
+
+
+    <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true" style="display:none;">
+        <div class="menu-container">
+        </div>
+    </div>
+
+
+
+    <script>
+        const SUPABASE_URL = window.APP_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.APP_CONFIG.SUPABASE_ANON_KEY;
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            realtime: {
+                params: {
+                    eventsPerSecond: 10, // Это стандартное значение, можно оставить
+                },
+            },
+        });
+
+        // +++ ДОБАВЬ ЭТУ СТРОЧКУ +++
+        let balanceChannel = null;
+        let bookingSuccessToast = null;
+        let rentSuccessToast = null;
+
+        const CURRENCY_SYMBOL = '₽';
+        let userBalance = 0;
+        let currentRentalForExtension = null;
+        const formatBalance = (value) => {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return `... ${CURRENCY_SYMBOL}`;
+            }
+            return `${Math.round(numeric)} ${CURRENCY_SYMBOL}`;
+        };
+        const updateBalanceDisplays = (value) => {
+            if (typeof value === 'number' && !Number.isNaN(value)) {
+                userBalance = value;
+            }
+            const textValue = formatBalance(userBalance);
+            document.querySelectorAll('#balance-amount, .balance-amount').forEach((el) => {
+                el.textContent = textValue;
+            });
+        };
+
+        function toggleButtonLoading(btn, isLoading, textIdle, textBusy) {
+            if (!btn) return;
+            btn.disabled = !!isLoading;
+            btn.textContent = isLoading ? textBusy : textIdle;
+        }
+
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        const showToast = (toastElement, duration = 3000) => {
+            toastElement.classList.remove('hidden');
+            setTimeout(() => toastElement.classList.add('hidden'), duration);
+        };
+
+        // Функция для опроса создания аренды
+        async function pollForRentalCreation(userId, maxAttempts = 10, interval = 2000) {
+            for (let i = 0; i < maxAttempts; i++) {
+                console.log(`Опрос создания аренды, попытка ${i + 1}...`);
+                const { data: rental, error } = await supabase
+                    .from('rentals')
+                    .select('id, status')
+                    .eq('user_id', userId)
+                    .eq('status', 'awaiting_battery_assignment') // Мы ждем именно этот статус
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (rental && !error) {
+                    console.log('Новая аренда найдена!', rental);
+                    return rental; // Успех!
+                }
+
+                // Ждем перед следующей попыткой
+                await new Promise(resolve => setTimeout(resolve, interval));
+            }
+            // Если цикл закончился, значит, время вышло
+            throw new Error('Не удалось подтвердить создание аренды. Пожалуйста, обновите страницу или обратитесь в поддержку.');
+        }
+
+        // Определение цвета прогресс-бара в зависимости от процента заполнения
+        function getProgressColor(progress) {
+            if (progress > 85) {
+                return '#e53e3e'; // Красный (осталось очень мало времени)
+            } else if (progress > 50) {
+                return '#f5a623'; // Оранжевый (прошла половина срока)
+            } else {
+                return 'var(--dark-green)'; // Зеленый (все в порядке)
+            }
+        }
+
+        // Функция для тестирования прогресс-бара
+        function testProgressBar(daysLeft, totalDuration = 7) {
+            const mainContent = document.querySelector('.app-main');
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - (totalDuration - daysLeft));
+
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + daysLeft);
+
+            const fakeRental = {
+                id: 999,
+                current_period_ends_at: endDate.toISOString(),
+                tariffs: {
+                    duration_days: totalDuration
+                }
+            };
+            renderActiveRentalView(fakeRental, mainContent);
+            const countEl = document.getElementById('available-bikes-count');
+            if (countEl) countEl.textContent = '2';
+        }
+
+        // Рендерит экран активной аренды
+        const renderActiveRentalView = async (rental, container) => {
+            const endsDate = new Date(rental.current_period_ends_at);
+            const daysLeft = Math.ceil((endsDate - new Date()) / (1000 * 60 * 60 * 24));
+            const durationDays = rental.tariffs?.duration_days || 7;
+            const progress = Math.max(0, 100 - (daysLeft / durationDays * 100));
+
+            // Получаем цвет для прогресс-бара
+            const progressBarColor = getProgressColor(progress);
+
+            // Новый HTML с карточками информации и новой структурой кнопок
+            container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
+            </div>
+
+            <!-- НОВЫЙ ДВУХУРОВНЕВЫЙ БЛОК АКБ -->
+            <div class="battery-info-container" id="rental-batteries-container"></div>
+
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%; background-color: ${progressBarColor};"></div></div>
+                <div class="progress-labels"><span>В аренде</span><span>Осталось ~${daysLeft > 0 ? daysLeft : 0} д.</span></div>
+            </div>
+
+            <h2>Ваша аренда активна</h2>
+
+            <!-- ДОБАВЛЕНО: Карточки с информацией -->
+            <div class="info-cards">
+                <div class="card">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    </div>
+                    <div class="text-content">
+                        <span>Свободных</span>
+                        <strong id="available-bikes-count">...</strong>
+                    </div>
+                </div>
+                <div class="card" id="balance-card">
+                    <div class="icon-wrapper dollar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="text-content">
+                        <span>Баланс</span>
+                        <strong id="balance-amount">${formatBalance(userBalance)}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ИЗМЕНЕНО: Новая структура кнопок -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="extend-active-rental-btn">Продлить аренду</button>
+                <div class="secondary-actions-split">
+                    <button class="btn btn-secondary text-btn" id="report-problem-btn">Проблема?</button>
+                    <button class="btn btn-secondary text-btn" id="return-bike-btn" data-rental-id="${rental.id}">Сдать</button>
+                </div>
+            </div>
+        `;
+
+            // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ (ДВУХУРОВНЕВЫЙ ДИЗАЙН)
+            try {
+                const { data: batteries, error } = await supabase
+                    .from('rental_batteries')
+                    .select('batteries(serial_number)')
+                    .eq('rental_id', rental.id);
+
+                const batteryContainer = document.getElementById('rental-batteries-container');
+                if (batteryContainer) {
+                    if (batteries && batteries.length > 0) {
+                        const serialNumbers = batteries.map(rb => rb.batteries.serial_number).join(', ');
+                        // Создаем HTML с вложенным элементом span
+                        batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> ${serialNumbers}</span>`;
+                    } else {
+                        batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> Информация недоступна</span>`;
+                    }
+                }
+            } catch (err) {
+                console.error('Не удалось загрузить список аккумуляторов:', err);
+                const batteryContainer = document.getElementById('rental-batteries-container');
+                if (batteryContainer) {
+                    batteryContainer.innerHTML = `<span class="battery-info-chip"><strong>АКБ:</strong> Ошибка загрузки</span>`;
+                }
+            }
+
+            // Используем делегирование событий, чтобы не навешивать слушатель каждый раз
+        };
+
+        const renderOverdueRentalView = (rental, container) => {
+            container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high" style="filter: grayscale(1);">
+            </div>
+            <h2 style="color: #e53e3e; text-align: center;">Аренда просрочена</h2>
+            <p style="text-align: center; color: var(--dark-green);">Последний платеж не прошел. Пожалуйста, проверьте баланс карты.</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="retry-payment-btn">Повторить платеж</button>
+                <button class="btn btn-secondary text-btn" id="return-bike-btn" data-rental-id="${rental.id}">Сдать велосипед</button>
+            </div>`;
+        };
+
+        const renderPendingReturnView = (rental, container) => {
+            container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high" style="opacity: 0.7;">
+            </div>
+            <h2 style="text-align: center;">Ожидание сдачи</h2>
+            <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
+        };
+
+        // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ АКТИВНОЙ БРОНИ +++
+        let bookingTimerInterval = null; // Переменная для таймера
+
+        const renderActiveBookingView = (booking, container) => {
+            if (bookingTimerInterval) clearInterval(bookingTimerInterval); // Очищаем старый таймер
+
+            const endsDate = new Date(booking.expires_at);
+            const totalDuration = 2 * 60 * 60 * 1000; // 2 часа в миллисекундах
+
+            const updateTimer = () => {
+                const now = new Date();
+                const timeLeftMs = Math.max(0, endsDate.getTime() - now.getTime());
+                const progress = (timeLeftMs / totalDuration) * 100;
+
+                const minutes = Math.floor(timeLeftMs / (1000 * 60));
+                const seconds = Math.floor((timeLeftMs / 1000) % 60);
+
+                const progressLabels = container.querySelector('.progress-labels');
+                const progressBar = container.querySelector('.progress-bar');
+
+                if (progressLabels) {
+                    progressLabels.innerHTML = `<span>Забронировано</span><span>Осталось ${minutes}м ${seconds}с</span>`;
+                }
+                if (progressBar) {
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.style.backgroundColor = '#f5a623'; // Оранжевый цвет
+                }
+
+                if (timeLeftMs <= 0) {
+                    clearInterval(bookingTimerInterval);
+                    // Можно добавить сообщение "Время вышло" или перезагрузить страницу
+                    alert('Время бронирования истекло!');
+                    window.location.reload();
+                }
+            };
+
+            container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Booked Electric bike" class="bike-image" width="1536" height="1024" decoding="async">
+            </div>
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" style="width: 100%; background-color: #f5a623;"></div></div>
+                <div class="progress-labels"><span>Забронировано</span><span>Загрузка...</span></div>
+            </div>
+            <h2>У вас действует бронь до ${endsDate.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })}</h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-top: 10px; margin-bottom: 20px;">Пожалуйста, подойдите к точке выдачи, чтобы начать аренду.</p>
+            <div class="action-buttons">
+                 <button class="btn btn-danger" id="cancel-booking-btn" data-booking-id="${booking.id}">Отменить бронь</button>
+            </div>
+        `;
+
+            updateTimer(); // Первый вызов, чтобы не было задержки
+            bookingTimerInterval = setInterval(updateTimer, 1000);
+        };
+
+
+        // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ОПРОСА АКТИВНОЙ БРОНИ +++
+        async function pollForActiveBooking(userId, maxAttempts = 10, interval = 2000) {
+            console.log('Начинаем опрос на наличие активной брони...');
+            for (let i = 0; i < maxAttempts; i++) {
+                const { data: booking, error } = await supabase
+                    .from('bookings')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('status', 'active')
+                    .gt('expires_at', new Date().toISOString())
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (booking && !error) {
+                    console.log('Активная бронь найдена!', booking);
+                    return booking;
+                }
+                console.log(`Попытка ${i + 1}/${maxAttempts}: бронь не найдена, ждем ${interval / 1000}с...`);
+                await new Promise(resolve => setTimeout(resolve, interval));
+            }
+            throw new Error('Не удалось подтвердить создание брони. Пожалуйста, обновите страницу.');
+        }
+
+        // +++ НОВАЯ ФУНКЦИЯ ДЛЯ СОЗДАНИЯ БРОНИ +++
+        const processBooking = async () => {
+            const confirmBtn = document.getElementById('confirm-booking-btn');
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert('Ошибка авторизации.');
+                return;
+            }
+
+            toggleButtonLoading(confirmBtn, true, 'Забронировать и оплатить', 'Обработка...');
+
+            try {
+                const { data: settings, error: settingsError } = await supabase
+                    .from('app_settings')
+                    .select('value')
+                    .eq('key', 'booking_cost_rub')
+                    .single();
+
+                if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+                const bookingCost = parseFloat(settings?.value) || 0;
+
+                if (bookingCost > 0) {
+                    // --- ПЛАТНАЯ БРОНЬ ---
+                    const response = await fetch('/api/payments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create-payment',
+                            userId: userId,
+                            amount: bookingCost,
+                            type: 'booking',
+                            description: 'Оплата бронирования велосипеда'
+                        })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Ошибка сервера');
+
+                    if (data.confirmation_url) {
+                        // Сценарий 1: Карты нет, нужен редирект на оплату.
+                        window.location.href = data.confirmation_url;
+                    } else if (data.status === 'succeeded' || data.status === 'pending') {
+                        // Сценарий 2: Оплата с привязанной карты прошла. НЕ ПЕРЕЗАГРУЖАЕМ!
+                        console.log('Оплата с привязанной карты прошла. Запускаем опрос...');
+
+                        // Закрываем модалку и показываем экран ожидания
+                        document.getElementById('confirm-booking-modal').classList.add('hidden');
+                        const mainContent = document.querySelector('.app-main');
+                        mainContent.innerHTML = `
+                        <div class="verification-container" style="justify-content: center; height: 100%;">
+                            <h2 class="verification-header">Подтверждаем бронь...</h2>
+                            <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid var(--icon-green); border-radius: 50%; width: 50px; height: 50px; animation: spin 1.5s linear infinite; margin: 20px auto;"></div>
+                        </div>
+                        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+                    `;
+
+                        // Запускаем опрос, чтобы дождаться, пока вебхук создаст бронь
+                        const booking = await pollForActiveBooking(userId);
+
+                        // Успех! Рендерим экран брони
+                        renderActiveBookingView(booking, mainContent);
+                        showToast(bookingSuccessToast);
+
+                    } else {
+                        throw new Error('Не удалось обработать платеж.');
+                    }
+                } else {
+                    // --- БЕСПЛАТНАЯ БРОНЬ ---
+                    const expires_at = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+                    const { error: bookingError } = await supabase.from('bookings').insert({ user_id: userId, expires_at });
+                    if (bookingError) throw bookingError;
+
+                    document.getElementById('confirm-booking-modal').classList.add('hidden');
+                    showToast(bookingSuccessToast);
+                    loadUserData();
+                }
+
+            } catch (err) {
+                alert('Не удалось создать бронь: ' + err.message);
+                toggleButtonLoading(confirmBtn, false, 'Забронировать и оплатить', 'Обработка...');
+            }
+        };
+
+        const renderAwaitingContractView = (rental, container) => {
+            container.innerHTML = `
+            <div class="bike-image-wrapper">
+                 <img src="bike-delivery.png" alt="Electric bike" class="bike-image" width="1536" height="1024">
+            </div>
+            <h2 style="text-align: center;">Аренда почти готова!</h2>
+            <p style="text-align: center; color: var(--dark-green); margin-bottom: 20px;">Осталось подписать договор. Это займет меньше минуты.</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='profile.html?open=notifications#notifications'">Перейти к подписанию</button>
+            </div>
+        `;
+            // Также нужно подгрузить баланс и кол-во великов, если нужно
+            const balanceEl = document.getElementById('balance-amount');
+            if (balanceEl) balanceEl.textContent = formatBalance(userBalance);
+            // и т.д.
+        };
+
+        // Внутри <script> в index.html
+
+        const renderPendingBatteryView = (container) => {
+            container.innerHTML = `
+            <div class="verification-container" style="justify-content: center; height: 100%;">
+                <h2 class="verification-header">Почти готово!</h2>
+                <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid var(--icon-green); border-radius: 50%; width: 50px; height: 50px; animation: spin 1.5s linear infinite; margin: 20px auto;"></div>
+                <p style="text-align: center; color: var(--dark-green); max-width: 300px; line-height: 1.5;">
+                    Дождитесь, пока администратор выберет для вас аккумуляторы.
+                    <br>Эта страница обновится автоматически.
+                </p>
+            </div>
+            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+        `;
+        };
+
+
+        const renderDefaultView = (container) => {
+            document.querySelector('.app-header')?.classList.remove('header-centered');
+            container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
+            </div>
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" id="progress-bar-fill"></div></div>
+                <div class="progress-labels"><span id="progress-start-label">0 дней</span><span id="progress-end-label">...</span></div>
+            </div>
+            <h2>Найти и арендовать электровелосипед рядом.</h2>
+            <div class="info-cards">
+                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">...</strong></div></div>
+                <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">${formatBalance(userBalance)}</strong></div></div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="scan-qr-btn">Тарифы</button>
+                <div class="secondary-actions"><button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button><button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button><button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button></div>
+            </div>
+            <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
+        `;
+        };
+
+        // --- НОВЫЕ ФУНКЦИИ РЕНДЕРИНГА И ДЕЙСТВИЙ ---
+        const returnBike = async (rentalId) => {
+            if (!rentalId || !confirm("Вы уверены, что хотите сдать велосипед?")) return;
+
+            const { error } = await supabase
+                .from('rentals')
+                .update({ status: 'pending_return' })
+                .eq('id', rentalId);
+
+            if (error) {
+                alert("Ошибка: " + error.message);
+            } else {
+                window.location.reload();
+            }
+        };
+
+        const retryPayment = () => {
+            alert("Пожалуйста, пополните привязанную карту. Система автоматически попытается списать средства в ближайшие часы.");
+        };
+
+        async function loadUserData() {
+            const userId = localStorage.getItem('userId');
+            const appHeader = document.querySelector('.app-header'); // Находим заголовок
+
+            if (!userId) {
+                // Removed redirection to registration.html
+                return;
+            }
+
+            try {
+                const { data: client, error } = await supabase
+                    .from('clients')
+                    .select('verification_status, name, balance_rub, city') // <-- ИЗМЕНЕНИЕ 1
+                    .eq('id', userId)
+                    .single();
+
+                if (error || !client) throw new Error(error ? error.message : "Клиент не найден.");
+
+                const userName = client.name ? client.name.split(' ')[0] : 'Пользователь';
+                const mainContent = document.querySelector('.app-main');
+                const status = client.verification_status;
+
+                appHeader.classList.remove('header-centered');
+                if (status === 'approved') {
+                    appHeader.classList.add('header-centered');
+                    appHeader.querySelector('h1').textContent = '';
+
+                    // Обновляем баланс и подписываемся на него сразу для всех верифицированных пользователей
+                    if (typeof client.balance_rub !== 'undefined') {
+                        updateBalanceDisplays(Number(client.balance_rub));
+                    } else {
+                        updateBalanceDisplays();
+                    }
+
+                    // Устанавливаем Realtime-подписку на изменения баланса
+                    const channelName = `client-balance-${userId}`;
+
+                    // Если у нас уже есть активная подписка, ничего не делаем
+                    if (balanceChannel && balanceChannel.state === 'joined') {
+                        console.log('Real-time subscription for balance is already active.');
+                    } else {
+                        // Если подписки нет или она "умерла", создаем новую
+                        console.log('Creating new real-time subscription for balance...');
+
+                        // Если старый канал существует, но не активен, сначала удаляем его
+                        if (balanceChannel) {
+                            supabase.removeChannel(balanceChannel);
+                        }
+
+                        // Создаем новый канал и сохраняем его в нашу переменную
+                        balanceChannel = supabase.channel(channelName);
+
+                        balanceChannel.on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'clients',
+                            filter: `id=eq.${userId}`
+                        }, payload => {
+                            if (payload.new && typeof payload.new.balance_rub !== 'undefined') {
+                                console.log('Real-time balance update received:', payload.new.balance_rub);
+                                updateBalanceDisplays(payload.new.balance_rub);
+                            }
+                        })
+                            .subscribe((status) => {
+                                // Этот коллбэк полезен для отладки
+                                if (status === 'SUBSCRIBED') {
+                                    console.log('Successfully subscribed to balance updates!');
+                                }
+                            });
+                    }
+
+                    // +++ ИЗМЕНЕНИЕ: СНАЧАЛА ПРОВЕРЯЕМ БРОНЬ, ПОТОМ АРЕНДУ +++
+
+                    // 1. Проверяем наличие активной брони
+                    const { data: booking, error: bookingError } = await supabase
+                        .from('bookings')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('status', 'active')
+                        .gt('expires_at', new Date().toISOString()) // Убеждаемся, что бронь не истекла
+                        .limit(1)
+                        .single();
+
+                    if (booking) {
+                        // Если есть активная бронь, показываем экран бронирования
+                        renderActiveBookingView(booking, mainContent);
+
+                    } else {
+                        // 2. Если брони нет, проверяем наличие активной аренды
+                        const { data: rental, error: rentalError } = await supabase
+                            .from('rentals')
+                            .select('*, tariffs(*)')
+                            .eq('user_id', userId)
+                            .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .single();
+
+                        if (rentalError && rentalError.code !== 'PGRST116') {
+                            console.error("Ошибка при получении аренды:", rentalError);
+                            mainContent.innerHTML = `<h2 style="text-align: center; color: red;">Не удалось загрузить данные об аренде.</h2>`;
+                            return;
+                        }
+
+                        if (rental) {
+                            // Real-time подписка на изменение статуса ТЕКУЩЕЙ аренды
+                            const rentalChannel = supabase.channel(`rental-status-${rental.id}`);
+                            rentalChannel
+                                .on('postgres_changes', {
+                                    event: 'UPDATE',
+                                    schema: 'public',
+                                    table: 'rentals',
+                                    filter: `id=eq.${rental.id}`
+                                }, payload => {
+                                    const newStatus = payload.new.status;
+                                    // ИЗМЕНЕНИЕ: Реагируем на разные статусы
+                                    if (newStatus === 'awaiting_contract_signing') {
+                                        // Админ выбрал АКБ, отправляем клиента на подписание!
+                                        alert('Администратор подобрал для вас оборудование! Теперь необходимо подписать договор.');
+                                        window.location.href = 'profile.html#notifications';
+                                    } else if (newStatus === 'active') {
+                                        // Это сработает после того, как клиент подпишет договор
+                                        window.location.reload();
+                                    }
+                                })
+                                .subscribe();
+
+                            // Отображаем нужный экран в зависимости от текущего статуса
+                            switch (rental.status) {
+                                case 'awaiting_battery_assignment': // Ожидает АКБ
+                                    renderPendingBatteryView(mainContent); // Показываем экран "Дождитесь..."
+                                    break;
+                                case 'awaiting_contract_signing': // Ожидает подписания
+                                    renderAwaitingContractView(rental, mainContent);
+                                    break;
+                                case 'awaiting_contract_signing':
+                                    // Теперь этот статус снова означает "надо подписать"
+                                    // Можно показать специальное уведомление или сразу перенаправить
+                                    renderAwaitingContractView(rental, mainContent);
+                                    break;
+                                case 'active':
+                                    await renderActiveRentalView(rental, mainContent);
+                                    break;
+                                case 'overdue':
+                                    renderOverdueRentalView(rental, mainContent);
+                                    break;
+                                case 'pending_return':
+                                    renderPendingReturnView(rental, mainContent);
+                                    break;
+                                default:
+                                    renderDefaultView(mainContent);
+                                    initializeMainScreenEventListeners();
+                            }
+                            loadAvailableBikesCount(client.city);
+                        } else {
+                            // 3. Если нет ни брони, ни аренды, показываем экран по умолчанию
+                            renderDefaultView(mainContent);
+                            loadAvailableBikesCount(client.city);
+                            initializeMainScreenEventListeners();
+                        }
+                    }
+                } else {
+                    appHeader.classList.add('header-centered');
+                    appHeader.querySelector('h1').textContent = '';
+
+                    let headerText = 'Ваш аккаунт на проверке';
+                    let statusTitle = 'На проверке';
+                    let statusSubtitle = 'до 24 часов';
+
+                    if (status === 'rejected') {
+                        headerText = 'В верификации отказано';
+                        statusTitle = 'Отклонено';
+                        statusSubtitle = 'Свяжитесь с поддержкой';
+                    }
+
+                    mainContent.innerHTML = `
+                <div class="verification-container">
+                    <h2 class="verification-header">${headerText}</h2>
+                    <div class="verification-status-card">
+                        <div class="verification-status-info">
+                            <h3>${statusTitle}</h3>
+                            ${status !== 'rejected' ? '<div class="progress-bar-container"><div class="progress-bar"></div></div>' : ''}
+                            <p>${statusSubtitle}</p>
+                        </div>
+                    </div>
+                    <h2>Чем заняться пока ждёте</h2>
+                    <div class="actions-grid">
+                        <div class="action-card" id="goto-profile-action">
+                            <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+                            <span>Наша точка</span>
+                        </div>
+                        <div class="action-card" id="connect-card-action">
+                             <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg></div>
+                            <span>Подключить карту</span>
+                        </div>
+                         <div class="action-card" id="support-action">
+                            <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+                            <span>Поддержка</span>
+                        </div>
+                         <div class="action-card" id="invite-friend-action">
+                            <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg></div>
+                            <span>Пригласить друга</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+                    initializeVerificationScreenEventListeners();
+                }
+
+            } catch (err) {
+                console.error("Ошибка загрузки данных пользователя:", err);
+                appHeader.classList.add('header-centered');
+                appHeader.querySelector('h1').textContent = `Ошибка`;
+                mainContent.innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных. Попробуйте позже.</h2>`;
+            }
+        }
+
+        async function loadAvailableBikesCount(userCity) {
+            if (!userCity) return;
+            const { data: bikes, error } = await supabase
+                .from('bikes')
+                .select('id')
+                .eq('city', userCity)
+                .eq('status', 'available');
+            if (!error && bikes) {
+                const countEl = document.getElementById('available-bikes-count');
+                if (countEl) countEl.textContent = bikes.length;
+            }
+        }
+
+        // Функции initializeVerificationScreenEventListeners и initializeMainScreenEventListeners остаются без изменений
+
+        // Новая функция для навешивания событий на экране верификации
+        function initializeVerificationScreenEventListeners() {
+            document.getElementById('goto-profile-action')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                const appScreen = document.querySelector('.app-screen');
+                const animationDuration = 400;
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => {
+                    window.location.href = 'map.html';
+                }, animationDuration);
+            });
+
+            document.getElementById('connect-card-action')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                const appScreen = document.querySelector('.app-screen');
+                const animationDuration = 400;
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => {
+                    window.location.href = 'profile.html#card-modal';
+                }, animationDuration);
+            });
+
+            document.getElementById('support-action')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                const appScreen = document.querySelector('.app-screen');
+                const animationDuration = 400;
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => {
+                    window.location.href = 'profile.html#support';
+                }, animationDuration);
+            });
+
+            document.getElementById('invite-friend-action')?.addEventListener('click', () => {
+                // Проверяем, что мы находимся внутри Telegram
+                if (!window.Telegram || !window.Telegram.WebApp) {
+                    alert('Эта функция доступна только в приложении Telegram.');
+                    return;
+                }
+
+                // 1. Формируем твою реферальную ссылку на БОТА, а не на сайт.
+                //    Пользователь должен запустить бота, чтобы зарегистрироваться.
+                const botUsername = 'gogobikebot'; // <-- Убедись, что имя бота правильное
+                const userId = localStorage.getItem('userId'); // Берем ID текущего пользователя для рефералки
+                const referralLink = `https://t.me/${botUsername}?start=${userId}`;
+
+                // 2. Готовим текст сообщения, который будет предложен другу
+                const shareText = 'Привет! Присоединяйся к GoGoBike — удобному сервису аренды электротранспорта. Регистрируйся по моей ссылке!';
+
+                // 3. Кодируем ссылку и текст для URL
+                const encodedUrl = encodeURIComponent(referralLink);
+                const encodedText = encodeURIComponent(shareText);
+
+                // 4. Формируем финальную ссылку для "Поделиться"
+                const shareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
+
+                // 5. Вызываем нативный метод Telegram
+                window.Telegram.WebApp.openTelegramLink(shareUrl);
+            });
+        }
+
+        // Новая функция для навешивания событий на главном экране (когда верификация пройдена)
+        function initializeMainScreenEventListeners() {
+            // Вставьте сюда ВЕСЬ код с обработчиками событий, который был у вас на index.html
+            // Например:
+            document.getElementById('scan-qr-btn')?.addEventListener('click', () => { /* ... */ });
+            document.getElementById('balance-card')?.addEventListener('click', () => { /* ... */ });
+            // и так далее для всех кнопок...
+        }
+
+        // Функция для показа экрана регистрации через бота
+        function showBotRegistrationScreen() {
+            document.querySelector('.app-screen').innerHTML = `
+            <div class="app-content">
+                <header class="app-header">
+                    <h1>Регистрация</h1>
+                </header>
+                <main class="app-main" style="text-align: center; padding: 40px 20px;">
+                    <h2>Для продолжения поделитесь вашим контактом</h2>
+                    <p style="color: var(--text-secondary); margin: 20px 0;">Бот запросит номер телефона и другие данные для регистрации</p>
+                    <button class="btn btn-primary" id="share-contact-btn" style="margin-top: 30px;">
+                        📱 Поделиться контактом
+                    </button>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 20px;">
+                        Или вернитесь в бота и отправьте /start
+                    </p>
+                </main>
+            </div>
+        `;
+
+            // Обработчик кнопки
+            document.getElementById('share-contact-btn').addEventListener('click', () => {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    // Запрашиваем контакт
+                    window.Telegram.WebApp.requestContact((success, contact) => {
+                        if (success && contact) {
+                            // Отправляем контакт боту
+                            const data = {
+                                action: 'start_registration',
+                                phone: contact.phone_number,
+                                first_name: contact.first_name,
+                                last_name: contact.last_name
+                            };
+                            window.Telegram.WebApp.sendData(JSON.stringify(data));
+                            // Закрываем WebApp
+                            window.Telegram.WebApp.close();
+                        } else {
+                            alert('Не удалось получить контакт. Попробуйте еще раз.');
+                        }
+                    });
+                } else {
+                    alert('Telegram WebApp не доступен. Откройте приложение через бота.');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userName = localStorage.getItem('userName');
+            if (userName) {
+                document.querySelector('.app-header h1').textContent = '';
+            }
+
+            // +++ ДОБАВЬТЕ ЭТОТ БЛОК КОДА +++
+            // Проверяем, вернулся ли пользователь после успешной оплаты
+            const urlParams = new URLSearchParams(window.location.search);
+            const rentalSuccess = urlParams.get('rental_success');
+            const topupSuccess = urlParams.get('topup_success');
+            const bookingSuccess = urlParams.get('booking_success');
+            const renewalSuccess = urlParams.get('renewal_success');
+
+            if (rentalSuccess === 'true') {
+                // Показываем модальное окно "Аренда оформлена!"
+                const promptModal = document.getElementById('post-rental-prompt-modal');
+                if (promptModal) {
+                    promptModal.classList.remove('hidden');
+                }
+            }
+
+            if (renewalSuccess === 'true') {
+                const renewalToast = document.getElementById('renewal-success-toast');
+                if (renewalToast) {
+                    showToast(renewalToast, 4000); // Показываем уведомление о продлении
+                }
+            }
+
+            if (topupSuccess === 'true') {
+                // Показываем уведомление "Баланс успешно пополнен"
+                const successToast = document.getElementById('success-toast');
+                if (successToast) {
+                    // Меняем текст на более универсальный
+                    successToast.querySelector('.toast-message').innerHTML = 'Баланс успешно пополнен!';
+                    showToast(successToast); // showToast - ваша существующая функция
+                }
+            }
+
+            if (bookingSuccess === 'true') {
+                // Показываем уведомление об успешном бронировании
+                const bookingToast = document.getElementById('booking-success-toast');
+                if (bookingToast) {
+                    showToast(bookingToast);
+                }
+            }
+
+            // Обновляем данные пользователя и очищаем URL, если был любой из успешных редиректов
+            if (rentalSuccess || topupSuccess || bookingSuccess || renewalSuccess) {
+                loadUserData(); // Перезагружаем данные, чтобы увидеть новый баланс
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+            // --- КОНЕЦ НОВОГО БЛОКА ---
+
+            const appScreen = document.querySelector('.app-screen');
+            const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+            const animationDuration = 400;
+
+            appScreen.classList.add('page-enter');
+            requestAnimationFrame(() => {
+                appScreen.classList.remove('page-enter');
+                appScreen.classList.add('page-enter-active');
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (link.parentElement.classList.contains('active') || link.classList.contains('active')) {
+                        e.preventDefault();
+                        return;
+                    }
+                    e.preventDefault();
+                    const destination = e.currentTarget.href;
+                    appScreen.classList.remove('page-enter-active');
+                    appScreen.classList.add('page-exit-active');
+                    setTimeout(() => {
+                        window.location.href = destination;
+                    }, animationDuration);
+                });
+            });
+            const balanceAmountElement = document.getElementById('balance-amount');
+            const availableBikesCount = document.getElementById('available-bikes-count');
+            const mainBikeImage = document.getElementById('main-bike-image');
+            const progressBarFill = document.getElementById('progress-bar-fill');
+            const progressStartLabel = document.getElementById('progress-start-label');
+            const progressEndLabel = document.getElementById('progress-end-label');
+            const bikeLabelElement = document.getElementById('bike-label');
+            function saveAppState() {
+                const appState = {
+                    balance: balanceAmountElement.textContent,
+                    availableBikes: availableBikesCount.textContent,
+                    bikeImage: mainBikeImage.getAttribute('src'),
+                    progressWidth: progressBarFill.style.width,
+                    progressColor: progressBarFill.style.backgroundColor,
+                    progressStart: progressStartLabel.textContent,
+                    progressEnd: progressEndLabel.textContent
+                };
+                localStorage.setItem('appState', JSON.stringify(appState));
+            }
+
+            // Файл: index.html, внутри <script>
+
+            // ТЕПЕРЬ НАХОДИМ ВСЕ ОСТАЛЬНЫЕ ЭЛЕМЕНТЫ
+            // (объявление bikeLabelElement перемещено выше, чтобы его можно было использовать в функциях сохранения)
+            const scanBtn = document.getElementById('scan-qr-btn');
+            const scanIconBtn = document.getElementById('scan-icon-btn');
+            const idInputBtn = document.getElementById('id-input-btn');
+            const extendRowBtn = document.getElementById('extend-row-btn');
+            const bookingBtn = document.getElementById('booking-btn');
+            const rentBtn = document.getElementById('rent-btn');
+            const qrModal = document.getElementById('qr-modal');
+            const qrModalCloseBtn = document.getElementById('qr-modal-close-btn');
+            const idInputModal = document.getElementById('id-input-modal');
+            const idInputModalCloseBtn = document.getElementById('id-input-modal-close-btn');
+            const bikeIdInput = document.getElementById('bike-id-input');
+            const confirmIdBtn = document.getElementById('confirm-id-btn');
+            const bookingListModal = document.getElementById('booking-list-modal');
+            const bookingListModalCloseBtn = document.getElementById('booking-list-modal-close-btn');
+            const bikeList = document.querySelector('.bike-list');
+            const balanceCard = document.getElementById('balance-card');
+            const notificationToast = document.getElementById('notification-toast');
+            const successToast = document.getElementById('success-toast');
+            const successAmountSpan = document.getElementById('success-amount');
+            rentSuccessToast = document.getElementById('rent-success-toast');
+            bookingSuccessToast = document.getElementById('booking-success-toast');
+
+            // Элементы для модального окна пополнения баланса
+            const topupModal = document.getElementById('topup-modal');
+            const topupModalCloseBtn = document.getElementById('topup-modal-close-btn');
+            const payBtn = document.getElementById('pay-sbp-btn');
+            const amountInput = document.getElementById('amount-input');
+
+            // Элементы для модального окна бронирования
+            const confirmBookingModal = document.getElementById('confirm-booking-modal');
+            const confirmBookingCloseBtn = document.getElementById('confirm-booking-close-btn');
+
+            // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ СТОИМОСТИ БРОНИРОВАНИЯ +++
+            async function loadBookingCost() {
+                try {
+                    const { data: settings, error } = await supabase
+                        .from('app_settings')
+                        .select('value')
+                        .eq('key', 'booking_cost')
+                        .single();
+
+                    if (error && error.code !== 'PGRST116') throw error;
+
+                    const cost = settings?.value?.cost || 0;
+                    const costElement = document.getElementById('booking-cost-amount');
+                    if (costElement) {
+                        costElement.textContent = cost > 0 ? `${cost} ₽` : 'Бесплатно';
+                    }
+                } catch (err) {
+                    console.error('Ошибка загрузки стоимости бронирования:', err);
+                    const costElement = document.getElementById('booking-cost-amount');
+                    if (costElement) {
+                        costElement.textContent = 'Ошибка загрузки';
+                    }
+                }
+            }
+
+            // Элементы для работы с GoGoBike тарифами
+            const tariffModal = document.getElementById('tariff-modal');
+            const tariffModalCloseBtn = document.getElementById('tariff-modal-close-btn');
+
+            /**
+             * Настраиваем внешний вид кнопок на главном экране в зависимости
+             * от выбранного способа оплаты (QR или GoGoBike). По умолчанию
+             * отображается кнопка «Сканировать QR‑код» и три дополнительных
+             * действия. При выборе провайдера GoGoBike основная кнопка
+             * переименовывается в «Тарифы», а второстепенные кнопки для
+             * сканирования и бронирования скрываются, оставляя только
+             * возможность ввести ID.
+             */
+            function applyProviderUI() {
+                const provider = localStorage.getItem('paymentProvider') || 'GoGoBike';
+                if (provider === 'GoGoBike') {
+                    // Переименовываем основную кнопку
+                    scanBtn.textContent = 'Тарифы';
+                    // Скрываем иконку для сканирования и кнопку бронирования
+                    if (scanIconBtn) scanIconBtn.style.display = 'none';
+                    if (bookingBtn) bookingBtn.style.display = '';
+                } else {
+                    // В режиме QR отображаем стандартную надпись и все второстепенные действия
+                    scanBtn.textContent = 'Тарифы';
+                    if (scanIconBtn) scanIconBtn.style.display = '';
+                    if (bookingBtn) bookingBtn.style.display = '';
+                }
+            }
+            // Применяем настройки при инициализации страницы
+            applyProviderUI();
+            // Обновляем интерфейс при изменении хранилища (например, после изменения
+            // способа оплаты в профиле). Это событие срабатывает в других вкладках,
+            // поэтому в рамках одного окна может не возникнуть, но не мешает.
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'paymentProvider') {
+                    applyProviderUI();
+                }
+            });
+
+            // Дублируем обновление UI на событие storage, чтобы не зависеть от старых ссылок на элементы
+            window.addEventListener('storage', (e) => {
+                if (e.key !== 'paymentProvider') return;
+                (function () {
+                    const _scanBtn = document.getElementById('scan-qr-btn');
+                    const _scanIconBtn = document.getElementById('scan-icon-btn');
+                    const _bookingBtn = document.getElementById('booking-btn');
+                    const _provider = localStorage.getItem('paymentProvider') || 'qr';
+                    if (!_scanBtn) return;
+                    if (_provider === 'GoGoBike') {
+                        _scanBtn.textContent = 'Тарифы';
+                        if (_scanIconBtn) _scanIconBtn.style.display = 'none';
+                        if (_bookingBtn) _bookingBtn.style.display = '';
+                    } else {
+                        _scanBtn.textContent = 'Тарифы';
+                        if (_scanIconBtn) _scanIconBtn.style.display = '';
+                        if (_bookingBtn) _bookingBtn.style.display = '';
+                    }
+                })();
+            });
+
+            const changeBikeImage = (newSrc) => {
+                mainBikeImage.classList.add('fade-out');
+                setTimeout(() => {
+                    mainBikeImage.src = newSrc; // <-- ИЗМЕНЕНИЕ: УБИРАЕМ file:///android_asset/
+                    mainBikeImage.classList.remove('fade-out');
+                    saveAppState();
+                }, 300);
+            };
+            const addTransactionToHistory = (transaction) => {
+                const history = JSON.parse(localStorage.getItem('bikeHistory')) || [];
+                transaction.date = new Date().toISOString();
+                history.push(transaction);
+                localStorage.setItem('bikeHistory', JSON.stringify(history));
+            };
+
+            /**
+             * Обновляет подпись на изображении велосипеда. Если пользователь
+             * выбирает тариф GoGoBike, мы отображаем название тарифа (Бронза,
+             * Серебро или Золото). В других случаях отображаем номер
+             * велосипеда, например «00001». После обновления сразу
+             * сохраняем состояние, чтобы подпись сохранилась при перезагрузке.
+             * @param {string} label — текст, который нужно вывести на багажнике
+             */
+
+            // ФУНКЦИИ АРЕНДЫ И БРОНИРОВАНИЯ
+            const processRental = async () => {
+                const rentBtnElement = document.getElementById('rent-btn');
+                rentBtnElement.disabled = true;
+                rentBtnElement.textContent = 'Создаем заказ...';
+
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    alert('Ошибка: не удалось определить пользователя.');
+                    rentBtnElement.disabled = false;
+                    rentBtnElement.textContent = 'Арендовать';
+                    return;
+                }
+
+                try {
+                    // Вызываем нашу Netlify функцию по специальному пути
+                    const response = await fetch('/.netlify/functions/create-payment', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            userId: userId,
+                            bikeId: '00001',
+                            tariffId: 1
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Неизвестная ошибка сервера');
+                    }
+
+                    if (data.confirmation_url) {
+                        // Случай 1: Карты нет, отправляем на страницу оплаты
+                        window.location.href = data.confirmation_url;
+                    } else if (data.status === 'pending' || data.status === 'succeeded') {
+                        // Случай 2: Карта есть, автоплатеж запущен.
+                        // Просто показываем модалку "Подпишите договор" и ждем вебхук.
+                        // Фронту больше ничего делать не надо.
+                        console.log('Автоплатеж запущен. Статус:', data.status);
+                        document.getElementById('post-rental-prompt-modal').classList.remove('hidden');
+                        // Закрываем все остальные модалки на всякий случай
+                        document.getElementById('tariff-detail-modal').classList.add('hidden');
+                        document.getElementById('tariff-modal').classList.add('hidden');
+                    } else {
+                        // Случай 3: Произошла какая-то другая неведомая хуйня.
+                        throw new Error(data.error || 'Не удалось обработать платеж.');
+                    }
+
+                } catch (error) {
+                    alert('Не удалось создать заказ. Ошибка: ' + error.message);
+                    rentBtnElement.disabled = false;
+                    rentBtnElement.textContent = 'Арендовать';
+                }
+            };
+
+            // === ЛОГИКА ДЛЯ ТАРИФОВ GoGoBike ===
+            // Определяем данные по тарифам: стоимость и длительность аренды (в днях)
+            const tariffData = {
+                bronze: { title: 'Бронза', cost: 1000, days: 3, deposit: 0 },
+                silver: { title: 'Серебро', cost: 2000, days: 5, deposit: 0 },
+                gold: { title: 'Золото', cost: 3750, days: 7, deposit: 0 }
+            };
+            // Если меню загрузило тарифы из локального API, обновляем эти значения.
+            try {
+                const tMapStr = sessionStorage.getItem('tariffMap');
+                if (tMapStr) {
+                    const tMap = JSON.parse(tMapStr);
+                    Object.keys(tMap).forEach(key => {
+                        const entry = tMap[key];
+                        if (entry) {
+                            // Preserve existing title if available
+                            const existing = tariffData[key] || {};
+                            tariffData[key] = {
+                                title: existing.title || key,
+                                cost: entry.cost,
+                                days: entry.days,
+                                id: entry.id,
+                                deposit: entry.deposit || existing.deposit || 0,
+                                // Сохраняем список доступных продлений, если задано
+                                extensions: entry.extensions || existing.extensions || null
+                            };
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('Failed to parse tariffMap', err);
+            }
+            // Обработчик аренды по выбранному тарифу GoGoBike
+            const processTariffRental = async (tariffKey, selectedExt = null, bikeCode = null) => {
+                const tariff = tariffData[tariffKey];
+                if (!tariff || !tariff.id) {
+                    alert('Ошибка: не удалось определить тариф.');
+                    return;
+                }
+
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    alert('Ошибка: не удалось определить пользователя.');
+                    return;
+                }
+
+                // Показываем состояние загрузки
+                const rentBtn = document.getElementById('tariff-detail-select-btn');
+                if (rentBtn) toggleButtonLoading(rentBtn, true, 'Выбрать тариф', 'Обработка...');
+
+                try {
+                    // Сначала проверяем баланс клиента
+                    const { data: client, error: clientError } = await supabase
+                        .from('clients')
+                        .select('balance_rub')
+                        .eq('id', userId)
+                        .single();
+
+                    if (clientError) throw new Error('Не удалось получить данные клиента');
+
+                    const cost = selectedExt ? selectedExt.cost : tariff.cost;
+                    const hasEnoughBalance = client.balance_rub >= cost;
+
+                    if (hasEnoughBalance) {
+                        // Списываем с баланса
+                        const response = await fetch('/api/payments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'charge-from-balance', userId: userId, tariffId: tariff.id, bikeCode: bikeCode, amount: cost, days: selectedExt ? selectedExt.days : undefined })
+                        });
+
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Ошибка списания с баланса');
+
+                        // Показываем модальное окно для подписания договора
+                        document.getElementById('post-rental-prompt-modal').classList.remove('hidden');
+                        loadUserData(); // Обновляем интерфейс, чтобы показать статус awaiting_contract_signing
+                    } else {
+                        // Баланса недостаточно - оплата картой
+                        const response = await fetch('/api/payments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'create-payment',
+                                userId: userId,
+                                tariffId: tariff.id,
+                                bikeCode: bikeCode,
+                                amount: cost,
+                                days: selectedExt ? selectedExt.days : undefined,
+                                return_url: window.location.origin + window.location.pathname + '?payment_success=true'
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
+
+                        if (data.confirmation_url) {
+                            // Сценарий 1: Карта не привязана. Отправляем на оплату.
+                            window.location.href = data.confirmation_url;
+
+                        } else if (data.status === 'succeeded' || data.status === 'pending') {
+                            // Сценарий 2: Карта привязана, автоплатеж запущен.
+                            console.log('Автоплатеж прошел, начинаем опрос для подтверждения аренды...');
+
+                            // 1. Закрываем все модальные окна
+                            document.getElementById('tariff-detail-modal').classList.add('hidden');
+                            document.getElementById('tariff-modal').classList.add('hidden');
+
+                            // 2. СРАЗУ показываем экран ожидания (чтобы пользователь видел, что что-то происходит)
+                            const mainContent = document.querySelector('.app-main');
+                            renderPendingBatteryView(mainContent);
+
+                            try {
+                                // 3. Запускаем опрос в фоновом режиме, чтобы дождаться создания аренды
+                                await pollForRentalCreation(userId);
+                                // Если мы дошли сюда, значит аренда создана. Экран уже правильный.
+                                console.log('Подтверждение аренды успешно получено.');
+                            } catch (pollError) {
+                                // 4. Если за 20 секунд аренда не появится, сообщаем об ошибке
+                                alert(pollError.message);
+                                // Возвращаем на стандартный экран
+                                loadUserData();
+                            }
+
+                        } else {
+                            // Сценарий 3: Что-то пошло не так.
+                            throw new Error('Не удалось получить ссылку на оплату или подтверждение платежа.');
+                        }
+                    }
+
+                } catch (err) {
+                    alert(`Ошибка оформления аренды: ${err.message}`);
+                } finally {
+                    if (rentBtn) toggleButtonLoading(rentBtn, false, 'Выбрать тариф', 'Обработка...');
+                }
+            };
+
+            // Элементы и логика для подробного просмотра тарифов
+            const tariffDetailModal = document.getElementById('tariff-detail-modal');
+            const tariffDetailTitle = document.getElementById('tariff-detail-title');
+            const tariffDetailPrice = document.getElementById('tariff-detail-price');
+            const tariffDetailDuration = document.getElementById('tariff-detail-duration');
+            const tariffDetailDeposit = document.getElementById('tariff-detail-deposit');
+            const tariffDetailBackBtn = document.getElementById('tariff-detail-back-btn');
+            const tariffDetailSelectBtn = document.getElementById('tariff-detail-select-btn');
+            const tariffDetailCloseBtn = document.getElementById('tariff-detail-close-btn');
+            // Список дополнительных вариантов длительности/стоимости для выбранного тарифа
+            const tariffDetailExtList = document.getElementById('tariff-detail-extensions-list');
+            // Текущий массив вариантов (из базы или рассчитанный по умолчанию)
+            let currentDetailExtensions = null;
+            let pendingTariffKey = null;
+
+            // === Элементы и функции для продления аренды ===
+            const extendContainer = document.getElementById('extend-container');
+            const extendRentalBtn = document.getElementById('extend-rental-btn');
+            const extendModal = document.getElementById('extend-modal');
+            const extendOptionsList = document.getElementById('extend-options');
+            const extendSelectBtn = document.getElementById('extend-select-btn');
+            const extendCancelBtn = document.getElementById('extend-cancel-btn');
+            const extendCloseBtn = document.getElementById('extend-close-btn');
+
+            /**
+             * Загружает текущую активную аренду из localStorage
+             * @returns {object|null}
+             */
+            function loadActiveRental() {
+                try {
+                    return JSON.parse(localStorage.getItem('activeRental')) || null;
+                } catch (e) {
+                    return null;
+                }
+            }
+            function showTariffDetail(tariffKey, bikeCode = null) {
+                const t = tariffData[tariffKey];
+                if (!t) {
+                    console.error(`Тариф с ключом "${tariffKey}" не найден!`);
+                    return;
+                }
+
+                pendingTariffKey = tariffKey;
+                pendingBikeCode = bikeCode; // <-- СОХРАНЯЕМ ID ВЕЛОСИПЕДА
+
+                // Заполняем заголовок и описание
+                document.getElementById('tariff-detail-title').textContent = t.title || tariffKey;
+                document.getElementById('tariff-detail-description').textContent = t.short_description || t.description || '';
+
+                const optionsContainer = document.getElementById('tariff-options-list');
+                optionsContainer.innerHTML = ''; // Очищаем старые варианты
+
+                // Определяем, какие варианты выбора у нас есть
+                const extensions = (t.extensions && Array.isArray(t.extensions) && t.extensions.length > 0)
+                    ? t.extensions
+                    : [{ days: t.duration_days, cost: t.price_rub }];
+
+                currentDetailExtensions = extensions; // Сохраняем для обработчика кнопки
+
+                // Создаем карточки для каждого варианта
+                extensions.forEach((ext, idx) => {
+                    const isChecked = (idx === 0) ? 'checked' : '';
+                    const isSelectedClass = (idx === 0) ? ' selected' : '';
+
+                    const optionHTML = `
+            <label class="tariff-option-item${isSelectedClass}">
+                <input type="radio" name="tariff-duration-option" value="${idx}" ${isChecked}>
+                <div class="option-details">
+                    <span class="option-duration">${ext.days} дней</span>
+                </div>
+                <span class="option-price">${ext.cost} ₽</span>
+            </label>
+        `;
+                    optionsContainer.insertAdjacentHTML('beforeend', optionHTML);
+                });
+
+                // Добавляем обработчик клика на весь список для делегирования
+                optionsContainer.querySelectorAll('.tariff-option-item').forEach(label => {
+                    label.addEventListener('click', () => {
+                        // Снимаем выделение со всех
+                        optionsContainer.querySelectorAll('.tariff-option-item').forEach(el => el.classList.remove('selected'));
+                        // Добавляем выделение на кликнутый
+                        label.classList.add('selected');
+                        // Устанавливаем checked на внутренний radio
+                        label.querySelector('input[type="radio"]').checked = true;
+                    });
+                });
+
+                // Показываем модальное окно
+                tariffModal.classList.add('hidden');
+                tariffDetailModal.classList.remove('hidden');
+            }
+            /**
+             * Сохраняет активную аренду в localStorage
+             * @param {object} obj
+             */
+            function saveActiveRental(obj) {
+                try {
+                    localStorage.setItem('activeRental', JSON.stringify(obj));
+                } catch (e) { }
+            }
+
+            /**
+             * Показывает или скрывает кнопку продления аренды в зависимости от состояния
+             */
+            function updateExtendButton() {
+                // Получаем элемент кнопки продления каждый раз при вызове функции.
+                // Это избегает ошибок области видимости, которые возникали,
+                // когда extendContainer был объявлен ниже и находился в TDZ (temporal dead zone).
+                const extendContainerEl = document.getElementById('extend-container');
+                const active = loadActiveRental();
+                if (extendContainerEl) {
+                    if (active && active.status === 'active') {
+                        extendContainerEl.classList.remove('hidden');
+                    } else {
+                        extendContainerEl.classList.add('hidden');
+                    }
+                }
+            }
+
+            /**
+             * Строит список доступных вариантов продления в модалке
+             * @param {Array} exts
+             */
+            function buildExtendOptions(exts) {
+                if (!extendOptionsList) return;
+                extendOptionsList.innerHTML = '';
+                if (!exts || exts.length === 0) {
+                    const li = document.createElement('li');
+                    li.textContent = 'Нет доступных продлений.';
+                    extendOptionsList.appendChild(li);
+                    return;
+                }
+                exts.forEach((ext, idx) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<label><input type="radio" name="extend-option" value="${idx}" ${idx === 0 ? 'checked' : ''}> ${ext.days} дней — ${ext.cost} ₽</label>`;
+                    extendOptionsList.appendChild(li);
+                });
+            }
+
+            /**
+             * Обрабатывает продление аренды: списывает средства, обновляет сроки, отправляет на сервер
+             * @param {{days:number, cost:number}} ext
+             */
+            /**
+             * Processes the rental extension by updating the database and UI.
+             * @param {{days: number, cost: number}} ext - The selected extension option.
+             */
+            async function processExtension(ext) {
+                if (!ext || !currentRentalForExtension) return;
+
+                toggleButtonLoading(extendSelectBtn, true, 'Продлить', 'Обработка...');
+
+                try {
+                    const userId = localStorage.getItem('userId');
+                    const newEndDate = new Date(currentRentalForExtension.current_period_ends_at);
+                    newEndDate.setDate(newEndDate.getDate() + ext.days);
+
+                    const { data: client, error: clientError } = await supabase
+                        .from('clients')
+                        .select('balance_rub')
+                        .eq('id', userId)
+                        .single();
+
+                    if (clientError) throw new Error('Не удалось получить данные клиента');
+
+                    const hasEnoughBalance = (client.balance_rub || 0) >= ext.cost;
+
+                    if (hasEnoughBalance) {
+                        // 1. Списание с баланса, если его достаточно
+                        const { error: balanceError } = await supabase.rpc('add_to_balance', {
+                            client_id_to_update: userId,
+                            amount_to_add: -ext.cost
+                        });
+                        if (balanceError) throw new Error(`Ошибка списания баланса: ${balanceError.message}`);
+
+                        const { error: rentalError } = await supabase
+                            .from('rentals')
+                            .update({
+                                current_period_ends_at: newEndDate.toISOString(),
+                                total_paid_rub: (currentRentalForExtension.total_paid_rub || 0) + ext.cost
+                            })
+                            .eq('id', currentRentalForExtension.id);
+                        if (rentalError) throw new Error(`Ошибка обновления аренды: ${rentalError.message}`);
+
+                        await supabase.from('payments').insert({
+                            client_id: userId,
+                            rental_id: currentRentalForExtension.id,
+                            amount_rub: ext.cost,
+                            status: 'succeeded',
+                            payment_type: 'renewal',
+                            payment_method_title: 'Списано с баланса',
+                            description: 'Продление аренды'
+                        });
+
+                        alert('Аренда успешно продлена!');
+                        window.location.reload(); // Перезагружаем страницу, чтобы обновить данные
+
+                    } else {
+                        // 2. Оплата картой (полная или частичная), если баланса не хватает
+                        const response = await fetch('/api/payments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'create-payment',
+                                userId: userId,
+                                amount: ext.cost,
+                                type: 'renewal',
+                                rentalId: currentRentalForExtension.id,
+                                days: ext.days
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
+
+                        // --- КЛЮЧЕВЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ ---
+                        if (data.confirmation_url) {
+                            // Сценарий 1: Карты нет, отправляем на оплату
+                            window.location.href = data.confirmation_url;
+                        } else if (data.status === 'succeeded' || data.status === 'pending') {
+                            // Сценарий 2: Карта есть, автоплатеж запущен. Просто ждем вебхук.
+                            alert('Продление обрабатывается. Страница сейчас обновится.');
+                            // Даем вебхуку пару секунд на обработку и перезагружаем страницу
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 3000);
+                        } else {
+                            // Сценарий 3: Что-то пошло не так.
+                            throw new Error('Не удалось получить ссылку на оплату или подтверждение платежа.');
+                        }
+                    }
+
+                } catch (err) {
+                    alert(`Не удалось продлить аренду: ${err.message}`);
+                } finally {
+                    extendModal.classList.add('hidden');
+                    toggleButtonLoading(extendSelectBtn, false, 'Продлить', 'Обработка...');
+                }
+            }
+
+            // Event listener for the final extend button in the modal
+            if (extendSelectBtn) {
+                extendSelectBtn.addEventListener('click', () => {
+                    const selected = extendOptionsList.querySelector('input[name="extend-option"]:checked');
+                    if (!selected || !currentRentalForExtension) return;
+
+                    const idx = parseInt(selected.value, 10);
+                    const t = currentRentalForExtension.tariffs;
+                    let ext = null;
+
+                    if (t && t.extensions && t.extensions.length > 0) {
+                        ext = t.extensions[idx];
+                    } else if (t) {
+                        // Fallback for tariffs without explicit extensions
+                        ext = { days: t.duration_days, cost: t.price_rub };
+                    }
+
+                    if (ext) {
+                        processExtension(ext);
+                    }
+                });
+            }
+
+            // Event listeners for cancel and close buttons in extend modal
+            if (extendCancelBtn) {
+                extendCancelBtn.addEventListener('click', () => {
+                    extendModal.classList.add('hidden');
+                });
+            }
+            if (extendCloseBtn) {
+                extendCloseBtn.addEventListener('click', () => {
+                    extendModal.classList.add('hidden');
+                });
+            }
+
+            // Назначаем обработчики для выбора тарифа
+
+            if (tariffDetailBackBtn) {
+                tariffDetailBackBtn.addEventListener('click', () => {
+                    tariffDetailModal.classList.add('hidden');
+                    tariffModal.classList.remove('hidden');
+                    pendingTariffKey = null;
+                });
+            }
+            if (tariffDetailCloseBtn) {
+                tariffDetailCloseBtn.addEventListener('click', () => {
+                    tariffDetailModal.classList.add('hidden');
+                    pendingTariffKey = null;
+                });
+            }
+            if (document.getElementById('select-tariff-btn')) {
+                document.getElementById('select-tariff-btn').addEventListener('click', () => {
+                    if (!pendingTariffKey) return;
+
+                    // Находим выбранный вариант
+                    const selectedRadio = document.querySelector('input[name="tariff-duration-option"]:checked');
+                    if (!selectedRadio) {
+                        alert('Пожалуйста, выберите вариант аренды.');
+                        return;
+                    }
+
+                    const selectedIndex = parseInt(selectedRadio.value, 10);
+                    const selectedExtension = currentDetailExtensions[selectedIndex];
+
+                    if (!selectedExtension) {
+                        alert('Ошибка при выборе варианта. Попробуйте еще раз.');
+                        return;
+                    }
+
+                    // Закрываем окно и запускаем процесс аренды с выбранными данными
+                    tariffDetailModal.classList.add('hidden');
+                    processTariffRental(pendingTariffKey, selectedExtension, pendingBikeCode); // <-- ПЕРЕДАЕМ ID ВЕЛОСИПЕДА
+                    pendingTariffKey = null;
+                    pendingBikeCode = null; // <-- СБРАСЫВАЕМ
+                });
+            }
+            if (tariffDetailCloseBtn) {
+                tariffDetailCloseBtn.addEventListener('click', () => {
+                    tariffDetailModal.classList.add('hidden');
+                    pendingTariffKey = null;
+                });
+            }
+
+            // Закрытие модалки тарифов
+            tariffModalCloseBtn.addEventListener('click', () => {
+                tariffModal.classList.add('hidden');
+            });
+            tariffModal.addEventListener('click', (e) => {
+                if (e.target === tariffModal) tariffModal.classList.add('hidden');
+            });
+
+            // ========== ПОДДЕРЖКА ДИНАМИЧЕСКОЙ ЗАГРУЗКИ ТАРИФОВ GoGoBike ==========
+            /**
+             * Загружает список тарифов из API (или localStorage, если сеть недоступна).
+             * Обновляет содержимое списка в модальном окне и сохраняет map в sessionStorage,
+             * чтобы функции оформления аренды могли использовать актуальные данные (цена,
+             * длительность, депозит, extensions).
+             */
+            async function loadGoGoBikeTariffs() {
+                let data;
+                try {
+                    const { data: supabaseData, error } = await supabase
+                        .from('tariffs')
+                        .select('*')
+                        .eq('is_active', true)
+                        .order('id', { ascending: true });
+
+                    if (error) throw error;
+
+                    data = supabaseData;
+                    // Сохраняем для офлайн работы
+                    localStorage.setItem('tariffs', JSON.stringify(data));
+                } catch (err) {
+                    console.warn('Failed to fetch tariffs from Supabase, falling back to localStorage.', err);
+                    try {
+                        data = JSON.parse(localStorage.getItem('tariffs') || '[]');
+                    } catch (e) {
+                        data = [];
+                    }
+                }
+
+                // Data is already filtered by the query
+                const activeTariffs = data || [];
+                const list = document.querySelector('#tariff-modal .bike-list');
+                if (list) {
+                    list.innerHTML = '';
+                    activeTariffs.forEach((t) => {
+                        const key = t.slug || (t.title ? t.title.toLowerCase().replace(/\s+/g, '-') : '');
+                        const item = document.createElement('div');
+                        item.className = 'bike-list-item tariff-option';
+                        item.dataset.tariff = key;
+                        item.dataset.tariffId = t.id;
+                        item.innerHTML = `<strong>${t.title}</strong><span>${t.short_description || ''}</span>`;
+                        // Навешиваем обработчик выбора тарифа здесь, чтобы убирать модальное
+                        item.addEventListener('click', () => {
+                            showTariffDetail(key);
+                        });
+                        list.appendChild(item);
+                    });
+                }
+                // Формируем карту данных тарифов для использования в processTariffRental
+                const tariffMap = {};
+                (data || []).forEach((t) => {
+                    let extensions = null;
+                    if (t.extensions) {
+                        try {
+                            extensions = typeof t.extensions === 'string' ? JSON.parse(t.extensions) : t.extensions;
+                        } catch (e) {
+                            extensions = null;
+                        }
+                    }
+                    const key = t.slug || (t.title ? t.title.toLowerCase().replace(/\s+/g, '-') : '');
+                    tariffMap[key] = {
+                        id: t.id,
+                        cost: t.price_rub,
+                        days: t.duration_days,
+                        deposit: t.deposit_rub || 0,
+                        title: t.title,
+                        extensions: extensions,
+                        short_description: t.short_description || '',
+                        description: t.description || ''
+                    };
+                });
+                try {
+                    sessionStorage.setItem('tariffMap', JSON.stringify(tariffMap));
+                } catch (e) {
+                    console.warn('Failed to store tariffMap', e);
+                }
+
+                // Обновляем глобальный объект tariffData, чтобы включить новые тарифы
+                try {
+                    Object.keys(tariffMap).forEach(key => {
+                        const entry = tariffMap[key];
+                        if (!entry) return;
+                        const existing = tariffData[key] || {};
+                        tariffData[key] = {
+                            title: existing.title || entry.title || key,
+                            cost: entry.cost,
+                            days: entry.days,
+                            deposit: entry.deposit || existing.deposit || 0,
+                            id: entry.id,
+                            extensions: entry.extensions || existing.extensions || null,
+                            description: entry.description || existing.description || '',
+                            short_description: entry.short_description || existing.short_description || ''
+                        };
+                    });
+                } catch (err) {
+                    console.warn('Failed to update tariffData', err);
+                }
+
+            }
+
+            // ОБРАБОТЧИКИ СОБЫТИЙ
+            scanBtn.addEventListener('click', () => {
+                // В зависимости от выбранного способа оплаты открываем соответствующее окно
+                const provider = localStorage.getItem('paymentProvider') || 'qr';
+                if (provider === 'GoGoBike') {
+                    // Перед открытием окна подгружаем актуальные тарифы
+                    loadGoGoBikeTariffs().then(() => {
+                        tariffModal.classList.remove('hidden');
+                    });
+                } else {
+                    rentBtn.textContent = 'Арендовать';
+                    rentBtn.dataset.action = 'rent';
+                    qrModal.classList.remove('hidden');
+                }
+            });
+            if (scanIconBtn) scanIconBtn.addEventListener('click', () => scanBtn.click());
+
+            if (idInputBtn) idInputBtn.addEventListener('click', () => idInputModal.classList.remove('hidden'));
+            if (extendRowBtn) {
+                extendRowBtn.addEventListener('click', () => {
+                    // Переиспользуем ту же логику, что и у кнопки внутри блока продления
+                    const active = (function () { try { return JSON.parse(localStorage.getItem('activeRental')) || null; } catch (e) { return null } })();
+                    if (!active) {
+                        alert('Нет активной аренды для продления.');
+                        return;
+                    }
+                    const t = tariffData[active.tariffKey];
+                    if (!t) return;
+                    let exts;
+                    if (t.extensions && Array.isArray(t.extensions) && t.extensions.length > 0) {
+                        exts = t.extensions;
+                    } else {
+                        const fallbackDays = [7, 14, 30];
+                        exts = fallbackDays.map(d => ({ days: d, cost: Math.round((t.cost || 0) * (d / (t.days || 7))) }));
+                    }
+                    buildExtendOptions(exts);
+                    extendModal.classList.remove('hidden');
+                });
+            }
+            confirmIdBtn.addEventListener('click', async () => {
+                const enteredCode = bikeIdInput.value.trim();
+                if (!enteredCode) {
+                    alert('Пожалуйста, введите ID велосипеда.');
+                    return;
+                }
+
+                // Показываем состояние загрузки на кнопке
+                toggleButtonLoading(confirmIdBtn, true, 'Найти и арендовать', 'Поиск...');
+
+                try {
+                    // Отправляем запрос на новую серверную функцию
+                    const response = await fetch('/api/getTariffByBike', { // <-- НОВЫЙ API ЭНДПОИНТ
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bikeCode: enteredCode })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        // Если сервер вернул ошибку (например, "Велосипед не найден"), показываем ее
+                        throw new Error(data.error || 'Не удалось найти велосипед.');
+                    }
+
+                    // Если все успешно, у нас есть данные о тарифе
+                    const { tariff } = data;
+
+                    // Сохраняем найденный тариф в наш глобальный объект `tariffData`
+                    // чтобы функция showTariffDetail могла его использовать
+                    tariffData[tariff.slug] = tariff;
+
+                    // Закрываем окно ввода ID
+                    idInputModal.classList.add('hidden');
+
+                    // ВАЖНО: Вызываем функцию показа деталей тарифа, но передаем ей
+                    // дополнительный параметр - ID велосипеда, который нужно арендовать
+                    showTariffDetail(tariff.slug, enteredCode); // <-- ПЕРЕДАЕМ ID ВЕЛОСИПЕДА
+
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    // Возвращаем кнопку в исходное состояние
+                    toggleButtonLoading(confirmIdBtn, false, 'Найти и арендовать', 'Поиск...');
+                }
+            });
+
+            payBtn.addEventListener('click', async () => {
+                const amount = parseFloat(amountInput.value);
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Пожалуйста, введите корректную сумму.');
+                    return;
+                }
+
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    alert('Ошибка: не удалось определить пользователя.');
+                    return;
+                }
+
+                payBtn.disabled = true;
+                payBtn.textContent = 'Создаем счет...';
+
+                try {
+                    const response = await fetch('/api/payments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create-payment',
+                            userId: userId,
+                            amount: amount // Передаем сумму для пополнения
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка сервера');
+
+                    if (data.confirmation_url) {
+                        // Если карты нет, отправляем на страницу оплаты
+                        window.location.href = data.confirmation_url;
+                    } else if (data.status === 'pending' || data.status === 'succeeded') {
+                        // Если карта есть и автосписание прошло
+                        topupModal.classList.add('hidden');
+                        alert('Баланс будет пополнен в течение минуты. Вы получите уведомление.');
+                        // В будущем здесь нужно будет обновить баланс пользователя, запросив его с сервера
+                    } else {
+                        throw new Error('Произошла неизвестная ошибка при обработке платежа.');
+                    }
+
+                } catch (error) {
+                    alert('Ошибка пополнения: ' + error.message);
+                } finally {
+                    payBtn.disabled = false;
+                    payBtn.textContent = 'Пополнить';
+                }
+            });
+
+            [qrModalCloseBtn, idInputModalCloseBtn, bookingListModalCloseBtn, topupModalCloseBtn, confirmBookingCloseBtn].forEach(btn => {
+                btn.addEventListener('click', () => btn.closest('.modal-overlay').classList.add('hidden'));
+            });
+            [qrModal, idInputModal, bookingListModal, topupModal, confirmBookingModal].forEach(modal => {
+                modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+            });
+
+
+
+
+            // Делегированные клики для элементов, которые могут пересобираться
+            document.addEventListener('click', async (e) => {
+                const scan = e.target.closest('#scan-qr-btn');
+                const balance = e.target.closest('#balance-card');
+                const idbtn = e.target.closest('#id-input-btn');
+                const extend = e.target.closest('#extend-row-btn');
+                const booking = e.target.closest('#booking-btn');
+                const returnBtn = e.target.closest('#return-bike-btn');
+                const retryBtn = e.target.closest('#retry-payment-btn');
+
+                // --- НАЧАЛО НОВОГО КОДА ---
+                const bookingBtn = e.target.closest('#booking-btn'); // Кнопка "Бронь" на главном экране
+                const confirmBooking = e.target.closest('#confirm-booking-btn'); // Кнопка в модалке
+                const cancelBooking = e.target.closest('#cancel-booking-btn'); // Кнопка отмены брони
+                const extendActiveBtn = e.target.closest('#extend-active-rental-btn');
+                const reportProblemBtn = e.target.closest('#report-problem-btn');
+
+                if (scan) {
+                    e.preventDefault();
+                    // Всегда открываем модальное окно с тарифами
+                    loadGoGoBikeTariffs().then(() => {
+                        const modal = document.getElementById('tariff-modal');
+                        if (modal) modal.classList.remove('hidden');
+                    });
+                    return;
+                }
+
+                if (balance) {
+                    e.preventDefault();
+                    const modal = document.getElementById('topup-modal');
+                    if (modal) modal.classList.remove('hidden');
+                    return;
+                }
+
+                if (idbtn) {
+                    e.preventDefault();
+                    const modal = document.getElementById('id-input-modal');
+                    if (modal) modal.classList.remove('hidden');
+                    return;
+                }
+
+                if (extend) {
+                    e.preventDefault();
+                    let active = null;
+                    try { active = JSON.parse(localStorage.getItem('activeRental')) || null; } catch (_) { }
+                    if (!active) { alert('Нет активной аренды для продления.'); return; }
+                    const t = (typeof tariffData !== 'undefined' ? tariffData : (window.tariffData || {}))[active.tariffKey];
+                    if (!t) { alert('Не найден базовый тариф для продления.'); return; }
+                    let exts;
+                    if (t.extensions && Array.isArray(t.extensions) && t.extensions.length > 0) {
+                        exts = t.extensions;
+                    } else {
+                        const baseDays = t.days || 7;
+                        const baseCost = t.cost || 0;
+                        const fallbackDays = [7, 14, 30];
+                        exts = fallbackDays.map(d => ({ days: d, cost: Math.round(baseCost * (d / baseDays)) }));
+                    }
+                    const list = document.getElementById('extend-options');
+                    if (list) {
+                        list.innerHTML = '';
+                        exts.forEach((ext, idx) => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<label><input type="radio" name="extend-option" value="${idx}" ${idx === 0 ? 'checked' : ''}> ${ext.days} дней - ${ext.cost} ₽</label>`;
+                            list.appendChild(li);
+                        });
+                    }
+                    const modal = document.getElementById('extend-modal');
+                    if (modal) modal.classList.remove('hidden');
+                }
+
+                if (bookingBtn) {
+                    e.preventDefault();
+                    // Перед открытием модалки, загружаем стоимость
+                    supabase.from('app_settings').select('value').eq('key', 'booking_cost_rub').single().then(({ data, error }) => {
+                        const modal = document.getElementById('confirm-booking-modal');
+                        if (modal) {
+                            // Значение теперь просто число, а не объект {"cost": ...}
+                            const cost = parseFloat(data?.value) || 0;
+                            const costInfoEl = document.getElementById('booking-cost-info');
+                            const mainTextEl = document.getElementById('booking-main-text');
+
+                            if (cost > 0) {
+                                costInfoEl.querySelector('#booking-cost-amount').textContent = `${cost} ₽`;
+                                costInfoEl.querySelector('#booking-payment-method-text').textContent = 'Сумма будет списана с вашей карты и зачислена на баланс';
+                                costInfoEl.style.display = 'block';
+                                mainTextEl.style.display = 'none'; // Скрываем основной текст
+                            } else {
+                                costInfoEl.style.display = 'none';
+                                mainTextEl.style.display = 'block'; // Показываем основной текст для бесплатной брони
+                            }
+                            modal.classList.remove('hidden');
+                        }
+                    });
+                    return;
+                }
+
+                if (confirmBooking) {
+                    e.preventDefault();
+                    processBooking(); // Вызываем нашу новую функцию
+                    return;
+                }
+
+                if (cancelBooking) {
+                    e.preventDefault();
+                    if (confirm('Вы уверены, что хотите отменить бронь?')) {
+                        const bookingId = cancelBooking.dataset.bookingId;
+                        const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+                        if (error) alert('Ошибка отмены: ' + error.message);
+                        else window.location.reload();
+                    }
+                    return;
+                }
+
+                if (booking) {
+                    e.preventDefault();
+                    const modal = document.getElementById('confirm-booking-modal');
+                    if (modal) modal.classList.remove('hidden');
+                    return;
+                }
+
+                if (returnBtn) {
+                    const rentalId = returnBtn.dataset.rentalId;
+                    returnBike(rentalId); // Вызываем функцию сдачи
+                }
+
+                if (retryBtn) {
+                    retryPayment();
+                }
+
+                if (extendActiveBtn) {
+                    e.preventDefault();
+                    // Эта логика полностью дублирует старую кнопку "Продлить", открывая модальное окно
+                    const { data: rental, error } = await supabase
+                        .from('rentals')
+                        .select('*, tariffs(*)')
+                        .eq('user_id', localStorage.getItem('userId'))
+                        .eq('status', 'active')
+                        .single();
+
+                    if (!rental) {
+                        alert('Не найдена активная аренда для продления.');
+                        return;
+                    }
+
+                    currentRentalForExtension = rental; // Сохраняем аренду для модального окна
+                    const t = rental.tariffs;
+                    let exts = [];
+                    if (t && t.extensions) {
+                        try {
+                            exts = typeof t.extensions === 'string' ? JSON.parse(t.extensions) : t.extensions;
+                        } catch (e) {
+                            exts = [{ days: t.duration_days, cost: t.price_rub }];
+                        }
+                    } else {
+                        exts = [{ days: t.duration_days, cost: t.price_rub }];
+                    }
+
+                    buildExtendOptions(exts);
+                    const modal = document.getElementById('extend-modal');
+                    if (modal) modal.classList.remove('hidden');
+                    return;
+                }
+
+                if (reportProblemBtn) {
+                    e.preventDefault();
+                    // Перенаправляем на страницу профиля с хэшем #support
+                    window.location.href = 'profile.html#support';
+                    return;
+                }
+                // --- КОНЕЦ НОВОГО КОДА ---
+            });
+
+            // При загрузке страницы получаем данные пользователя
+            loadUserData();
+            // После восстановления состояния проверяем, есть ли активная аренда
+            if (typeof updateExtendButton === 'function') {
+                updateExtendButton();
+            }
+        });
+    </script>
+    <!-- Общий скрипт меню GoGoBike, подключается после основного скрипта -->
+    <script src="menu.js" defer></script>
+
+    <!-- НОВЫЙ HTML И СТИЛИ ДЛЯ УВЕДОМЛЕНИЯ О ПОДПИСАНИИ -->
+    <style>
+        .prompt-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0s 0.3s;
+        }
+
+        .prompt-modal.visible {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease, visibility 0s;
+        }
+
+        .prompt-modal .modal-content {
+            position: relative;
+            text-align: center;
+        }
+
+        .prompt-modal .modal-content h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .prompt-modal .modal-content p {
+            color: #556f6b;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .nav-item.has-notification {
+            position: relative;
+        }
+
+        .nav-item.has-notification::after {
+            content: '!';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 18px;
+            height: 18px;
+            background-color: #e53e3e;
+            color: white;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            border: 2px solid var(--light-green-nav);
+        }
+
+        /* === СТИЛИ ДЛЯ РАЗДЕЛЕННЫХ КНОПОК === */
+        .secondary-actions-split {
+            display: flex;
+            gap: 15px;
+            /* Сохраняем тот же отступ, что и везде */
+            width: 100%;
+        }
+
+        .secondary-actions-split .btn {
+            flex: 1;
+            /* Этот трюк заставляет оба элемента занять равное пространство */
+        }
+
+        /* === СТИЛИ ДЛЯ НОВОГО МОДАЛЬНОГО ОКНА-УВЕДОМЛЕНИЯ === */
+        #post-rental-prompt-modal .modal-content {
+            text-align: center;
+        }
+
+        #post-rental-prompt-modal .modal-content h2 {
+            font-size: 1.5rem;
+            /* Увеличим заголовок */
+            margin-bottom: 15px;
+        }
+
+        #post-rental-prompt-modal .modal-content p {
+            color: #556f6b;
+            /* Используем фирменный цвет текста */
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-size: 1rem;
+        }
+    </style>
+
+    <div id="post-rental-prompt-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="prompt-modal-close-btn">&times;</button>
+            <h2>Аренда оформлена!</h2>
+            <p>Пожалуйста, перейдите в уведомления в своем профиле, чтобы подписать договор.</p>
+            <button id="go-to-profile-btn" class="btn btn-primary">Перейти в профиль</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... остальной скрипт ...
+
+
+            const userId = localStorage.getItem('userId');
+            if (!userId) return; // Only track logged-in users
+
+            function startTracking() {
+                if (!navigator.geolocation) {
+                    console.log('Geolocation is not supported by your browser');
+                    return;
+                }
+
+                function success(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    console.log(`Sending location: ${latitude}, ${longitude}`);
+
+                    fetch('/api/user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'update-location', userId, latitude, longitude })
+                    }).catch(err => console.error('Failed to send location:', err));
+                }
+
+                function error() {
+                    console.log('Unable to retrieve your location');
+                }
+
+                // Initial position send
+                navigator.geolocation.getCurrentPosition(success, error);
+
+                // Send position every 30 seconds
+                setInterval(() => {
+                    navigator.geolocation.getCurrentPosition(success, error);
+                }, 30000);
+            }
+
+            // Ask for permission and start tracking
+            navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
+                if (result.state === 'granted') {
+                    startTracking();
+                } else if (result.state === 'prompt') {
+                    // We can ask the user with a button click, but for now, we'll just start
+                    // which will trigger the browser's native prompt.
+                    startTracking();
+                }
+                // If state is 'denied', we can't do anything.
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+
+                // Устанавливаем фиксированный цвет шапки
+                tg.setHeaderColor('#ffffff');
+            }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... весь твой существующий код ...
+
+            // --- УПРАВЛЕНИЕ НОВЫМ МОДАЛЬНЫМ ОКНОМ ---
+            const promptModal = document.getElementById('post-rental-prompt-modal');
+            const promptModalCloseBtn = document.getElementById('prompt-modal-close-btn');
+            const goToProfileBtn = document.getElementById('go-to-profile-btn');
+
+            const closeModal = () => {
+                if (promptModal) {
+                    promptModal.classList.add('hidden');
+                }
+            };
+
+            if (promptModal) {
+                promptModal.addEventListener('click', (e) => {
+                    if (e.target === promptModal) {
+                        closeModal();
+                    }
+                });
+            }
+            if (promptModalCloseBtn) promptModalCloseBtn.addEventListener('click', closeModal);
+            if (goToProfileBtn) {
+                goToProfileBtn.addEventListener('click', () => {
+                    window.location.href = 'profile.html#notifications'; // Перенаправляем в раздел уведомлений
+                    closeModal(); // Закрываем модальное окно
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>
