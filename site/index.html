@@ -1656,7 +1656,7 @@
 
                     if (clientError) throw new Error('Не удалось получить данные клиента');
 
-                    const cost = selectedExt ? selectedExt.cost : tariff.cost;
+                    const cost = selectedExt ? (selectedExt.price_rub || selectedExt.cost) : tariff.cost;
                     const hasEnoughBalance = client.balance_rub >= cost;
 
                     if (hasEnoughBalance) {
@@ -1788,7 +1788,7 @@
                 // Определяем, какие варианты выбора у нас есть
                 const extensions = (t.extensions && Array.isArray(t.extensions) && t.extensions.length > 0)
                     ? t.extensions
-                    : [{ days: t.duration_days, cost: t.price_rub }];
+                    : [{ days: t.duration_days, price_rub: t.price_rub }];
 
                 currentDetailExtensions = extensions; // Сохраняем для обработчика кнопки
 
@@ -1796,6 +1796,7 @@
                 extensions.forEach((ext, idx) => {
                     const isChecked = (idx === 0) ? 'checked' : '';
                     const isSelectedClass = (idx === 0) ? ' selected' : '';
+                    const price = ext.price_rub || ext.cost || 0;
 
                     const optionHTML = `
             <label class="tariff-option-item${isSelectedClass}">
@@ -1803,7 +1804,7 @@
                 <div class="option-details">
                     <span class="option-duration">${ext.days} дней</span>
                 </div>
-                <span class="option-price">${ext.cost} ₽</span>
+                <span class="option-price">${price} ₽</span>
             </label>
         `;
                     optionsContainer.insertAdjacentHTML('beforeend', optionHTML);
@@ -1868,7 +1869,7 @@
                 }
                 exts.forEach((ext, idx) => {
                     const li = document.createElement('li');
-                    li.innerHTML = `<label><input type="radio" name="extend-option" value="${idx}" ${idx === 0 ? 'checked' : ''}> ${ext.days} дней — ${ext.cost} ₽</label>`;
+                    li.innerHTML = `<label><input type="radio" name="extend-option" value="${idx}" ${idx === 0 ? 'checked' : ''}> ${ext.days} дней — ${ext.price_rub || ext.cost || 0} ₽</label>`;
                     extendOptionsList.appendChild(li);
                 });
             }
@@ -1899,13 +1900,14 @@
 
                     if (clientError) throw new Error('Не удалось получить данные клиента');
 
-                    const hasEnoughBalance = (client.balance_rub || 0) >= ext.cost;
+                    const extCost = ext.price_rub || ext.cost || 0;
+                    const hasEnoughBalance = (client.balance_rub || 0) >= extCost;
 
                     if (hasEnoughBalance) {
                         // 1. Списание с баланса, если его достаточно
                         const { error: balanceError } = await supabase.rpc('add_to_balance', {
                             client_id_to_update: userId,
-                            amount_to_add: -ext.cost
+                            amount_to_add: -extCost
                         });
                         if (balanceError) throw new Error(`Ошибка списания баланса: ${balanceError.message}`);
 
@@ -1913,7 +1915,7 @@
                             .from('rentals')
                             .update({
                                 current_period_ends_at: newEndDate.toISOString(),
-                                total_paid_rub: (currentRentalForExtension.total_paid_rub || 0) + ext.cost
+                                total_paid_rub: (currentRentalForExtension.total_paid_rub || 0) + extCost
                             })
                             .eq('id', currentRentalForExtension.id);
                         if (rentalError) throw new Error(`Ошибка обновления аренды: ${rentalError.message}`);
@@ -1921,7 +1923,7 @@
                         await supabase.from('payments').insert({
                             client_id: userId,
                             rental_id: currentRentalForExtension.id,
-                            amount_rub: ext.cost,
+                            amount_rub: extCost,
                             status: 'succeeded',
                             payment_type: 'renewal',
                             payment_method_title: 'Списано с баланса',
@@ -1939,7 +1941,7 @@
                             body: JSON.stringify({
                                 action: 'create-payment',
                                 userId: userId,
-                                amount: ext.cost,
+                                amount: extCost,
                                 type: 'renewal',
                                 rentalId: currentRentalForExtension.id,
                                 days: ext.days
@@ -1988,7 +1990,7 @@
                         ext = t.extensions[idx];
                     } else if (t) {
                         // Fallback for tariffs without explicit extensions
-                        ext = { days: t.duration_days, cost: t.price_rub };
+                        ext = { days: t.duration_days, price_rub: t.price_rub };
                     }
 
                     if (ext) {
@@ -2374,7 +2376,7 @@
                         list.innerHTML = '';
                         exts.forEach((ext, idx) => {
                             const li = document.createElement('li');
-                            li.innerHTML = `<label><input type="radio" name="extend-option" value="${idx}" ${idx === 0 ? 'checked' : ''}> ${ext.days} дней - ${ext.cost} ₽</label>`;
+                            li.innerHTML = `<label><input type="radio" name="extend-option" value="${idx}" ${idx === 0 ? 'checked' : ''}> ${ext.days} дней - ${ext.price_rub || ext.cost || 0} ₽</label>`;
                             list.appendChild(li);
                         });
                     }

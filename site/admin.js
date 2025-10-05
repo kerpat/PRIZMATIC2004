@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Configuration error. Please check console.');
         return;
     }
-    
+
     const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1329,7 +1329,7 @@ document.addEventListener('DOMContentLoaded', () => {
         batterySaveBtn.addEventListener('click', async () => {
             const id = batteryIdInput.value;
             const serialNumber = batterySerialNumberInput.value.trim();
-            
+
             // Validate serial number
             if (!serialNumber) {
                 alert('Серийный номер обязателен');
@@ -1347,14 +1347,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Check if serial number already exists
                 // Only check if: 1) new battery OR 2) editing and serial number changed
                 const serialNumberChanged = id && originalSerialNumber !== serialNumber;
-                
+
                 if (!id || serialNumberChanged) {
                     const { data: existing } = await supabase
                         .from('batteries')
                         .select('id')
                         .eq('serial_number', serialNumber)
                         .maybeSingle();
-                    
+
                     if (existing && existing.id !== parseInt(id)) {
                         alert(`Аккумулятор с серийным номером "${serialNumber}" уже существует`);
                         return;
@@ -1364,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { error } = id
                     ? await supabase.from('batteries').update(batteryData).eq('id', id)
                     : await supabase.from('batteries').insert([batteryData]);
-                    
+
                 if (error) throw error;
                 await loadBatteries();
                 hideBatteryModal();
@@ -4108,7 +4108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const extensions = (t.extensions && Array.isArray(t.extensions) && t.extensions.length > 0)
             ? t.extensions
-            : [{ days: t.duration_days, cost: t.price_rub }];
+            : [{ days: t.duration_days, price_rub: t.price_rub }];
 
         extensions.forEach((ext, idx) => {
             const isSelectedClass = (idx === 0) ? ' selected' : '';
@@ -4118,7 +4118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="option-details">
                         <span class="option-duration">${ext.days} дней</span>
                     </div>
-                    <span class="option-price">${ext.cost} ₽</span>
+                    <span class="option-price">${ext.price_rub || ext.cost || 0} ₽</span>
                 </label>
             `;
             optionsContainer.insertAdjacentHTML('beforeend', optionHTML);
