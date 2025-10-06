@@ -1,12 +1,13 @@
 :root {
   --primary-green: #40A4DF;
-  --dark-green: #d4ff00;
+  --dark-green: #083830;
   --icon-green: #40A4DF;
   --light-green-bg: #e0f3fb;
   --light-green-nav: #d4ebf7;
   --card-bg: #f0f9fd;
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
+  --accent-yellow: #d4ff00;
   /* Reserve space for header when title is hidden */
   --no-brand-header-space: 56px;
   /* Layout helpers */
@@ -269,9 +270,15 @@ body.tg-webapp .app-main h2,
 
 .btn-primary {
   background-color: var(--dark-green);
-  color: #083830;
+  color: var(--white);
   font-size: 1.1rem;
   width: 100%;
+}
+
+/* Специальный класс для желтых акцентных кнопок */
+.btn-primary.btn-accent {
+  background-color: var(--accent-yellow);
+  color: #083830;
   font-weight: 700;
 }
 

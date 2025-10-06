@@ -482,7 +482,7 @@ body {
 .dashboard-column {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--dark-green) 0%, #c4ef00 100%);
+  background: linear-gradient(135deg, var(--dark-green) 0%, #0a453c 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow: var(--shadow-hover);
@@ -500,7 +500,7 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: rgba(8, 56, 48, 0.8);
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 12px;
 }
 
@@ -515,52 +515,52 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px;
-  background: rgba(8, 56, 48, 0.1);
-  border: 1px solid rgba(8, 56, 48, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   backdrop-filter: blur(10px);
   transition: all 0.2s ease;
 }
 
 .dashboard-stat-item:hover {
-  background: rgba(8, 56, 48, 0.15);
+  background: rgba(255, 255, 255, 0.15);
   transform: translateX(4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-stat-label {
   font-size: 0.95rem;
-  color: rgba(8, 56, 48, 0.8);
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
 }
 
 .dashboard-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #083830;
+  color: white;
   min-width: 40px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 .dashboard-stat-value.accent {
-  color: #083830;
+  color: white;
 }
 
 .dashboard-stat-value.warning {
-  color: #083830;
+  color: white;
 }
 
 .dashboard-stat-value.danger {
-  color: #083830;
+  color: white;
 }
 
 /* Revenue Card */
 .dashboard-revenue-card {
-  background: linear-gradient(135deg, var(--dark-green) 0%, #c4ef00 100%);
+  background: linear-gradient(135deg, var(--dark-green) 0%, #0a453c 100%);
   border-radius: 16px;
   padding: 24px;
-  color: #083830;
+  color: white;
   box-shadow: var(--shadow-hover);
 }
 
@@ -589,7 +589,7 @@ body {
 }
 
 .revenue-stat-item {
-  background: rgba(8, 56, 48, 0.1);
+  background: rgba(255, 255, 255, 0.1);
   padding: 12px 16px;
   border-radius: 10px;
   backdrop-filter: blur(10px);
@@ -701,10 +701,9 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--dark-green), #c4ef00);
-  color: #083830;
+  background: linear-gradient(135deg, var(--dark-green), #0a453c);
+  color: var(--white);
   box-shadow: var(--shadow-soft);
-  font-weight: 700;
 }
 
 .btn-primary:hover {
@@ -2025,10 +2024,9 @@ select:focus::placeholder {
 }
 
 .admin-table .btn.btn-primary {
-  background: linear-gradient(180deg, var(--dark-green), #c4ef00);
-  color: #083830;
+  background: linear-gradient(180deg, var(--dark-green), #0a453c);
+  color: var(--white);
   border: none;
-  font-weight: 700;
   /* Убираем белую рамку от общего стиля */
 }
 
