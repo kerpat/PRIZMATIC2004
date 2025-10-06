@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getBikeIconColor(status) {
         switch (status) {
-            case 'available': return '#26b999';
+            case 'available': return '#40A4DF';
             case 'rented': return '#1e98ff';
             case 'in_service': return '#f5a623';
             default: return '#777777';
@@ -2278,8 +2278,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const tagEl = document.createElement('span');
             tagEl.className = 'chip'; // Re-using chip style for tags
             tagEl.style.cursor = 'pointer';
-            tagEl.style.backgroundColor = '#e0f8f1';
-            tagEl.style.borderColor = '#26b999';
+            tagEl.style.backgroundColor = '#e0f3fb';
+            tagEl.style.borderColor = '#40A4DF';
             tagEl.style.color = '#083830';
             tagEl.textContent = tag;
             const removeBtn = document.createElement('span');

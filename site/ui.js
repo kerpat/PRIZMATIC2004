@@ -1,5 +1,5 @@
 function getProgressColor(progress) {
-    if (progress > 50) return '#26b999'; // green
+    if (progress > 50) return '#40A4DF'; // azure
     if (progress > 20) return '#f5a623'; // orange
     return '#e53e3e'; // red
 }

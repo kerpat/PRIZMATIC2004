@@ -108,7 +108,7 @@
 body {
   background:
     radial-gradient(1200px 600px at 0% -10%, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, var(--primary-green) 0%, #baf4de 35%, #e0f8f1 100%);
+    linear-gradient(135deg, var(--primary-green) 0%, #bae4f4 35%, #e0f3fb 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -228,7 +228,7 @@ body {
 }
 
 #admin-nav button:hover {
-  background: #eaf5f2;
+  background: #eaf3f7;
   transform: translateX(4px);
 }
 
@@ -719,7 +719,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #f6f9f6;
+  background: #f6f9fb;
   border-color: var(--accent);
   transform: translateY(-2px) scale(1.01);
   box-shadow: var(--shadow-soft);
@@ -834,7 +834,7 @@ body {
 }
 
 .admin-table thead th {
-  background: #f7faf7;
+  background: #f7fafb;
   font-weight: 800;
   color: var(--text);
 }
@@ -914,7 +914,7 @@ body {
 }
 
 .admin-table button:hover {
-  background: #f6f9f6;
+  background: #f6f9fb;
   transform: scale(1.05);
 }
 
@@ -1110,7 +1110,7 @@ select:focus::placeholder {
   height: 320px;
   width: 100%;
   margin-bottom: 24px;
-  background: #f7faf7;
+  background: #f7fafb;
   border-radius: 16px;
   padding: 16px;
   border: 1px solid var(--border);
@@ -1991,13 +1991,13 @@ select:focus::placeholder {
 }
 
 .tariff-option-item:hover {
-  border-color: var(--icon-green, #26b999);
+  border-color: var(--icon-green, #40A4DF);
   transform: translateY(-2px);
 }
 
 .tariff-option-item.selected {
-  border-color: var(--icon-green, #26b999);
-  background-color: var(--light-green-bg, #e0f8f1);
+  border-color: var(--icon-green, #40A4DF);
+  background-color: var(--light-green-bg, #e0f3fb);
   box-shadow: var(--shadow-soft);
 }
 
@@ -2019,7 +2019,7 @@ select:focus::placeholder {
 .tariff-option-item .option-price {
   font-weight: 700;
   font-size: 1.1rem;
-  color: var(--icon-green, #26b999);
+  color: var(--icon-green, #40A4DF);
   margin-left: auto;
 }
 

@@ -18,7 +18,7 @@
 body {
   background:
     radial-gradient(1200px 600px at 0% -10%, rgba(255,255,255,.35), rgba(255,255,255,0)),
-    linear-gradient(135deg, var(--primary-green) 0%, #baf4de 35%, #e0f8f1 100%);
+    linear-gradient(135deg, var(--primary-green) 0%, #bae4f4 35%, #e0f3fb 100%);
   min-height: 100vh;
   display: flex;
   align-items: flex-start;

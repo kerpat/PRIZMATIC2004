@@ -1,10 +1,10 @@
 :root {
-  --primary-green: #29e29a;
+  --primary-green: #40A4DF;
   --dark-green: #083830;
-  --icon-green: #26b999;
-  --light-green-bg: #e0f8f1;
-  --light-green-nav: #d4f7eb;
-  --card-bg: #f0fdf9;
+  --icon-green: #40A4DF;
+  --light-green-bg: #e0f3fb;
+  --light-green-nav: #d4ebf7;
+  --card-bg: #f0f9fd;
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
   /* Reserve space for header when title is hidden */
@@ -389,7 +389,7 @@ body.tg-webapp .app-main h2,
 }
 
 .history-icon-wrapper.refund_to_balance {
-  background-color: #10b981; /* Зеленый для возврата */
+  background-color: #40A4DF; /* Лазурный для возврата */
 }
 
 .history-icon-wrapper.adjustment {
@@ -1144,7 +1144,7 @@ body:has(.map-page-container) #map {
   align-items: center;
   gap: 12px;
   padding: 16px 18px;
-  background: #f7faf7;
+  background: #f7fafb;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1152,12 +1152,12 @@ body:has(.map-page-container) #map {
 }
 
 .city-option:hover {
-  background: #e8f5e9;
+  background: #e8f3f7;
   transform: translateX(4px);
 }
 
 .city-option.selected {
-  background: #e8f5e9;
+  background: #e8f3f7;
   border-color: var(--icon-green);
 }
 
@@ -1711,7 +1711,7 @@ body:has(.map-page-container) .app-screen {
 }
 
 .tariff-option-item:hover {
-    border-color: var(--light-green-nav, #d4f7eb);
+    border-color: var(--light-green-nav, #d4ebf7);
 }
 
 /* Скрываем стандартный радио-кружок */
@@ -1732,15 +1732,15 @@ body:has(.map-page-container) .app-screen {
 .tariff-option-item .option-price {
     font-weight: 700;
     font-size: 1.1rem;
-    color: var(--icon-green, #26b999); /* Яркий акцент на цене */
+    color: var(--icon-green, #40A4DF); /* Яркий акцент на цене */
     margin-left: auto; /* Прижимаем цену вправо */
 }
 
 /* Стиль для ВЫБРАННОГО элемента */
 .tariff-option-item.selected {
-    border-color: var(--icon-green, #26b999);
-    background-color: var(--light-green-bg, #e0f8f1);
-    box-shadow: 0 4px 12px rgba(38, 185, 153, 0.1);
+    border-color: var(--icon-green, #40A4DF);
+    background-color: var(--light-green-bg, #e0f3fb);
+    box-shadow: 0 4px 12px rgba(64, 164, 223, 0.1);
 }
 .stats-graph .bar {
     /* Скругляем только верхние углы, а нижние оставляем прямыми (0) */
@@ -1748,7 +1748,7 @@ body:has(.map-page-container) .app-screen {
 .rental-equipment-info {
     margin: 15px 0;
     padding: 12px 16px;
-    background: linear-gradient(135deg, #e0f8f1 0%, #f0fdf9 100%);
+    background: linear-gradient(135deg, #e0f3fb 0%, #f0f9fd 100%);
     border-radius: 16px;
     border: 1px solid var(--progress-bar-bg);
 }
