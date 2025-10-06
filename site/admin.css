@@ -482,7 +482,7 @@ body {
 .dashboard-column {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--dark-green) 0%, #0a453c 100%);
+  background: linear-gradient(135deg, var(--dark-green) 0%, #0a5a5e 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow: var(--shadow-hover);
@@ -557,7 +557,7 @@ body {
 
 /* Revenue Card */
 .dashboard-revenue-card {
-  background: linear-gradient(135deg, var(--dark-green) 0%, #0a453c 100%);
+  background: linear-gradient(135deg, var(--dark-green) 0%, #0a5a5e 100%);
   border-radius: 16px;
   padding: 24px;
   color: white;
@@ -701,7 +701,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--dark-green), #0a453c);
+  background: linear-gradient(135deg, var(--dark-green), #0a5a5e);
   color: var(--white);
   box-shadow: var(--shadow-soft);
 }
@@ -2024,7 +2024,7 @@ select:focus::placeholder {
 }
 
 .admin-table .btn.btn-primary {
-  background: linear-gradient(180deg, var(--dark-green), #0a453c);
+  background: linear-gradient(180deg, var(--dark-green), #0a5a5e);
   color: var(--white);
   border: none;
   /* Убираем белую рамку от общего стиля */
