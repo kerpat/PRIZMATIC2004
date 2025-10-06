@@ -282,9 +282,7 @@ body.tg-webapp .app-main h2,
 .btn-primary.btn-accent {
   background-color: var(--accent-yellow);
   color: #1a1a1a;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 600;
   box-shadow: 0 4px 16px rgba(212, 255, 0, 0.4);
 }
 
