@@ -539,10 +539,12 @@
 
           <div class="form-group">
             <label for="rental-edit-batteries">Аккумуляторы</label>
-            <div id="rental-edit-batteries-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+            <div id="rental-edit-batteries-list"
+              style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
               <!-- Список выбранных АКБ будет здесь -->
             </div>
-            <button type="button" id="rental-edit-change-batteries-btn" class="btn btn-secondary" style="width: 100%;">Изменить АКБ</button>
+            <button type="button" id="rental-edit-change-batteries-btn" class="btn btn-secondary"
+              style="width: 100%;">Изменить АКБ</button>
           </div>
 
           <div class="form-group">
@@ -767,10 +769,12 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="bike-id">
-        
+
         <!-- Индикатор шагов -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
-          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;"></div>
+          <div
+            style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;">
+          </div>
           <div class="step-indicator" data-step="1">
             <div class="step-circle active">1</div>
             <div class="step-label">Основная информация</div>
@@ -848,7 +852,8 @@
           </div>
           <div class="form-group" style="margin-bottom: 20px;">
             <label for="bike-additional-equipment">Дополнительное оборудование</label>
-            <textarea id="bike-additional-equipment" class="form-control" rows="4" placeholder="Например: Замок, держатель для бутылки, корзина"></textarea>
+            <textarea id="bike-additional-equipment" class="form-control" rows="4"
+              placeholder="Например: Замок, держатель для бутылки, корзина"></textarea>
             <small style="color: #666; margin-top: 5px; display: block;">Укажите всё дополнительное оборудование</small>
           </div>
         </div>
@@ -871,10 +876,12 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="battery-id">
-        
+
         <!-- Индикатор шагов -->
         <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
-          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;"></div>
+          <div
+            style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;">
+          </div>
           <div class="step-indicator" data-step="1">
             <div class="step-circle active">1</div>
             <div class="step-label">Основная информация</div>
@@ -899,7 +906,8 @@
           </div>
           <div class="form-group" style="margin-bottom: 20px;">
             <label for="battery-description">Описание</label>
-            <textarea id="battery-description" class="form-control" rows="3" placeholder="Любые заметки об аккумуляторе"></textarea>
+            <textarea id="battery-description" class="form-control" rows="3"
+              placeholder="Любые заметки об аккумуляторе"></textarea>
           </div>
         </div>
 
@@ -908,7 +916,8 @@
           <h4 style="margin-bottom: 20px;">Технические характеристики</h4>
           <div class="form-group" style="margin-bottom: 20px;">
             <label for="battery-capacity">Мощность (Ватт-часы)</label>
-            <input type="number" id="battery-capacity" class="form-control" placeholder="Например: 1000" min="0" step="10">
+            <input type="number" id="battery-capacity" class="form-control" placeholder="Например: 1000" min="0"
+              step="10">
             <small style="color: #666; margin-top: 5px; display: block;">Емкость аккумулятора в Wh</small>
           </div>
         </div>
