@@ -286,16 +286,16 @@ body.tg-webapp .app-main h2,
 
 /* Специальный класс для акцентных кнопок */
 .btn-primary.btn-accent {
-  background-color: var(--accent-yellow);
-  color: #1a1a1a;
+  background: var(--accent-yellow) !important;
+  color: #1a1a1a !important;
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(212, 255, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(212, 255, 0, 0.4) !important;
 }
 
 .btn-primary.btn-accent:hover {
-  background-color: #c4ef00;
+  background: #c4ef00 !important;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 255, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(212, 255, 0, 0.5) !important;
 }
 
 .secondary-actions {
