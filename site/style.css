@@ -196,22 +196,23 @@ body.tg-webapp .app-main h2,
   display: flex;
   align-items: center;
   gap: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  /* Добавлено */
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .icon-wrapper {
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  background-color: var(--icon-blue);
+  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
   display: flex;
   justify-content: center;
+  box-shadow: 0 4px 12px rgba(28, 181, 224, 0.25);
   align-items: center;
   flex-shrink: 0;
 }
@@ -272,10 +273,15 @@ body.tg-webapp .app-main h2,
 }
 
 .btn-primary {
-  background-color: var(--dark-green);
+  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
   color: var(--white);
   font-size: 1.1rem;
   width: 100%;
+  box-shadow: 0 4px 15px rgba(28, 181, 224, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(28, 181, 224, 0.4);
 }
 
 /* Специальный класс для акцентных кнопок */
@@ -300,10 +306,15 @@ body.tg-webapp .app-main h2,
 
 .btn-secondary {
   background-color: var(--white);
-  color: var(--dark-green);
+  color: var(--primary-blue);
   font-size: 1rem;
-  border: 2px solid #e0e9e7;
+  border: 2px solid var(--primary-blue);
   padding: 18px 10px;
+}
+
+.btn-secondary:hover {
+  background-color: var(--primary-blue);
+  color: var(--white);
 }
 
 .btn-secondary:first-child {
@@ -724,9 +735,11 @@ body:has(.map-page-container) #map {
 /* Общая навигация */
 /* Общая навигация */
 .bottom-nav {
-  background-color: var(--light-blue-nav);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-radius: 25px;
   padding: 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -762,11 +775,12 @@ body:has(.map-page-container) #map {
 }
 
 .nav-item.active {
-  background-color: var(--dark-green);
+  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+  box-shadow: 0 4px 12px rgba(28, 181, 224, 0.3);
 }
 
 .nav-item svg {
-  color: var(--dark-green);
+  color: var(--primary-blue);
   width: 28px;
   height: 28px;
 }
