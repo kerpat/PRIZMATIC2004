@@ -7,8 +7,8 @@
   --surface-2: var(--card-bg);
   --border: var(--progress-bar-bg);
   --text: var(--dark-green);
-  --accent: var(--icon-blue);
-  --accent-2: var(--primary-blue);
+  --accent: #1CB5E0;
+  --accent-2: #00B4D8;
 
   /* Additional variables for enhanced effects */
   --shadow-soft: 0 4px 12px rgba(8, 56, 48, 0.08);
@@ -108,7 +108,7 @@
 body {
   background:
     radial-gradient(1200px 600px at 0% -10%, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, var(--primary-blue) 0%, #b3d4e8 35%, #e8f0f7 100%);
+    linear-gradient(135deg, #1CB5E0 0%, #00B4D8 35%, #e8f7fb 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -482,7 +482,7 @@ body {
 .dashboard-column {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--dark-green) 0%, #0a5a5e 100%);
+  background: linear-gradient(135deg, #0d7377 0%, #0a5a5e 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow: var(--shadow-hover);
@@ -557,7 +557,7 @@ body {
 
 /* Revenue Card */
 .dashboard-revenue-card {
-  background: linear-gradient(135deg, var(--dark-green) 0%, #0a5a5e 100%);
+  background: linear-gradient(135deg, #0d7377 0%, #0a5a5e 100%);
   border-radius: 16px;
   padding: 24px;
   color: white;
@@ -701,7 +701,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--dark-green), #0a5a5e);
+  background: linear-gradient(135deg, #1CB5E0, #00B4D8);
   color: var(--white);
   box-shadow: var(--shadow-soft);
 }
@@ -1962,7 +1962,7 @@ select:focus::placeholder {
 
 .bike-list-item span {
   font-weight: 500;
-  color: var(--icon-blue);
+  color: #1CB5E0;
 }
 
 .tariff-description {
@@ -1991,13 +1991,13 @@ select:focus::placeholder {
 }
 
 .tariff-option-item:hover {
-  border-color: var(--icon-blue, #4A7BA7);
+  border-color: #1CB5E0;
   transform: translateY(-2px);
 }
 
 .tariff-option-item.selected {
-  border-color: var(--icon-blue, #4A7BA7);
-  background-color: var(--light-blue-bg, #e8f0f7);
+  border-color: #1CB5E0;
+  background-color: #e8f7fb;
   box-shadow: var(--shadow-soft);
 }
 
@@ -2024,7 +2024,7 @@ select:focus::placeholder {
 }
 
 .admin-table .btn.btn-primary {
-  background: linear-gradient(180deg, var(--dark-green), #0a5a5e);
+  background: linear-gradient(180deg, #1CB5E0, #00B4D8);
   color: var(--white);
   border: none;
   /* Убираем белую рамку от общего стиля */
@@ -2191,13 +2191,13 @@ Step-by-step return process styles */
 }
 
 .step-circle.active {
-  background: var(--icon-blue);
+  background: #1CB5E0;
   color: white;
-  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.15);
+  box-shadow: 0 2px 8px rgba(28, 181, 224, 0.3);
 }
 
 .step-circle.completed {
-  background: var(--icon-blue);
+  background: #1CB5E0;
   color: white;
 }
 
@@ -2241,7 +2241,7 @@ Step-by-step return process styles */
 }
 
 .radio-card:hover {
-  border-color: var(--icon-blue);
+  border-color: #1CB5E0;
   background: var(--card-bg);
 }
 
@@ -2254,9 +2254,9 @@ Step-by-step return process styles */
 }
 
 .radio-card:has(input[type="radio"]:checked) {
-  border-color: var(--icon-blue);
-  background: var(--light-blue-bg);
-  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.08);
+  border-color: #1CB5E0;
+  background: #e8f7fb;
+  box-shadow: 0 2px 8px rgba(28, 181, 224, 0.15);
 }
 
 .radio-card-content {
