@@ -719,7 +719,8 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #f6f9fb;
+  background: var(--accent);
+  color: white;
   border-color: var(--accent);
   transform: translateY(-2px) scale(1.01);
   box-shadow: var(--shadow-soft);
