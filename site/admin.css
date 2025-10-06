@@ -6,9 +6,9 @@
   --surface: var(--white);
   --surface-2: var(--card-bg);
   --border: var(--progress-bar-bg);
-  --text: #1CB5E0;
-  --accent: #1CB5E0;
-  --accent-2: #00B4D8;
+  --text: #0d7377;
+  --accent: #0d7377;
+  --accent-2: #0a5a5e;
 
   /* Additional variables for enhanced effects */
   --shadow-soft: 0 4px 12px rgba(8, 56, 48, 0.08);
@@ -108,7 +108,7 @@
 body {
   background:
     radial-gradient(1200px 600px at 0% -10%, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, #1CB5E0 0%, #00B4D8 35%, #e8f7fb 100%);
+    linear-gradient(135deg, #0d7377 0%, #0a5a5e 35%, #e0f8f1 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -453,7 +453,7 @@ body {
 }
 
 .dashboard-time {
-  color: #1CB5E0;
+  color: #0d7377;
   font-weight: 700;
   font-size: 1.3rem;
 }
@@ -466,7 +466,7 @@ body {
 }
 
 .dashboard-location {
-  color: #1CB5E0;
+  color: #0d7377;
   font-weight: 700;
   font-size: 1.3rem;
 }
@@ -618,7 +618,7 @@ body {
 .chart-header {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1CB5E0;
+  color: #0d7377;
   margin-bottom: 16px;
 }
 
@@ -701,7 +701,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #1CB5E0, #00B4D8);
+  background: linear-gradient(135deg, #0d7377, #0a5a5e);
   color: var(--white);
   box-shadow: var(--shadow-soft);
 }
@@ -812,7 +812,7 @@ body {
 
 #login-section button {
   width: 100%;
-  background: linear-gradient(135deg, #1CB5E0, #00B4D8);
+  background: linear-gradient(135deg, #0d7377, #0a5a5e);
   color: white;
   border: none;
   padding: 14px 20px;
@@ -820,13 +820,13 @@ body {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(28, 181, 224, 0.3);
+  box-shadow: 0 4px 15px rgba(13, 115, 119, 0.3);
   transition: all 0.3s ease;
 }
 
 #login-section button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(28, 181, 224, 0.4);
+  box-shadow: 0 6px 20px rgba(13, 115, 119, 0.4);
 }
 
 /* Tables with row hover animations */
@@ -1922,7 +1922,7 @@ select:focus::placeholder {
 }
 
 .modal-content h2 {
-  color: #1CB5E0;
+  color: #0d7377;
   font-size: 1.5rem;
   margin-bottom: 20px;
   line-height: 1.3;
@@ -1972,12 +1972,12 @@ select:focus::placeholder {
 
 .bike-list-item strong {
   font-weight: 600;
-  color: #1CB5E0;
+  color: #0d7377;
 }
 
 .bike-list-item span {
   font-weight: 500;
-  color: #1CB5E0;
+  color: #0d7377;
 }
 
 .tariff-description {
@@ -2006,13 +2006,13 @@ select:focus::placeholder {
 }
 
 .tariff-option-item:hover {
-  border-color: #1CB5E0;
+  border-color: #0d7377;
   transform: translateY(-2px);
 }
 
 .tariff-option-item.selected {
-  border-color: #1CB5E0;
-  background-color: #e8f7fb;
+  border-color: #0d7377;
+  background-color: #e0f8f1;
   box-shadow: var(--shadow-soft);
 }
 
@@ -2028,7 +2028,7 @@ select:focus::placeholder {
 .tariff-option-item .option-duration {
   font-weight: 600;
   font-size: 1rem;
-  color: #1CB5E0;
+  color: #0d7377;
 }
 
 .tariff-option-item .option-price {
@@ -2039,7 +2039,7 @@ select:focus::placeholder {
 }
 
 .admin-table .btn.btn-primary {
-  background: linear-gradient(180deg, #1CB5E0, #00B4D8);
+  background: linear-gradient(180deg, #0d7377, #0a5a5e);
   color: var(--white);
   border: none;
   /* Убираем белую рамку от общего стиля */
@@ -2206,13 +2206,13 @@ Step-by-step return process styles */
 }
 
 .step-circle.active {
-  background: #1CB5E0;
+  background: #0d7377;
   color: white;
-  box-shadow: 0 2px 8px rgba(28, 181, 224, 0.3);
+  box-shadow: 0 2px 8px rgba(13, 115, 119, 0.3);
 }
 
 .step-circle.completed {
-  background: #1CB5E0;
+  background: #0d7377;
   color: white;
 }
 
@@ -2224,7 +2224,7 @@ Step-by-step return process styles */
 }
 
 .step-indicator.active .step-label {
-  color: #1CB5E0;
+  color: #0d7377;
   font-weight: 600;
 }
 
@@ -2256,7 +2256,7 @@ Step-by-step return process styles */
 }
 
 .radio-card:hover {
-  border-color: #1CB5E0;
+  border-color: #0d7377;
   background: var(--card-bg);
 }
 
@@ -2265,13 +2265,13 @@ Step-by-step return process styles */
 }
 
 .radio-card input[type="radio"]:checked + .radio-card-content {
-  color: #1CB5E0;
+  color: #0d7377;
 }
 
 .radio-card:has(input[type="radio"]:checked) {
-  border-color: #1CB5E0;
-  background: #e8f7fb;
-  box-shadow: 0 2px 8px rgba(28, 181, 224, 0.15);
+  border-color: #0d7377;
+  background: #e0f8f1;
+  box-shadow: 0 2px 8px rgba(13, 115, 119, 0.15);
 }
 
 .radio-card-content {
@@ -2282,7 +2282,7 @@ Step-by-step return process styles */
 
 .radio-card-content strong {
   font-size: 15px;
-  color: #1CB5E0;
+  color: #0d7377;
 }
 
 .radio-card-content span {
@@ -2291,7 +2291,7 @@ Step-by-step return process styles */
 }
 
 .radio-card:has(input[type="radio"]:checked) .radio-card-content strong {
-  color: #1CB5E0;
+  color: #0d7377;
 }
 
 
