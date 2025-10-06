@@ -812,6 +812,21 @@ body {
 
 #login-section button {
   width: 100%;
+  background: linear-gradient(135deg, #1CB5E0, #00B4D8);
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(28, 181, 224, 0.3);
+  transition: all 0.3s ease;
+}
+
+#login-section button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(28, 181, 224, 0.4);
 }
 
 /* Tables with row hover animations */
