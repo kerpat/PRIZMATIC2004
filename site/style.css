@@ -1,6 +1,6 @@
 :root {
   --primary-green: #40A4DF;
-  --dark-green: #083830;
+  --dark-green: #d4ff00;
   --icon-green: #40A4DF;
   --light-green-bg: #e0f3fb;
   --light-green-nav: #d4ebf7;
@@ -26,39 +26,50 @@ body {
   background-color: var(--white);
   display: flex;
   justify-content: center;
-  align-items: stretch; /* Растягиваем по вертикали, чтобы приложение могло упираться в низ */
+  align-items: stretch;
+  /* Растягиваем по вертикали, чтобы приложение могло упираться в низ */
   min-height: 100vh;
   margin: 0;
   /* Сверху оставляем безопасную зону, снизу убираем, чтобы нижняя навигация доходила до края */
-  padding: 0; /* Убираем боковые отступы для полного экрана */
-  overflow-x: hidden; /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА: Нет мота влево-вправо, всё ровненько */
+  padding: 0;
+  /* Убираем боковые отступы для полного экрана */
+  overflow-x: hidden;
+  /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА: Нет мота влево-вправо, всё ровненько */
 }
 
 .app-screen {
-  width: 100%; /* ПО БОКАМ: Полный размер экрана, без max-width для заполнения */
-  max-width: 100%; /* По умолчанию на всю ширину */
+  width: 100%;
+  /* ПО БОКАМ: Полный размер экрана, без max-width для заполнения */
+  max-width: 100%;
+  /* По умолчанию на всю ширину */
   background-color: var(--white);
-  border-radius: 0; /* Убираем скругления для полного экрана на мобильных */
+  border-radius: 0;
+  /* Убираем скругления для полного экрана на мобильных */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   /* Высота = высота окна, с верхним отступом для безопасной зоны */
   height: var(--tg-viewport-stable-height, 100vh);
   padding-top: var(--app-top-offset);
-  max-height: none; /* Без искусственного ограничения */
+  max-height: none;
+  /* Без искусственного ограничения */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 0 auto; /* Центрирование по горизонтали без вертикальных отступов */
+  margin: 0 auto;
+  /* Центрирование по горизонтали без вертикальных отступов */
 }
 
-.app-content, .map-page-container {
+.app-content,
+.map-page-container {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   padding: 28px;
-  padding-bottom: 100px; /* Account for fixed bottom nav */
+  padding-bottom: 100px;
+  /* Account for fixed bottom nav */
   gap: 20px;
   overflow-y: auto;
-  overflow-x: hidden; /* Дополнительно: Нет горизонтального скролла внутри */
+  overflow-x: hidden;
+  /* Дополнительно: Нет горизонтального скролла внутри */
 }
 
 /* Общие стили */
@@ -74,7 +85,10 @@ body {
 }
 
 /* Hide brand title on pages with no-brand */
-body.no-brand .app-header h1 { display: none !important; }
+body.no-brand .app-header h1 {
+  display: none !important;
+}
+
 body.no-brand .app-header {
   flex: 0 0 var(--no-brand-header-space);
   min-height: var(--no-brand-header-space);
@@ -88,13 +102,16 @@ body.tg-webapp .app-main h2,
 
 /* Стили для главной */
 .bike-image {
-    width: 100%;
-    height: auto;
-    object-fit: contain; /* Сохраняет пропорции изображения */
-    display: block;
-    margin: 5px 0;
-    transition: opacity 0.3s ease-in-out; /* Добавлено */
-    max-width: 100%; /* Дополнительная защита от переполнения */
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  /* Сохраняет пропорции изображения */
+  display: block;
+  margin: 5px 0;
+  transition: opacity 0.3s ease-in-out;
+  /* Добавлено */
+  max-width: 100%;
+  /* Дополнительная защита от переполнения */
 }
 
 
@@ -118,7 +135,8 @@ body.tg-webapp .app-main h2,
   font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.2;
-  pointer-events: none; /* чтобы клики проходили сквозь */
+  pointer-events: none;
+  /* чтобы клики проходили сквозь */
 }
 
 .progress-section {
@@ -137,7 +155,8 @@ body.tg-webapp .app-main h2,
   height: 100%;
   background-color: var(--dark-green);
   border-radius: 10px;
-  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.5s ease; /* Добавлено для плавности */
+  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.5s ease;
+  /* Добавлено для плавности */
 }
 
 .progress-labels {
@@ -150,18 +169,19 @@ body.tg-webapp .app-main h2,
 }
 
 .app-main h2 {
-   font-size: 1.6rem;
-   font-weight: 700;
-   color: var(--dark-green);
-   line-height: 1.3;
-   margin: 10px 0;
-   text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--dark-green);
+  line-height: 1.3;
+  margin: 10px 0;
+  text-align: center;
 }
 
 .info-cards {
   display: flex;
   gap: 15px;
-  margin-top: 15px; /* Добавлено */
+  margin-top: 15px;
+  /* Добавлено */
 }
 
 .card {
@@ -172,7 +192,8 @@ body.tg-webapp .app-main h2,
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Добавлено */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Добавлено */
 }
 
 .card:hover {
@@ -232,7 +253,8 @@ body.tg-webapp .app-main h2,
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: transform 0.2s ease, opacity 0.2s ease; /* Добавлено */
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  /* Добавлено */
   padding: 20px 10px;
 }
 
@@ -241,14 +263,16 @@ body.tg-webapp .app-main h2,
 }
 
 .btn:active {
-  transform: scale(0.97); /* Легкое нажатие */
+  transform: scale(0.97);
+  /* Легкое нажатие */
 }
 
 .btn-primary {
   background-color: var(--dark-green);
-  color: var(--white);
+  color: #083830;
   font-size: 1.1rem;
   width: 100%;
+  font-weight: 700;
 }
 
 .secondary-actions {
@@ -270,10 +294,13 @@ body.tg-webapp .app-main h2,
 }
 
 .btn-danger {
-   background-color: var(--white); /* Белый фон */
-   color: #e53e3e; /* Красный текст */
-   font-size: 1rem;
-   border: 2px solid #e53e3e; /* Красная рамка */
+  background-color: var(--white);
+  /* Белый фон */
+  color: #e53e3e;
+  /* Красный текст */
+  font-size: 1rem;
+  border: 2px solid #e53e3e;
+  /* Красная рамка */
 }
 
 .btn-secondary svg {
@@ -368,32 +395,39 @@ body.tg-webapp .app-main h2,
 
 .history-icon-wrapper.topup,
 .history-icon-wrapper.top-up {
-  background-color: #23a2f5; /* Синий цвет для пополнений */
+  background-color: #23a2f5;
+  /* Синий цвет для пополнений */
 }
 
 .history-icon-wrapper.rental,
 .history-icon-wrapper.initial {
-  background-color: var(--icon-green); /* Зеленый для аренды */
+  background-color: var(--icon-green);
+  /* Зеленый для аренды */
 }
 
 .history-icon-wrapper.renewal {
-  background-color: #7c3aed; /* Фиолетовый для продления */
+  background-color: #7c3aed;
+  /* Фиолетовый для продления */
 }
 
 .history-icon-wrapper.booking {
-  background-color: #f59e0b; /* Оранжевый для бронирования */
+  background-color: #f59e0b;
+  /* Оранжевый для бронирования */
 }
 
 .history-icon-wrapper.balance_debit {
-  background-color: #ef4444; /* Красный для списания */
+  background-color: #ef4444;
+  /* Красный для списания */
 }
 
 .history-icon-wrapper.refund_to_balance {
-  background-color: #40A4DF; /* Лазурный для возврата */
+  background-color: #40A4DF;
+  /* Лазурный для возврата */
 }
 
 .history-icon-wrapper.adjustment {
-  background-color: #6b7280; /* Серый для корректировки */
+  background-color: #6b7280;
+  /* Серый для корректировки */
 }
 
 .history-icon-wrapper svg {
@@ -423,8 +457,10 @@ body.tg-webapp .app-main h2,
   font-weight: 700;
   font-size: 1.15rem;
   color: var(--dark-green);
-  white-space: nowrap; /* Prevent wrapping */
-  flex-shrink: 0; /* Prevent shrinking in flex container */
+  white-space: nowrap;
+  /* Prevent wrapping */
+  flex-shrink: 0;
+  /* Prevent shrinking in flex container */
 }
 
 .history-cost.positive {
@@ -482,10 +518,10 @@ body:has(.map-page-container) #map {
 
 
 /* Более агрессивный и надежный способ скрыть панель с копирайтами и ссылками Яндекса */
-[class*="copyrights-pane"], 
-[class*="gotoymaps"], 
+[class*="copyrights-pane"],
+[class*="gotoymaps"],
 [class*="ymaps-2"][class*="-copyrights"] {
-    display: none !important;
+  display: none !important;
 }
 
 .recenter-btn {
@@ -498,7 +534,7 @@ body:has(.map-page-container) #map {
   border-radius: 50%;
   background-color: var(--white);
   border: none;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -519,7 +555,7 @@ body:has(.map-page-container) #map {
   padding-top: 35px;
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
-  box-shadow: 0 -5px 30px rgba(0,0,0,0.15);
+  box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.15);
   z-index: 1600;
   transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
@@ -687,13 +723,13 @@ body:has(.map-page-container) #map {
   right: 20px;
   bottom: 20px;
   /* Ширина определяется автоматически на основе привязки к краям */
-  width: auto; 
+  width: auto;
   /* Задаем максимальную ширину для больших экранов */
   max-width: calc(420px - 40px);
   /* Автоматические отступы слева и справа центрируют элемент */
   margin-left: auto;
   margin-right: auto;
-  
+
   /* Сохраняем исходный отступ для безопасной зоны снизу */
   padding-bottom: calc(12px + var(--safe-bottom));
 }
@@ -949,7 +985,8 @@ body:has(.map-page-container) #map {
   padding: 25px;
   border-radius: 24px;
   width: 90%;
-  max-width: 380px; /* Вернули ближе к оригиналу, но с отступами */
+  max-width: 380px;
+  /* Вернули ближе к оригиналу, но с отступами */
   text-align: center;
   position: relative;
   transform: scale(1);
@@ -997,6 +1034,7 @@ body:has(.map-page-container) #map {
   color: var(--dark-green);
   font-weight: 600;
 }
+
 /* КОНЕЦ ОБНОВЛЕНИЯ */
 
 .modal-info {
@@ -1040,7 +1078,8 @@ body:has(.map-page-container) #map {
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 400px; /* Вернули оригинал, полный размер */
+  max-width: 400px;
+  /* Вернули оригинал, полный размер */
   background-color: var(--dark-green);
   color: var(--white);
   display: flex;
@@ -1061,7 +1100,8 @@ body:has(.map-page-container) #map {
 }
 
 .toast-container.toast-success {
-  background-color: var(--icon-green); /* Используем фирменный зеленый цвет */
+  background-color: var(--icon-green);
+  /* Используем фирменный зеленый цвет */
 }
 
 .toast-message {
@@ -1191,7 +1231,8 @@ body:has(.map-page-container) #map {
 }
 
 .btn-sbp svg {
-  width: 85px; /* Размер логотипа */
+  width: 85px;
+  /* Размер логотипа */
   height: auto;
 }
 
@@ -1203,8 +1244,10 @@ body:has(.map-page-container) #map {
 /* === СТИЛИ ДЛЯ ТЕКСТА-ДИСКЛЕЙМЕРА В МОДАЛКЕ === */
 .disclaimer-text {
   font-size: 0.8rem;
-  color: #889996; /* Слегка приглушенный цвет */
-  margin-top: -5px; /* Чуть ближе к блоку "Цена/Срок" */
+  color: #889996;
+  /* Слегка приглушенный цвет */
+  margin-top: -5px;
+  /* Чуть ближе к блоку "Цена/Срок" */
   margin-bottom: 20px;
   text-align: center;
   line-height: 1.4;
@@ -1276,11 +1319,13 @@ body:has(.map-page-container) #map {
 
 /* Специальный отступ для списка тарифов PRIZMATIC */
 #tariff-modal .bike-list {
-  margin-bottom: 40px; /* Увеличиваем нижний отступ списка тарифов */
+  margin-bottom: 40px;
+  /* Увеличиваем нижний отступ списка тарифов */
 }
 
 #tariff-modal .disclaimer-text {
-  margin-top: 0; /* Убираем верхний отступ для текста с условиями */
+  margin-top: 0;
+  /* Убираем верхний отступ для текста с условиями */
 }
 
 /* ===== СТИЛИ ДЛЯ ЭКРАНА ВЕРИФИКАЦИИ ===== */
@@ -1341,7 +1386,8 @@ body:has(.map-page-container) #map {
 /* Ключевое изменение: сетка действий */
 .actions-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Всегда 2 колонки */
+  grid-template-columns: 1fr 1fr;
+  /* Всегда 2 колонки */
   gap: 15px;
   width: 100%;
 }
@@ -1349,17 +1395,20 @@ body:has(.map-page-container) #map {
 .action-card {
   background-color: var(--card-bg);
   border-radius: 20px;
-  padding: 15px; /* Уменьшаем паддинг для компактности */
+  padding: 15px;
+  /* Уменьшаем паддинг для компактности */
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Центрируем контент */
+  justify-content: center;
+  /* Центрируем контент */
   gap: 10px;
   font-weight: 600;
   color: var(--dark-green);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  aspect-ratio: 1 / 0.8; /* Делаем карточки пропорциональными */
+  aspect-ratio: 1 / 0.8;
+  /* Делаем карточки пропорциональными */
 }
 
 .action-card:hover {
@@ -1384,9 +1433,12 @@ select.form-control {
   color: var(--dark-green);
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
-  -webkit-appearance: none; /* Убираем стандартную стрелку в Chrome/Safari */
-  -moz-appearance: none;    /* Убираем стандартную стрелку в Firefox */
-  appearance: none;         /* Убираем стандартную стрелку в современных браузерах */
+  -webkit-appearance: none;
+  /* Убираем стандартную стрелку в Chrome/Safari */
+  -moz-appearance: none;
+  /* Убираем стандартную стрелку в Firefox */
+  appearance: none;
+  /* Убираем стандартную стрелку в современных браузерах */
   /* Добавляем свою кастомную стрелку */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23083830' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -1448,7 +1500,8 @@ select.form-control:focus {
 }
 
 .custom-checkbox input[type="checkbox"] {
-  display: none; /* Прячем стандартный чекбокс */
+  display: none;
+  /* Прячем стандартный чекбокс */
 }
 
 .custom-checkbox .checkbox-visual {
@@ -1480,12 +1533,12 @@ select.form-control:focus {
 }
 
 /* Стили для выбранного состояния */
-.custom-checkbox input[type="checkbox"]:checked + .checkbox-visual {
+.custom-checkbox input[type="checkbox"]:checked+.checkbox-visual {
   background-color: var(--icon-green);
   border-color: var(--icon-green);
 }
 
-.custom-checkbox input[type="checkbox"]:checked + .checkbox-visual::after {
+.custom-checkbox input[type="checkbox"]:checked+.checkbox-visual::after {
   opacity: 1;
 }
 
@@ -1528,7 +1581,8 @@ select.form-control:focus {
 
 .menu-container {
   width: 100%;
-  max-width: 420px; /* Вернули полный размер */
+  max-width: 420px;
+  /* Вернули полный размер */
   background: var(--white);
   border-radius: 30px 30px 0 0;
   padding: 24px;
@@ -1619,7 +1673,8 @@ select.form-control:focus {
 
 /* Плавное исчезновение/появление главного изображения */
 .bike-image.fade-out {
-  opacity: 0; /* Вспомогательный класс для JS */
+  opacity: 0;
+  /* Вспомогательный класс для JS */
 }
 
 /* Текст-соглашение в модальном окне аренды */
@@ -1635,29 +1690,39 @@ select.form-control:focus {
 /* Media для компактных экранов (мобильные браузеры) */
 @media (max-width: 480px) {
   .bike-image-wrapper .bike-image {
-    width: 128%; /* Увеличиваем ширину картинки */
-    max-width: 128%; /* Разрешаем ей быть шире родителя */
-    margin-left: -14%; /* Сдвигаем влево на половину от добавленной ширины (28% / 2 = 14%) */
+    width: 128%;
+    /* Увеличиваем ширину картинки */
+    max-width: 128%;
+    /* Разрешаем ей быть шире родителя */
+    margin-left: -14%;
+    /* Сдвигаем влево на половину от добавленной ширины (28% / 2 = 14%) */
   }
 }
+
 .app-content {
   padding: 20px;
-  padding-bottom: 100px; /* Account for fixed bottom nav */
+  padding-bottom: 100px;
+  /* Account for fixed bottom nav */
 }
+
 /* (duplicate .bottom-nav block removed to keep single source of truth) */
 
 @media (min-height: 850px) and (min-width: 420px) {
   .app-screen {
-    height: 850px; /* Фиксированная высота для больших экранов */
+    height: 850px;
+    /* Фиксированная высота для больших экранов */
   }
 
   body {
-    padding: 0; /* Убираем отступы, так как теперь в app-screen */
-    align-items: center; /* Возвращаем центрирование для десктопа */
+    padding: 0;
+    /* Убираем отступы, так как теперь в app-screen */
+    align-items: center;
+    /* Возвращаем центрирование для десктопа */
   }
 }
 
 @media (min-width: 421px) {
+
   /* Для экранов больше мобильных (планшеты, десктоп) — возвращаем оригинал */
   .app-screen {
     max-width: 420px;
@@ -1667,93 +1732,99 @@ select.form-control:focus {
     padding-top: var(--app-top-offset);
   }
 }
+
 /* Убираем лишний верхний отступ на странице с картой */
 body:has(.map-page-container) .app-screen {
   padding-top: 0 !important;
 }
+
 .user-greeting {
-    display: none;
+  display: none;
 }
 
 .bike-display {
-    margin-top: 0;
+  margin-top: 0;
 }
 
 /* --- Стили для нового окна деталей тарифа --- */
 
 #tariff-detail-modal .modal-content {
-    max-width: 380px;
+  max-width: 380px;
 }
 
 .tariff-description {
-    font-size: 0.95rem;
-    color: var(--text-secondary, #556f6b);
-    margin-bottom: 20px;
-    text-align: center;
-    line-height: 1.5;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #556f6b);
+  margin-bottom: 20px;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .tariff-options-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .tariff-option-item {
-    display: flex;
-    align-items: center;
-    padding: 14px 16px;
-    border: 2px solid var(--card-bg, #f0fdf9);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border: 2px solid var(--card-bg, #f0fdf9);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
 .tariff-option-item:hover {
-    border-color: var(--light-green-nav, #d4ebf7);
+  border-color: var(--light-green-nav, #d4ebf7);
 }
 
 /* Скрываем стандартный радио-кружок */
 .tariff-option-item input[type="radio"] {
-    display: none;
+  display: none;
 }
 
 .tariff-option-item .option-details {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .tariff-option-item .option-duration {
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--dark-green, #083830);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--dark-green, #083830);
 }
 
 .tariff-option-item .option-price {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--icon-green, #40A4DF); /* Яркий акцент на цене */
-    margin-left: auto; /* Прижимаем цену вправо */
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--icon-green, #40A4DF);
+  /* Яркий акцент на цене */
+  margin-left: auto;
+  /* Прижимаем цену вправо */
 }
 
 /* Стиль для ВЫБРАННОГО элемента */
 .tariff-option-item.selected {
-    border-color: var(--icon-green, #40A4DF);
-    background-color: var(--light-green-bg, #e0f3fb);
-    box-shadow: 0 4px 12px rgba(64, 164, 223, 0.1);
+  border-color: var(--icon-green, #40A4DF);
+  background-color: var(--light-green-bg, #e0f3fb);
+  box-shadow: 0 4px 12px rgba(64, 164, 223, 0.1);
 }
+
 .stats-graph .bar {
-    /* Скругляем только верхние углы, а нижние оставляем прямыми (0) */
-    border-radius: 6px 6px 0 0;
-.rental-equipment-info {
+  /* Скругляем только верхние углы, а нижние оставляем прямыми (0) */
+  border-radius: 6px 6px 0 0;
+
+  .rental-equipment-info {
     margin: 15px 0;
     padding: 12px 16px;
     background: linear-gradient(135deg, #e0f3fb 0%, #f0f9fd 100%);
     border-radius: 16px;
     border: 1px solid var(--progress-bar-bg);
-}
+  }
 
-.equipment-label {
+  .equipment-label {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1762,19 +1833,19 @@ body:has(.map-page-container) .app-screen {
     font-weight: 600;
     color: var(--dark-green);
     opacity: 0.8;
-}
+  }
 
-.equipment-label svg {
+  .equipment-label svg {
     color: var(--icon-green);
-}
+  }
 
-.battery-chips {
+  .battery-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-}
+  }
 
-.battery-chip {
+  .battery-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -1786,11 +1857,11 @@ body:has(.map-page-container) .app-screen {
     font-weight: 600;
     color: var(--dark-green);
     box-shadow: 0 2px 4px rgba(38, 185, 153, 0.1);
-}
+  }
 
-.battery-chip svg {
+  .battery-chip svg {
     width: 14px;
     height: 14px;
     color: var(--icon-green);
-}
+  }
 }
