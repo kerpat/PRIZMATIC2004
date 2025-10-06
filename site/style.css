@@ -7,7 +7,7 @@
   --card-bg: #f0f9fd;
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
-  --accent-yellow: #FF6B6B;
+  --accent-yellow: #10B981;
   /* Reserve space for header when title is hidden */
   --no-brand-header-space: 56px;
   /* Layout helpers */
@@ -280,13 +280,13 @@ body.tg-webapp .app-main h2,
   background-color: var(--accent-yellow);
   color: var(--white);
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-primary.btn-accent:hover {
-  background-color: #ff5252;
+  background-color: #059669;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .secondary-actions {
