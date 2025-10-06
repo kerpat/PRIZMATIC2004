@@ -1,13 +1,14 @@
 :root {
-  --primary-green: #40A4DF;
+  --primary-blue: #4A7BA7;
   --dark-green: #0d7377;
-  --icon-green: #40A4DF;
-  --light-green-bg: #e0f3fb;
-  --light-green-nav: #d4ebf7;
-  --card-bg: #f0f9fd;
+  --icon-blue: #4A7BA7;
+  --light-blue-bg: #e8f0f7;
+  --light-blue-nav: #d4e4f0;
+  --card-bg: #f0f6fb;
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
-  --accent-yellow: #10B981;
+  --accent-button: #4A7BA7;
+  --text-dark: #1a1a1a;
   /* Reserve space for header when title is hidden */
   --no-brand-header-space: 56px;
   /* Layout helpers */
@@ -206,7 +207,7 @@ body.tg-webapp .app-main h2,
   width: 45px;
   height: 45px;
   border-radius: 50%;
-  background-color: var(--icon-green);
+  background-color: var(--icon-blue);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -277,16 +278,16 @@ body.tg-webapp .app-main h2,
 
 /* Специальный класс для акцентных кнопок */
 .btn-primary.btn-accent {
-  background-color: var(--accent-yellow);
+  background-color: var(--accent-button);
   color: var(--white);
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(74, 123, 167, 0.3);
 }
 
 .btn-primary.btn-accent:hover {
-  background-color: #059669;
+  background-color: #3d6a8f;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 16px rgba(74, 123, 167, 0.4);
 }
 
 .secondary-actions {
@@ -354,8 +355,8 @@ body.tg-webapp .app-main h2,
 }
 
 .bar.active {
-  background-color: var(--icon-green);
-  box-shadow: 0 2px 8px rgba(38, 185, 153, 0.4);
+  background-color: var(--icon-blue);
+  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.4);
   transform: scaleY(1.1);
 }
 
@@ -400,7 +401,7 @@ body.tg-webapp .app-main h2,
 }
 
 .history-icon-wrapper.trip {
-  background-color: var(--icon-green);
+  background-color: var(--icon-blue);
 }
 
 .history-icon-wrapper.repair {
@@ -415,8 +416,8 @@ body.tg-webapp .app-main h2,
 
 .history-icon-wrapper.rental,
 .history-icon-wrapper.initial {
-  background-color: var(--icon-green);
-  /* Зеленый для аренды */
+  background-color: var(--icon-blue);
+  /* Синий для аренды */
 }
 
 .history-icon-wrapper.renewal {
@@ -478,7 +479,7 @@ body.tg-webapp .app-main h2,
 }
 
 .history-cost.positive {
-  color: var(--icon-green);
+  color: var(--icon-blue);
 }
 
 .empty-history {
@@ -619,7 +620,7 @@ body:has(.map-page-container) #map {
 }
 
 .stat-item svg {
-  color: var(--icon-green);
+  color: var(--icon-blue);
 }
 
 .info-card .btn-primary {
@@ -721,7 +722,7 @@ body:has(.map-page-container) #map {
 /* Общая навигация */
 /* Общая навигация */
 .bottom-nav {
-  background-color: var(--light-green-nav);
+  background-color: var(--light-blue-nav);
   border-radius: 25px;
   padding: 12px;
   display: flex;
@@ -821,9 +822,9 @@ body:has(.map-page-container) #map {
 
 #registration-form input:focus {
   outline: none;
-  border-color: var(--icon-green);
+  border-color: var(--icon-blue);
   background-color: var(--white);
-  box-shadow: 0 0 0 3px rgba(38, 185, 153, 0.2);
+  box-shadow: 0 0 0 3px rgba(74, 123, 167, 0.2);
 }
 
 #registration-form input.error {
@@ -1114,8 +1115,8 @@ body:has(.map-page-container) #map {
 }
 
 .toast-container.toast-success {
-  background-color: var(--icon-green);
-  /* Используем фирменный зеленый цвет */
+  background-color: var(--icon-blue);
+  /* Используем фирменный синий цвет */
 }
 
 .toast-message {
@@ -1182,7 +1183,7 @@ body:has(.map-page-container) #map {
 
 .modal-content input[type="number"]:focus {
   outline: none;
-  border-color: var(--icon-green);
+  border-color: var(--icon-blue);
   background-color: var(--white);
 }
 
@@ -1212,11 +1213,11 @@ body:has(.map-page-container) #map {
 
 .city-option.selected {
   background: #e8f3f7;
-  border-color: var(--icon-green);
+  border-color: var(--icon-blue);
 }
 
 .city-option svg:first-child {
-  color: var(--icon-green);
+  color: var(--icon-blue);
   flex-shrink: 0;
 }
 
@@ -1228,7 +1229,7 @@ body:has(.map-page-container) #map {
 }
 
 .city-option .city-check {
-  color: var(--icon-green);
+  color: var(--icon-blue);
   flex-shrink: 0;
 }
 
@@ -1290,7 +1291,7 @@ body:has(.map-page-container) #map {
 
 #id-input-modal input[type="text"]:focus {
   outline: none;
-  border-color: var(--icon-green);
+  border-color: var(--icon-blue);
   background-color: var(--white);
 }
 
@@ -1315,7 +1316,7 @@ body:has(.map-page-container) #map {
 }
 
 .bike-list-item:hover {
-  background-color: var(--light-green-bg);
+  background-color: var(--light-blue-bg);
   transform: scale(1.03);
 }
 
@@ -1326,7 +1327,7 @@ body:has(.map-page-container) #map {
 
 .bike-list-item span {
   font-weight: 500;
-  color: var(--icon-green);
+  color: var(--icon-blue);
 }
 
 /* === СТИЛИ ДЛЯ ДИНАМИЧЕСКОЙ СТРАНИЦЫ ИСТОРИИ === */
@@ -1431,7 +1432,7 @@ body:has(.map-page-container) #map {
 }
 
 .action-card .icon-wrapper {
-  background-color: var(--icon-green);
+  background-color: var(--icon-blue);
 }
 
 /* ===== НОВЫЕ СТИЛИ ДЛЯ КРАСИВОЙ ФОРМЫ РЕГИСТРАЦИИ ===== */
@@ -1463,7 +1464,7 @@ select.form-control {
 
 select.form-control:focus {
   outline: none;
-  border-color: var(--icon-green);
+  border-color: var(--icon-blue);
   background-color: var(--white);
 }
 
@@ -1478,7 +1479,7 @@ select.form-control:focus {
 .file-upload-label {
   display: inline-block;
   padding: 10px 16px;
-  background-color: var(--icon-green);
+  background-color: var(--icon-blue);
   color: var(--white);
   border-radius: 12px;
   font-weight: 600;
@@ -1548,8 +1549,8 @@ select.form-control:focus {
 
 /* Стили для выбранного состояния */
 .custom-checkbox input[type="checkbox"]:checked+.checkbox-visual {
-  background-color: var(--icon-green);
-  border-color: var(--icon-green);
+  background-color: var(--icon-blue);
+  border-color: var(--icon-blue);
 }
 
 .custom-checkbox input[type="checkbox"]:checked+.checkbox-visual::after {
@@ -1635,7 +1636,7 @@ select.form-control:focus {
 }
 
 .menu-item-btn.primary {
-  background: linear-gradient(135deg, var(--primary-green) 0%, var(--icon-green) 100%);
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--icon-blue) 100%);
   color: var(--white);
 }
 
@@ -1792,7 +1793,7 @@ body:has(.map-page-container) .app-screen {
 }
 
 .tariff-option-item:hover {
-  border-color: var(--light-green-nav, #d4ebf7);
+  border-color: var(--light-blue-nav, #d4e4f0);
 }
 
 /* Скрываем стандартный радио-кружок */
@@ -1813,17 +1814,17 @@ body:has(.map-page-container) .app-screen {
 .tariff-option-item .option-price {
   font-weight: 700;
   font-size: 1.1rem;
-  color: var(--icon-green, #40A4DF);
-  /* Яркий акцент на цене */
+  color: var(--text-dark);
+  /* Черный текст для цены */
   margin-left: auto;
   /* Прижимаем цену вправо */
 }
 
 /* Стиль для ВЫБРАННОГО элемента */
 .tariff-option-item.selected {
-  border-color: var(--icon-green, #40A4DF);
-  background-color: var(--light-green-bg, #e0f3fb);
-  box-shadow: 0 4px 12px rgba(64, 164, 223, 0.1);
+  border-color: var(--icon-blue, #4A7BA7);
+  background-color: var(--light-blue-bg, #e8f0f7);
+  box-shadow: 0 4px 12px rgba(74, 123, 167, 0.1);
 }
 
 .stats-graph .bar {
@@ -1850,7 +1851,7 @@ body:has(.map-page-container) .app-screen {
   }
 
   .equipment-label svg {
-    color: var(--icon-green);
+    color: var(--icon-blue);
   }
 
   .battery-chips {
@@ -1865,17 +1866,17 @@ body:has(.map-page-container) .app-screen {
     gap: 4px;
     padding: 6px 10px;
     background: var(--white);
-    border: 1.5px solid var(--icon-green);
+    border: 1.5px solid var(--icon-blue);
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--dark-green);
-    box-shadow: 0 2px 4px rgba(38, 185, 153, 0.1);
+    box-shadow: 0 2px 4px rgba(74, 123, 167, 0.1);
   }
 
   .battery-chip svg {
     width: 14px;
     height: 14px;
-    color: var(--icon-green);
+    color: var(--icon-blue);
   }
 }

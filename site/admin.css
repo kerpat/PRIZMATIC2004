@@ -7,8 +7,8 @@
   --surface-2: var(--card-bg);
   --border: var(--progress-bar-bg);
   --text: var(--dark-green);
-  --accent: var(--icon-green);
-  --accent-2: var(--primary-green);
+  --accent: var(--icon-blue);
+  --accent-2: var(--primary-blue);
 
   /* Additional variables for enhanced effects */
   --shadow-soft: 0 4px 12px rgba(8, 56, 48, 0.08);
@@ -108,7 +108,7 @@
 body {
   background:
     radial-gradient(1200px 600px at 0% -10%, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0)),
-    linear-gradient(135deg, var(--primary-green) 0%, #bae4f4 35%, #e0f3fb 100%);
+    linear-gradient(135deg, var(--primary-blue) 0%, #b3d4e8 35%, #e8f0f7 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -659,7 +659,7 @@ body {
 .toolbar-input:focus {
   background: var(--surface);
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(38, 185, 153, .18);
+  box-shadow: 0 0 0 3px rgba(74, 123, 167, .18);
   transform: scale(1.02);
 }
 
@@ -949,7 +949,7 @@ select:focus,
   outline: none;
   border-color: var(--accent);
   background: var(--surface);
-  box-shadow: 0 0 0 4px rgba(38, 185, 153, .12), 0 4px 12px rgba(38, 185, 153, .08);
+  box-shadow: 0 0 0 4px rgba(74, 123, 167, .12), 0 4px 12px rgba(74, 123, 167, .08);
   transform: translateY(-2px) scale(1.01);
 }
 
@@ -1669,7 +1669,7 @@ select:focus::placeholder {
 
 .template-editor.drag-over {
   border-color: var(--accent-2);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, .15) inset;
+  box-shadow: 0 0 0 3px rgba(74, 123, 167, .15) inset;
 }
 
 .template-editor .ph {
@@ -1962,7 +1962,7 @@ select:focus::placeholder {
 
 .bike-list-item span {
   font-weight: 500;
-  color: var(--icon-green);
+  color: var(--icon-blue);
 }
 
 .tariff-description {
@@ -1991,13 +1991,13 @@ select:focus::placeholder {
 }
 
 .tariff-option-item:hover {
-  border-color: var(--icon-green, #40A4DF);
+  border-color: var(--icon-blue, #4A7BA7);
   transform: translateY(-2px);
 }
 
 .tariff-option-item.selected {
-  border-color: var(--icon-green, #40A4DF);
-  background-color: var(--light-green-bg, #e0f3fb);
+  border-color: var(--icon-blue, #4A7BA7);
+  background-color: var(--light-blue-bg, #e8f0f7);
   box-shadow: var(--shadow-soft);
 }
 
@@ -2019,7 +2019,7 @@ select:focus::placeholder {
 .tariff-option-item .option-price {
   font-weight: 700;
   font-size: 1.1rem;
-  color: var(--icon-green, #40A4DF);
+  color: var(--text-dark);
   margin-left: auto;
 }
 
@@ -2191,13 +2191,13 @@ Step-by-step return process styles */
 }
 
 .step-circle.active {
-  background: var(--icon-green);
+  background: var(--icon-blue);
   color: white;
-  box-shadow: 0 2px 8px rgba(8, 56, 48, 0.15);
+  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.15);
 }
 
 .step-circle.completed {
-  background: var(--icon-green);
+  background: var(--icon-blue);
   color: white;
 }
 
@@ -2241,7 +2241,7 @@ Step-by-step return process styles */
 }
 
 .radio-card:hover {
-  border-color: var(--icon-green);
+  border-color: var(--icon-blue);
   background: var(--card-bg);
 }
 
@@ -2254,9 +2254,9 @@ Step-by-step return process styles */
 }
 
 .radio-card:has(input[type="radio"]:checked) {
-  border-color: var(--icon-green);
-  background: var(--light-green-bg);
-  box-shadow: 0 2px 8px rgba(8, 56, 48, 0.08);
+  border-color: var(--icon-blue);
+  background: var(--light-blue-bg);
+  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.08);
 }
 
 .radio-card-content {
