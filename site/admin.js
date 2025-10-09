@@ -2486,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
