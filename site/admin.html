@@ -1280,35 +1280,8 @@
     </div>
   </div>
   </div>
-<!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор велосипеда для аренды -->
-<div id="assign-bikes-modal" class="overlay hidden">
-    <div class="modal" style="max-width: 550px;">
-        <div class="modal-header">
-            <h3>Выберите велосипед для аренды</h3>
-            <button id="assign-bikes-cancel-btn" class="close-btn">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="assign-bikes-form">
-                <input type="hidden" id="assign-bikes-rental-id">
-                <p>Выберите свободный велосипед:</p>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <input type="search" id="bike-search-in-modal" class="form-control"
-                        placeholder="Поиск по коду или модели...">
-                </div>
-                <div id="bike-select-list"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
-                    <!-- Список велосипедов будет загружен сюда через JS -->
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" id="assign-bikes-submit-btn" class="btn btn-primary">Подтвердить и
-                активировать</button>
-        </div>
-    </div>
-</div>
 
-  <!-- Модальное окно настройки стоимости бронирования -->
+<!-- Модальное окно настройки стоимости бронирования -->
   <div id="booking-cost-modal" class="overlay hidden">
     <div class="modal" style="max-width: 420px;">
       <div class="modal-header">
@@ -1331,6 +1304,34 @@
     </div>
   </div>
 
+  <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор велосипеда и аккумуляторов -->
+  <div id="assign-bike-and-batteries-modal" class="overlay hidden">
+      <div class="modal" style="max-width: 600px;">
+          <div class="modal-header">
+              <h3>Выбрать велосипед и аккумуляторы</h3>
+              <button id="assign-bike-and-batteries-cancel-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+              <input type="hidden" id="assign-bike-and-batteries-rental-id">
+              <div class="form-group">
+                  <label for="bike-and-batteries-select">Велосипед</label>
+                  <select id="bike-and-batteries-select" class="form-control" required>
+                      <option value="">-- Выберите велосипед --</option>
+                  </select>
+              </div>
+              <div class="form-group">
+                  <label>Аккумуляторы</label>
+                  <input type="search" id="battery-search-in-combined-modal" class="form-control" placeholder="Поиск по серийному номеру...">
+                  <div id="battery-select-list-in-combined-modal" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-top: 10px;">
+                      <!-- Список АКБ будет загружен сюда -->
+                  </div>
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" id="assign-bike-and-batteries-submit-btn" class="btn btn-primary">Подтвердить и активировать</button>
+          </div>
+      </div>
+  </div>
 
 </body>
 

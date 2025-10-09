@@ -2755,6 +2755,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rentalId = assignBatteriesBtn.dataset.rentalId;
                 console.log('Rental ID:', rentalId);
 
+                // Проверяем, что для этой аренды уже выбран велосипед
+                const { data: rental } = await supabase
+                    .from('rentals')
+                    .select('bike_id')
+                    .eq('id', rentalId)
+                    .single();
+
+                if (!rental.bike_id) {
+                    alert('Сначала необходимо выбрать велосипед для этой аренды');
+                    return;
+                }
+
                 const searchInput = document.getElementById('battery-search-in-modal');
                 searchInput.value = ''; // Сбрасываем поиск при открытии
 
@@ -2906,6 +2918,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (assignBatteriesSubmitBtn) {
         assignBatteriesSubmitBtn.addEventListener('click', async () => {
             const rentalId = assignBatteriesRentalIdInput.value;
+
+            // Проверяем, что велосипед уже выбран
+            const { data: rental } = await supabase
+                .from('rentals')
+                .select('bike_id')
+                .eq('id', rentalId)
+                .single();
+
+            if (!rental.bike_id) {
+                alert('Невозможно добавить АКБ: велосипед не выбран');
+                return;
+            }
+
             const selectedCheckboxes = batterySelectList.querySelectorAll('input[type="checkbox"]:checked');
             const selectedBatteryIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value, 10));
 
