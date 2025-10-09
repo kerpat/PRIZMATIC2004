@@ -81,45 +81,17 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         bikeId = bike.id;
         console.log(`[БАЛАНС] Выбран конкретный велосипед #${bikeId}`);
     } else {
-        // Найти случайный свободный велосипед с учетом города
-        console.log(`[БАЛАНС] Поиск свободного велосипеда для тарифа ${tariffId} в городе ${userCity}...`);
-        const { data: availableBikes, error: bikesError } = await supabaseAdmin
-            .from('bikes')
-            .select('id, bike_code')
-            .eq('status', 'available')
-            .eq('tariff_id', tariffId)
-            .eq('city', userCity);
-
-        if (bikesError) throw new Error(`Ошибка при поиске велосипедов: ${bikesError.message}`);
-
-        if (!availableBikes || availableBikes.length === 0) {
-            console.error(`[БАЛАНС] Нет свободных велосипедов для тарифа ${tariffId} в городе ${userCity}!`);
-            // ВАЖНО: Вместо возврата денег через ЮKassa, просто возвращаем ошибку клиенту.
-            // Деньги мы еще не списали!
-            return { status: 400, body: { error: `К сожалению, все велосипеды по вашему тарифу в городе ${userCity} сейчас заняты.` } };
-        }
-
-        const randomBike = availableBikes[Math.floor(Math.random() * availableBikes.length)];
-        bikeId = randomBike.id;
-        console.log(`[БАЛАНС] Найден и выбран велосипед #${bikeId} (код: ${randomBike.bike_code})`);
+        bikeId = null; // Создаем аренду без велосипеда
     }
 
     // Теперь, когда мы знаем, что велосипед есть, можно безопасно списать деньги.
     // Оборачиваем все в транзакцию (в Supabase это лучше делать через RPC-функцию).
     // Для простоты, пока без транзакции:
-
+    
     // 2. Списываем деньги с баланса
     const newBalance = userBalance - rentalCost;
     const { error: balanceError } = await supabaseAdmin.from('clients').update({ balance_rub: newBalance }).eq('id', userId);
     if (balanceError) throw new Error('Не удалось обновить баланс клиента: ' + balanceError.message);
-
-    // 3. Обновить статус велосипеда на 'rented'
-    const { error: bikeUpdateError } = await supabaseAdmin.from('bikes').update({ status: 'rented' }).eq('id', bikeId);
-    if (bikeUpdateError) {
-        // Откатываем списание баланса, если не удалось забронировать велосипед
-        await supabaseAdmin.from('clients').update({ balance_rub: userBalance }).eq('id', userId);
-        throw new Error(`Не удалось обновить статус велосипеда #${bikeId}: ${bikeUpdateError.message}`);
-    }
 
     // 4. Создать запись об аренде со статусом 'awaiting_battery_assignment'
     const startDate = new Date();
@@ -141,9 +113,8 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         .single();
 
     if (rentalError) {
-        // Откатываем и списание, и статус велосипеда
+        // Откатываем списание баланса
         await supabaseAdmin.from('clients').update({ balance_rub: userBalance }).eq('id', userId);
-        await supabaseAdmin.from('bikes').update({ status: 'available' }).eq('id', bikeId);
         throw new Error(`Не удалось создать аренду: ${rentalError.message}`);
     }
 

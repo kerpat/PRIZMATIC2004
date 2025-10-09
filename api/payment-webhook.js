@@ -137,21 +137,7 @@ async function processSucceededPayment(notification) {
         const userCity = clientData?.city || 'Москва'; // По умолчанию Москва
         console.log(`[АРЕНДА] Город клиента: ${userCity}`);
         
-        // Логика создания аренды с учетом города
-        const { data: availableBikes, error: bikesError } = await supabaseAdmin
-            .from('bikes')
-            .select('id, bike_code')
-            .eq('status', 'available')
-            .eq('tariff_id', tariffId)
-            .eq('city', userCity);
-        
-        if (bikesError || !availableBikes || availableBikes.length === 0) { 
-            throw new Error(`Нет свободных велосипедов для тарифа ${tariffId} в городе ${userCity}.`); 
-        }
-        
-        const bikeId = availableBikes[0].id;
-        console.log(`[АРЕНДА] Выбран велосипед #${bikeId} (код: ${availableBikes[0].bike_code})`);
-        await supabaseAdmin.from('bikes').update({ status: 'rented' }).eq('id', bikeId);
+        const bikeId = null; // Создаем аренду без велосипеда
         
         // Определяем длительность аренды: используем days из metadata или берем из тарифа
         let rentalDays = days ? Number.parseInt(days) : null;
