@@ -36,7 +36,7 @@
     <div id="login-section">
       <h2>Вход в админ‑панель</h2>
       <form id="login-form">
-        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="email" id="login-email" placeholder="Email" required>ыывфывфывыф
         <input type="password" id="login-password" placeholder="Пароль" required>
         <button type="submit">Войти</button>ssss
       </form>
