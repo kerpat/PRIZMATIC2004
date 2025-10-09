@@ -122,6 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Battery Assignment Modal elements (НОВЫЙ БЛОК)
     const assignBatteriesModal = document.getElementById('assign-batteries-modal');
     const assignBatteriesRentalIdInput = document.getElementById('assign-batteries-rental-id');
+    const batteryModalBikeSelect = document.getElementById('battery-modal-bike-select');
+    const batterySearchInModal = document.getElementById('battery-search-in-modal');
     const batterySelectList = document.getElementById('battery-select-list');
     const assignBatteriesCancelBtn = document.getElementById('assign-batteries-cancel-btn');
     const assignBatteriesSubmitBtn = document.getElementById('assign-batteries-submit-btn');
@@ -2505,9 +2507,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (assignment.status === 'pending_return') {
                     actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
                 } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ОЖИДАЕТ АКБ
-                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать АКБ</button>`;
+                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
                 } else if (assignment.status === 'awaiting_contract_signing') { // <-- ОЖИДАЕТ ПОДПИСАНИЯ
-                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать АКБ</button>`;
+                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
                 } else { // 'pending_assignment'
                     actionButton = `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать вел.</button>`;
                 }
@@ -2836,6 +2838,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                     assignBatteriesModal.classList.remove('hidden');
+            
+                    // Load available bikes
+                    try {
+                        const { data: bikes, error: bikesError } = await supabase.from('bikes').select('*').eq('status', 'available');
+                        if (bikesError) throw bikesError;
+                        batteryModalBikeSelect.innerHTML = '<option value="">-- Выберите велосипед --</option>';
+                        bikes.forEach(bike => {
+                            const option = document.createElement('option');
+                            option.value = bike.id;
+                            option.textContent = `${bike.model_name} (#${bike.bike_code})`;
+                            batteryModalBikeSelect.appendChild(option);
+                        });
+                    } catch (err) {
+                        console.error('Ошибка загрузки велосипедов:', err);
+                        alert('Ошибка загрузки списка велосипедов: ' + err.message);
+                    }
                 } catch (err) {
                     console.error('Ошибка при загрузке аккумуляторов:', err);
                     alert('Ошибка загрузки списка аккумуляторов: ' + err.message);
@@ -2906,25 +2924,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (assignBatteriesSubmitBtn) {
         assignBatteriesSubmitBtn.addEventListener('click', async () => {
             const rentalId = assignBatteriesRentalIdInput.value;
+            const bikeId = batteryModalBikeSelect.value;
             const selectedCheckboxes = batterySelectList.querySelectorAll('input[type="checkbox"]:checked');
             const selectedBatteryIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value, 10));
+
+            if (!bikeId) {
+                alert('Пожалуйста, выберите велосипед.');
+                return;
+            }
 
             if (selectedBatteryIds.length === 0) {
                 alert('Пожалуйста, выберите хотя бы один аккумулятор.');
                 return;
             }
 
-            toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить', 'Активация...');
+            toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить и активировать', 'Активация...');
 
             try {
-                // Шаг 1: Обновить статус выбранных аккумуляторов на 'in_use'
+                // Шаг 1: Обновить статус велосипеда на 'rented'
+                const { error: bikeUpdateError } = await supabase
+                    .from('bikes')
+                    .update({ status: 'rented' })
+                    .eq('id', bikeId);
+                if (bikeUpdateError) throw new Error('Ошибка обновления статуса велосипеда: ' + bikeUpdateError.message);
+
+                // Шаг 2: Привязать велосипед к аренде
+                const { error: rentalBikeUpdateError } = await supabase
+                    .from('rentals')
+                    .update({ bike_id: bikeId })
+                    .eq('id', rentalId);
+                if (rentalBikeUpdateError) throw new Error('Ошибка привязки велосипеда к аренде: ' + rentalBikeUpdateError.message);
+
+                // Шаг 3: Обновить статус выбранных аккумуляторов на 'in_use'
                 const { error: batteryUpdateError } = await supabase
                     .from('batteries')
                     .update({ status: 'in_use' })
                     .in('id', selectedBatteryIds);
                 if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
 
-                // Шаг 2: Создать записи в связующей таблице rental_batteries
+                // Шаг 4: Создать записи в связующей таблице rental_batteries
                 const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
                     rental_id: rentalId,
                     battery_id: battery_id
@@ -2932,30 +2970,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
                 if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
 
-                // Шаг 3: Обновить статус самой аренды на 'awaiting_contract_signing'
+                // Шаг 5: Обновить статус самой аренды на 'awaiting_contract_signing'
                 const { error: rentalUpdateError } = await supabase
                     .from('rentals')
                     .update({ status: 'awaiting_contract_signing' })
                     .eq('id', rentalId);
                 if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
 
-                // --- ВОТ ЭТУ СТРОЧКУ НУЖНО ДОБАВИТЬ ---
                 // Отправляем запрос на сервер, чтобы он послал уведомление
                 authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: parseInt(rentalId, 10) })
                 });
-                // --- КОНЕЦ ДОБАВЛЕНИЯ ---
 
-                alert('Аккумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
+                alert('Велосипед и аккумумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
                 assignBatteriesModal.classList.add('hidden');
                 loadAssignments(); // Обновляем список заявок
 
             } catch (err) {
                 alert('Произошла ошибка: ' + err.message);
             } finally {
-                toggleButtonLoading(assignBatteriesSubmitBtn, false, 'Подтвердить', 'Активация...');
+                toggleButtonLoading(assignBatteriesSubmitBtn, false, 'Подтвердить и активировать', 'Активация...');
             }
         });
     }

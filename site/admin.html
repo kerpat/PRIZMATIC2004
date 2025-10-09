@@ -1251,31 +1251,42 @@
     </div>
   </div>
 
-  <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор аккумуляторов для аренды -->
+  <!-- НОВОЕ МОДАЛЬНОЕ ОКНО: Выбор велосипеда и аккумуляторов -->
   <div id="assign-batteries-modal" class="overlay hidden">
-    <div class="modal" style="max-width: 550px;">
+    <div class="modal" style="max-width: 650px;">
       <div class="modal-header">
-        <h3>Выберите аккумуляторы для аренды</h3>
+        <h3>Выберите велосипед и аккумуляторы</h3>
         <button id="assign-batteries-cancel-btn" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <form id="assign-batteries-form">
           <input type="hidden" id="assign-batteries-rental-id">
-          <p>Выберите один или несколько свободных аккумуляторов:</p>
-          <!-- ВОТ СЮДА ВСТАВЬ ПОИСК -->
-          <div class="form-group" style="margin-bottom: 15px;">
-            <input type="search" id="battery-search-in-modal" class="form-control"
-              placeholder="Поиск по серийному номеру...">
+
+          <!-- Выбор велосипеда -->
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="battery-modal-bike-select" style="font-weight: 600; margin-bottom: 8px; display: block;">Велосипед</label>
+            <select id="battery-modal-bike-select" class="form-control" required>
+              <option value="">-- Выберите велосипед --</option>
+            </select>
           </div>
-          <div id="battery-select-list"
-            style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
-            <!-- Список АКБ будет загружен сюда через JS -->
+
+          <!-- Выбор аккумуляторов -->
+          <div class="form-group">
+            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Аккумуляторы</label>
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Выберите один или несколько свободных аккумуляторов:</p>
+            <div class="form-group" style="margin-bottom: 15px;">
+              <input type="search" id="battery-search-in-modal" class="form-control"
+                placeholder="Поиск по серийному номеру...">
+            </div>
+            <div id="battery-select-list"
+              style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; padding: 10px;">
+              <!-- Список АКБ будет загружен сюда через JS -->
+            </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" id="assign-batteries-submit-btn" class="btn btn-primary">Подтвердить и
-          активировать</button>
+        <button type="button" id="assign-batteries-submit-btn" class="btn btn-primary">Подтвердить и активировать</button>
       </div>
     </div>
   </div>
