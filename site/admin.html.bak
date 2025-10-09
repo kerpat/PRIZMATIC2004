@@ -31,7 +31,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div id="admin-app">
+  <div id="admin-app">sdadsadsasa
     <!-- Авторизация -->
     <div id="login-section">
       <h2>Вход в админ‑панель</h2>
