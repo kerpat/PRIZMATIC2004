@@ -671,7 +671,6 @@ async def process_video_note(message: Message, state: FSMContext):
             "userId": user_id,
             "formData": user_data # Отправляем все, что собрали
         }
-        logger.info(f"ОТЛАДКА: Отправляю на Vercel API следующие данные: {json.dumps(api_data, indent=2, ensure_ascii=False)}")
 
         async with aiohttp.ClientSession() as session:
             async with session.post(BOT_REGISTER_API, json=api_data) as response:

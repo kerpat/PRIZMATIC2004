@@ -2164,24 +2164,12 @@
                         item.dataset.tariff = key;
                         item.dataset.tariffId = t.id;
                         
-                        // Если нет великов - показываем только название и предупреждение
-                        if (!isAvailable) {
-                            item.innerHTML = `
-                                <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
-                                    <strong>${t.title}</strong>
-                                    <span style="color: #ff4757 !important; font-weight: 600 !important; font-size: 0.9em;">Нет свободных велосипедов</span>
-                                </div>
-                            `;
-                            item.style.cursor = 'not-allowed';
-                            item.style.pointerEvents = 'none';
-                        } else {
-                            // Если есть - показываем описание
-                            item.innerHTML = `<strong>${t.title}</strong><span>${t.short_description || ''}</span>`;
-                            // Навешиваем обработчик выбора тарифа только для доступных
-                            item.addEventListener('click', () => {
-                                showTariffDetail(key);
-                            });
-                        }
+                        // Всегда показываем описание тарифа без проверки доступности
+                        item.innerHTML = `<strong>${t.title}</strong><span>${t.short_description || ''}</span>`;
+                        // Навешиваем обработчик выбора тарифа для всех тарифов
+                        item.addEventListener('click', () => {
+                            showTariffDetail(key);
+                        });
                         
                         list.appendChild(item);
                     });
