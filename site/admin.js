@@ -2486,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -2755,18 +2755,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rentalId = assignBatteriesBtn.dataset.rentalId;
                 console.log('Rental ID:', rentalId);
 
-                // Проверяем, что для этой аренды уже выбран велосипед
-                const { data: rental } = await supabase
-                    .from('rentals')
-                    .select('bike_id')
-                    .eq('id', rentalId)
-                    .single();
-
-                if (!rental.bike_id) {
-                    alert('Сначала необходимо выбрать велосипед для этой аренды');
-                    return;
-                }
-
                 const searchInput = document.getElementById('battery-search-in-modal');
                 searchInput.value = ''; // Сбрасываем поиск при открытии
 
@@ -2918,19 +2906,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (assignBatteriesSubmitBtn) {
         assignBatteriesSubmitBtn.addEventListener('click', async () => {
             const rentalId = assignBatteriesRentalIdInput.value;
-
-            // Проверяем, что велосипед уже выбран
-            const { data: rental } = await supabase
-                .from('rentals')
-                .select('bike_id')
-                .eq('id', rentalId)
-                .single();
-
-            if (!rental.bike_id) {
-                alert('Невозможно добавить АКБ: велосипед не выбран');
-                return;
-            }
-
             const selectedCheckboxes = batterySelectList.querySelectorAll('input[type="checkbox"]:checked');
             const selectedBatteryIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value, 10));
 

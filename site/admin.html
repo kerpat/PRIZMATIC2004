@@ -946,6 +946,50 @@
     </div>
   </div>
 
+  <!-- Модальное окно для выбора велосипеда -->
+  <div id="assign-bike-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Привязать велосипед к аренде</h3>
+        <button id="assign-bike-cancel-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="assign-bike-form">
+          <input type="hidden" id="assign-rental-id">
+          <div class="form-group">
+            <label for="bike-select">Выберите свободный велосипед:</label>
+            <select id="bike-select" class="form-control" required></select>
+          </div>
+          <div id="bike-details" style="display: none;">
+            <h4>Данные велосипеда</h4>
+            <div class="form-group">
+              <label for="assign-bike-frame-number">Номер рамы</label>
+              <input type="text" id="assign-bike-frame-number" class="modal-form-input">
+            </div>
+            <div class="form-group">
+              <label for="assign-bike-battery-numbers">Номера аккумуляторов (через запятую)</label>
+              <input type="text" id="assign-bike-battery-numbers" class="modal-form-input">
+            </div>
+            <div class="form-group">
+              <label for="assign-bike-registration-number">Регистрационный номер</label>
+              <input type="text" id="assign-bike-registration-number" class="modal-form-input">
+            </div>
+            <div class="form-group">
+              <label for="assign-bike-iot-device-id">Номер IOT-трекера</label>
+              <input type="text" id="assign-bike-iot-device-id" class="modal-form-input">
+            </div>
+            <div class="form-group">
+              <label for="assign-bike-additional-equipment">Дополнительное оборудование</label>
+              <textarea id="assign-bike-additional-equipment" class="modal-form-input" rows="3"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="assign-bike-submit-btn" class="btn btn-primary">Привязать и активировать</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Модальное окно предпросмотра тарифа -->
   <div id="tariff-preview-modal" class="overlay hidden">
@@ -1235,55 +1279,9 @@
       </div>
     </div>
   </div>
-
-  <!-- Модальное окно выбора велосипеда -->
-  <div id="assign-bike-modal" class="overlay hidden">
-    <div class="modal" style="max-width: 550px;">
-      <div class="modal-header">
-        <h3>Выберите велосипед для аренды</h3>
-        <button id="assign-bike-cancel-btn" class="close-btn">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="assign-bike-form">
-          <input type="hidden" id="assign-rental-id">
-          <div class="form-group">
-            <label for="bike-select">Велосипед</label>
-            <select id="bike-select" class="form-control" required>
-              <option value="">-- Выберите велосипед --</option>
-            </select>
-          </div>
-          <div id="bike-details" style="display: none; margin-top: 15px; padding: 15px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border);">
-            <h4 style="margin-bottom: 10px;">Детали велосипеда</h4>
-            <div class="form-group">
-              <label for="assign-bike-frame-number">Номер рамы</label>
-              <input type="text" id="assign-bike-frame-number" class="form-control" placeholder="Например: FR123456">
-            </div>
-            <div class="form-group">
-              <label for="assign-bike-battery-numbers">Номера аккумуляторов</label>
-              <input type="text" id="assign-bike-battery-numbers" class="form-control" placeholder="Например: B001,B002">
-            </div>
-            <div class="form-group">
-              <label for="assign-bike-registration-number">Регистрационный номер</label>
-              <input type="text" id="assign-bike-registration-number" class="form-control" placeholder="Например: А123БВ77">
-            </div>
-            <div class="form-group">
-              <label for="assign-bike-iot-device-id">Номер IOT-трекера</label>
-              <input type="text" id="assign-bike-iot-device-id" class="form-control" placeholder="Например: IOT987654">
-            </div>
-            <div class="form-group">
-              <label for="assign-bike-additional-equipment">Дополнительное оборудование</label>
-              <textarea id="assign-bike-additional-equipment" class="form-control" rows="3" placeholder="Например: Замок, держатель для бутылки"></textarea>
-            </div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="assign-bike-submit-btn" class="btn btn-primary">Привязать и активировать</button>
-      </div>
-    </div>
   </div>
 
-<!-- Модальное окно настройки стоимости бронирования -->
+  <!-- Модальное окно настройки стоимости бронирования -->
   <div id="booking-cost-modal" class="overlay hidden">
     <div class="modal" style="max-width: 420px;">
       <div class="modal-header">

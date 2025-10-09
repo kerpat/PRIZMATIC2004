@@ -2348,37 +2348,4 @@ Step-by-step return process styles */
   width: 18px;
   height: 18px;
   cursor: pointer;
-/* Стили для объединенной модалки */
-#assign-bike-and-batteries-modal .modal-body {
-    padding: 20px;
-}
-
-#assign-bike-and-batteries-modal .form-group {
-    margin-bottom: 20px;
-}
-
-#assign-bike-and-batteries-modal label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-#battery-select-list-in-combined-modal {
-    background: var(--surface-2);
-    border-radius: 12px;
-}
-
-#battery-select-list-in-combined-modal .battery-checkbox-item {
-    padding: 10px;
-    margin-bottom: 5px;
-    background: white;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-#battery-select-list-in-combined-modal .battery-checkbox-item:hover {
-    background: var(--card-bg);
-    transform: translateX(4px);
-}
 }
