@@ -33,7 +33,7 @@
 <body>
   <div id="admin-app">sdadsadsasa
     <!-- Авторизация -->
-    <div id="login-section">
+    <div id="login-section">asdsadsda
       <h2>Вход в админ‑панель</h2>
       <form id="login-form">
         <input type="email" id="login-email" placeholder="Email" required>ыывфывфывыф
