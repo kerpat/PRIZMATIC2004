@@ -1756,13 +1756,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
 
-                    // ВАЖНО: Автоматически выбираем текущий велосипед и скрываем поле
-                    if (batteryModalBikeSelect) {
-                        batteryModalBikeSelect.value = currentBikeId;
-                        // Скрываем блок выбора велосипеда
-                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
-                        if (bikeSelectGroup) {
-                            bikeSelectGroup.style.display = 'none';
+                    // ВАЖНО: Загружаем текущий велосипед и автоматически выбираем его
+                    if (batteryModalBikeSelect && currentBikeId) {
+                        // Получаем информацию о текущем велосипеде
+                        const { data: currentBike, error: bikeError } = await supabase
+                            .from('bikes')
+                            .select('*')
+                            .eq('id', currentBikeId)
+                            .single();
+                        
+                        if (!bikeError && currentBike) {
+                            // Заполняем select текущим велосипедом
+                            batteryModalBikeSelect.innerHTML = '';
+                            const option = document.createElement('option');
+                            option.value = currentBike.id;
+                            option.textContent = `${currentBike.model_name} (#${currentBike.bike_code}) - Текущий`;
+                            batteryModalBikeSelect.appendChild(option);
+                            batteryModalBikeSelect.value = currentBike.id;
+                            
+                            // Скрываем блок выбора велосипеда
+                            const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                            if (bikeSelectGroup) {
+                                bikeSelectGroup.style.display = 'none';
+                            }
                         }
                     }
 
@@ -2986,7 +3002,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Проверяем, это редактирование существующей аренды или новая аренда
-            const isEditingExistingRental = rentalIdInput && rentalIdInput.value === rentalId;
+            // Получаем информацию об аренде
+            const { data: rentalData, error: rentalFetchError } = await supabase
+                .from('rentals')
+                .select('bike_id')
+                .eq('id', rentalId)
+                .single();
+            
+            if (rentalFetchError) {
+                alert('Ошибка получения данных аренды: ' + rentalFetchError.message);
+                return;
+            }
+
+            // Если у аренды уже есть bike_id, это редактирование
+            const isEditingExistingRental = rentalData && rentalData.bike_id;
 
             toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить и активировать', 'Активация...');
 
