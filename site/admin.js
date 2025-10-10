@@ -1701,6 +1701,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (assignBatteriesModal && assignBatteriesRentalIdInput) {
                 assignBatteriesRentalIdInput.value = rentalId;
 
+                // Получаем текущий велосипед аренды
+                const currentBikeId = rentalBikeSelect.value;
+                
                 // Загружаем доступные АКБ
                 try {
                     const { data: batteries, error } = await supabase
@@ -1751,6 +1754,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                 label.style.display = text.includes(query) ? 'block' : 'none';
                             });
                         });
+                    }
+
+                    // ВАЖНО: Автоматически выбираем текущий велосипед и скрываем поле
+                    if (batteryModalBikeSelect) {
+                        batteryModalBikeSelect.value = currentBikeId;
+                        // Скрываем блок выбора велосипеда
+                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                        if (bikeSelectGroup) {
+                            bikeSelectGroup.style.display = 'none';
+                        }
+                    }
+
+                    // Изменяем заголовок модального окна
+                    const modalTitle = assignBatteriesModal.querySelector('.modal-header h3');
+                    if (modalTitle) {
+                        modalTitle.textContent = 'Изменить аккумуляторы';
                     }
 
                     assignBatteriesModal.classList.remove('hidden');
@@ -2837,6 +2856,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             batterySelectList.appendChild(label);
                         });
                     }
+                    
+                    // ВАЖНО: Показываем поле выбора велосипеда (для новой аренды)
+                    if (batteryModalBikeSelect) {
+                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                        if (bikeSelectGroup) {
+                            bikeSelectGroup.style.display = 'block';
+                        }
+                    }
+
+                    // Устанавливаем правильный заголовок для новой аренды
+                    const modalTitle = assignBatteriesModal.querySelector('.modal-header h3');
+                    if (modalTitle) {
+                        modalTitle.textContent = 'Выберите велосипед и аккумуляторы';
+                    }
+
                     assignBatteriesModal.classList.remove('hidden');
             
                     // Load available bikes
@@ -2918,7 +2952,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- НОВЫЙ БЛОК: Логика модального окна выбора АКБ ---
 
     if (assignBatteriesCancelBtn) {
-        assignBatteriesCancelBtn.addEventListener('click', () => assignBatteriesModal.classList.add('hidden'));
+        assignBatteriesCancelBtn.addEventListener('click', () => {
+            assignBatteriesModal.classList.add('hidden');
+            // Показываем поле велосипеда обратно (для следующего использования)
+            if (batteryModalBikeSelect) {
+                const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                if (bikeSelectGroup) {
+                    bikeSelectGroup.style.display = 'block';
+                }
+            }
+            // Если была открыта форма редактирования аренды, возвращаемся к ней
+            if (rentalEditModal && rentalIdInput && rentalIdInput.value) {
+                rentalEditModal.classList.remove('hidden');
+            }
+        });
     }
 
     if (assignBatteriesSubmitBtn) {
@@ -2938,55 +2985,140 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Проверяем, это редактирование существующей аренды или новая аренда
+            const isEditingExistingRental = rentalIdInput && rentalIdInput.value === rentalId;
+
             toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить и активировать', 'Активация...');
 
             try {
-                // Шаг 1: Обновить статус велосипеда на 'rented'
-                const { error: bikeUpdateError } = await supabase
-                    .from('bikes')
-                    .update({ status: 'rented' })
-                    .eq('id', bikeId);
-                if (bikeUpdateError) throw new Error('Ошибка обновления статуса велосипеда: ' + bikeUpdateError.message);
+                if (isEditingExistingRental) {
+                    // ЛОГИКА ДЛЯ РЕДАКТИРОВАНИЯ СУЩЕСТВУЮЩЕЙ АРЕНДЫ
+                    
+                    // Шаг 1: Получаем старые АКБ и освобождаем их
+                    const { data: oldBatteries, error: oldBattError } = await supabase
+                        .from('rental_batteries')
+                        .select('battery_id')
+                        .eq('rental_id', rentalId);
+                    
+                    if (!oldBattError && oldBatteries && oldBatteries.length > 0) {
+                        const oldBatteryIds = oldBatteries.map(b => b.battery_id);
+                        
+                        // Освобождаем старые АКБ
+                        await supabase
+                            .from('batteries')
+                            .update({ status: 'available' })
+                            .in('id', oldBatteryIds);
+                        
+                        // Удаляем старые связи
+                        await supabase
+                            .from('rental_batteries')
+                            .delete()
+                            .eq('rental_id', rentalId);
+                    }
 
-                // Шаг 2: Привязать велосипед к аренде
-                const { error: rentalBikeUpdateError } = await supabase
-                    .from('rentals')
-                    .update({ bike_id: bikeId })
-                    .eq('id', rentalId);
-                if (rentalBikeUpdateError) throw new Error('Ошибка привязки велосипеда к аренде: ' + rentalBikeUpdateError.message);
+                    // Шаг 2: Обновить статус новых АКБ на 'in_use'
+                    const { error: batteryUpdateError } = await supabase
+                        .from('batteries')
+                        .update({ status: 'in_use' })
+                        .in('id', selectedBatteryIds);
+                    if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
 
-                // Шаг 3: Обновить статус выбранных аккумуляторов на 'in_use'
-                const { error: batteryUpdateError } = await supabase
-                    .from('batteries')
-                    .update({ status: 'in_use' })
-                    .in('id', selectedBatteryIds);
-                if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
+                    // Шаг 3: Создать новые записи в связующей таблице rental_batteries
+                    const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
+                        rental_id: rentalId,
+                        battery_id: battery_id
+                    }));
+                    const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
+                    if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
 
-                // Шаг 4: Создать записи в связующей таблице rental_batteries
-                const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
-                    rental_id: rentalId,
-                    battery_id: battery_id
-                }));
-                const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
-                if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
+                    alert('Аккумуляторы успешно обновлены!');
+                    assignBatteriesModal.classList.add('hidden');
+                    
+                    // Показываем поле велосипеда обратно
+                    if (batteryModalBikeSelect) {
+                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                        if (bikeSelectGroup) {
+                            bikeSelectGroup.style.display = 'block';
+                        }
+                    }
 
-                // Шаг 5: Обновить статус самой аренды на 'awaiting_contract_signing'
-                const { error: rentalUpdateError } = await supabase
-                    .from('rentals')
-                    .update({ status: 'awaiting_contract_signing' })
-                    .eq('id', rentalId);
-                if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
+                    // Обновляем список АКБ в окне редактирования
+                    const { data: newBatteries, error: newBattError } = await supabase
+                        .from('rental_batteries')
+                        .select('battery_id, batteries(serial_number)')
+                        .eq('rental_id', rentalId);
 
-                // Отправляем запрос на сервер, чтобы он послал уведомление
-                authedFetch('/api/admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: parseInt(rentalId, 10) })
-                });
+                    if (!newBattError && newBatteries) {
+                        currentRentalBatteries = newBatteries.map(b => ({
+                            id: b.battery_id,
+                            serial: b.batteries?.serial_number || 'Неизвестно'
+                        }));
+                        renderRentalBatteriesList();
+                    }
 
-                alert('Велосипед и аккумумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
-                assignBatteriesModal.classList.add('hidden');
-                loadAssignments(); // Обновляем список заявок
+                    // Возвращаемся к окну редактирования аренды
+                    rentalEditModal.classList.remove('hidden');
+                    loadRentals(); // Обновляем список аренд
+
+                } else {
+                    // ЛОГИКА ДЛЯ НОВОЙ АРЕНДЫ
+                    
+                    // Шаг 1: Обновить статус велосипеда на 'rented'
+                    const { error: bikeUpdateError } = await supabase
+                        .from('bikes')
+                        .update({ status: 'rented' })
+                        .eq('id', bikeId);
+                    if (bikeUpdateError) throw new Error('Ошибка обновления статуса велосипеда: ' + bikeUpdateError.message);
+
+                    // Шаг 2: Привязать велосипед к аренде
+                    const { error: rentalBikeUpdateError } = await supabase
+                        .from('rentals')
+                        .update({ bike_id: bikeId })
+                        .eq('id', rentalId);
+                    if (rentalBikeUpdateError) throw new Error('Ошибка привязки велосипеда к аренде: ' + rentalBikeUpdateError.message);
+
+                    // Шаг 3: Обновить статус выбранных аккумуляторов на 'in_use'
+                    const { error: batteryUpdateError } = await supabase
+                        .from('batteries')
+                        .update({ status: 'in_use' })
+                        .in('id', selectedBatteryIds);
+                    if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
+
+                    // Шаг 4: Создать записи в связующей таблице rental_batteries
+                    const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
+                        rental_id: rentalId,
+                        battery_id: battery_id
+                    }));
+                    const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
+                    if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
+
+                    // Шаг 5: Обновить статус самой аренды на 'awaiting_contract_signing'
+                    const { error: rentalUpdateError } = await supabase
+                        .from('rentals')
+                        .update({ status: 'awaiting_contract_signing' })
+                        .eq('id', rentalId);
+                    if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
+
+                    // Отправляем запрос на сервер, чтобы он послал уведомление
+                    authedFetch('/api/admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: parseInt(rentalId, 10) })
+                    });
+
+                    alert('Велосипед и аккумумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
+                    assignBatteriesModal.classList.add('hidden');
+                    
+                    // Показываем поле велосипеда обратно
+                    if (batteryModalBikeSelect) {
+                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                        if (bikeSelectGroup) {
+                            bikeSelectGroup.style.display = 'block';
+                        }
+                    }
+                    
+                    loadAssignments(); // Обновляем список заявок
+                }
 
             } catch (err) {
                 alert('Произошла ошибка: ' + err.message);
