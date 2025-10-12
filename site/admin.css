@@ -2150,12 +2150,15 @@ select:focus::placeholder {
   margin: 0 auto;
 }
 
-/* 2. Специальное правило для таблицы АРЕНД, где кнопок может быть много: разрешаем перенос. */
+/* 2. Специальное правило для таблицы АРЕНД: центрируем кнопки */
 #rentals-table td.table-actions {
-  white-space: normal;
-  /* Отменяем запрет на перенос строк */
-  flex-wrap: wrap;
-  /* Разрешаем flex-элементам переноситься на новую строку */
+  display: table-cell !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+#rentals-table td.table-actions button {
+  margin: 0 auto;
 }
 
 /*
