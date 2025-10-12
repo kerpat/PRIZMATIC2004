@@ -674,84 +674,6 @@ async function handleNotifyBatteryAssignment({ rentalId }) {
         return { status: 500, body: { error: err.message } };
     }
 }
-
-/**
- * Отправляет уведомление о просрочке аренды
- */
-async function handleNotifyOverdue({ rentalId, messageText }) {
-    if (!rentalId || !messageText) {
-        return { status: 400, body: { error: 'rentalId и messageText обязательны.' } };
-    }
-
-    const supabaseAdmin = createSupabaseAdmin();
-
-    try {
-        // Получаем данные аренды с extra_data
-        const { data: rental, error } = await supabaseAdmin
-            .from('rentals')
-            .select('id, user_id, extra_data, clients(telegram_user_id)')
-            .eq('id', rentalId)
-            .single();
-
-        if (error || !rental) {
-            console.error('Не удалось найти аренду:', error);
-            return { status: 404, body: { error: 'Аренда не найдена.' } };
-        }
-
-        const telegramUserId = rental?.clients?.telegram_user_id;
-
-        if (!telegramUserId) {
-            console.warn(`Telegram ID не найден для аренды ${rentalId}`);
-            return { status: 200, body: { message: 'Уведомление не отправлено (нет Telegram ID).' } };
-        }
-
-        // Проверяем лимит уведомлений за последние 24 часа
-        const extraData = rental.extra_data || {};
-        const overdueNotifications = extraData.overdue_notifications || [];
-        
-        // Фильтруем уведомления за последние 24 часа
-        const now = new Date();
-        const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const recentNotifications = overdueNotifications.filter(notif => {
-            const sentAt = new Date(notif.sent_at);
-            return sentAt > last24Hours;
-        });
-
-        // Проверяем лимит (не более 5 за сутки)
-        if (recentNotifications.length >= 5) {
-            console.log(`Лимит уведомлений достигнут для аренды ${rentalId}`);
-            return { status: 200, body: { message: 'Лимит уведомлений достигнут (5 за сутки).' } };
-        }
-
-        // Отправляем уведомление
-        await sendTelegramMessage(telegramUserId, messageText);
-
-        // Добавляем запись о новом уведомлении
-        const newNotification = {
-            sent_at: now.toISOString(),
-            text: messageText
-        };
-        
-        const updatedNotifications = [...recentNotifications, newNotification];
-        const updatedExtraData = {
-            ...extraData,
-            overdue_notifications: updatedNotifications
-        };
-
-        // Обновляем extra_data в базе
-        await supabaseAdmin
-            .from('rentals')
-            .update({ extra_data: updatedExtraData })
-            .eq('id', rentalId);
-
-        console.log(`✅ Уведомление о просрочке отправлено для аренды ${rentalId} (${recentNotifications.length + 1}/5)`);
-        return { status: 200, body: { message: 'Уведомление успешно отправлено.', count: recentNotifications.length + 1 } };
-
-    } catch (err) {
-        console.error('Ошибка отправки уведомления о просрочке:', err);
-        return { status: 500, body: { error: err.message } };
-    }
-}
 async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -806,9 +728,6 @@ async function handler(req, res) {
                 break;
             case 'notify-battery-assignment':
                 result = await handleNotifyBatteryAssignment(body);
-                break;
-            case 'notify-overdue':
-                result = await handleNotifyOverdue(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

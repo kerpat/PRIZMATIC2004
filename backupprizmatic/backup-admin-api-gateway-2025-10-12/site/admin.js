@@ -1515,76 +1515,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // --- Rentals and Payments Loaders ---
 
-    // Функция расчета просрочки аренды
-    function calculateOverdue(currentPeriodEndsAt) {
-        if (!currentPeriodEndsAt) {
-            return { days: 0, hours: 0, minutes: 0, isOverdue: false };
-        }
-
-        const now = new Date();
-        const endDate = new Date(currentPeriodEndsAt);
-        const diffMs = now - endDate;
-
-        if (diffMs <= 0) {
-            // Просрочки нет
-            return { days: 0, hours: 0, minutes: 0, isOverdue: false };
-        }
-
-        // Есть просрочка, считаем дни, часы, минуты
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-        return { days, hours, minutes, isOverdue: true };
-    }
-
-    // Функция отправки уведомлений о просрочках
-    async function notifyOverdueRentals(rentals) {
-        // Фильтруем активные аренды с просрочкой
-        const overdueRentals = rentals.filter(r => {
-            if (r.status !== 'active') return false;
-            const overdue = calculateOverdue(r.current_period_ends_at);
-            return overdue.isOverdue;
-        });
-
-        if (overdueRentals.length === 0) {
-            console.log('Нет просрочек для уведомления');
-            return;
-        }
-
-        console.log(`Найдено ${overdueRentals.length} просрочек, отправляем уведомления...`);
-
-        // Отправляем уведомления для каждой просрочки
-        for (const rental of overdueRentals) {
-            const overdue = calculateOverdue(rental.current_period_ends_at);
-            const messageText = `⚠️ У вас просрочка аренды велосипеда: ${overdue.days} дней ${overdue.hours} часов.\n\nЕсли просрочка превысит 1 день, с вашей карты спишется сумма за 7 дней аренды.`;
-
-            try {
-                const response = await authedFetch('/api/admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'notify-overdue',
-                        rentalId: rental.id,
-                        messageText: messageText
-                    })
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log(`✅ Уведомление для аренды ${rental.id}:`, result.message);
-                } else {
-                    console.error(`❌ Ошибка уведомления для аренды ${rental.id}`);
-                }
-            } catch (err) {
-                console.error(`Ошибка отправки уведомления для аренды ${rental.id}:`, err);
-            }
-        }
-    }
-
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '<tr><td colspan="9">Загрузка...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Загрузка...</td></tr>';
         try {
             const statusRuMap = {
                 'active': 'Активна',
@@ -1606,18 +1539,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tr = document.createElement('tr');
                 const start = r.starts_at ? new Date(r.starts_at).toLocaleString('ru-RU') : '—';
                 const end = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
-
-                // Расчет просрочки
-                const overdue = calculateOverdue(r.current_period_ends_at);
-                let overdueCell = '';
-                if (r.status === 'active' && overdue.isOverdue) {
-                    overdueCell = `<span style="color: #dc3545; font-weight: 600;">Просрочка: ${overdue.days} дн ${overdue.hours} ч ${overdue.minutes} мин</span>`;
-                    tr.style.backgroundColor = '#ffe6e6';
-                } else if (r.status === 'active') {
-                    overdueCell = `<span style="color: #28a745; font-weight: 500;">В порядке</span>`;
-                } else {
-                    overdueCell = '—';
-                }
 
                 // --- НОВАЯ ЛОГИКА ДЛЯ КНОПОК ДЕЙСТВИЙ ---
                 let actionsCell = `<button type="button" class="edit-rental-btn" data-id="${r.id}">Ред.</button>`;
@@ -1649,19 +1570,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td>${start}</td>
                     <td>${end}</td>
-                    <td>${overdueCell}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
                     <td>${createStatusBadge(r.status, 'rental')}</td>
                     <td class="table-actions">${actionsCell}</td>
                 `;
                 tbody.appendChild(tr);
             });
-
-            // Отправляем уведомления просрочникам
-            notifyOverdueRentals(data || []);
-
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="9">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
     }
 
