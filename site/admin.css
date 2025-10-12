@@ -2139,6 +2139,17 @@ select:focus::placeholder {
   background: linear-gradient(90deg, #ffebeb 0%, #ffd9d9 100%) !important;
 }
 
+/* Исправление для колонки действий в просроченных арендах */
+.admin-table tbody tr.overdue-rental td.table-actions {
+  display: table-cell !important;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.admin-table tbody tr.overdue-rental td.table-actions button {
+  margin: 0 auto;
+}
+
 /* 2. Специальное правило для таблицы АРЕНД, где кнопок может быть много: разрешаем перенос. */
 #rentals-table td.table-actions {
   white-space: normal;
