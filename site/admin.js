@@ -1792,7 +1792,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const editButton = document.createElement('button');
                 editButton.className = 'btn btn-primary';
                 editButton.style.width = '100%';
-                editButton.textContent = '✏️ Редактировать аренду';
+                editButton.textContent = 'Редактировать аренду';
                 editButton.dataset.id = rentalId;
                 editButton.classList.add('edit-rental-btn');
                 rentalActionsContent.appendChild(editButton);
@@ -1804,7 +1804,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     contractLink.target = '_blank';
                     contractLink.className = 'btn btn-secondary';
                     contractLink.style.width = '100%';
-                    contractLink.textContent = '📄 Акт приёма';
+                    contractLink.style.textAlign = 'center';
+                    contractLink.textContent = 'Акт приёма';
                     rentalActionsContent.appendChild(contractLink);
                 }
 
@@ -1814,7 +1815,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     returnLink.target = '_blank';
                     returnLink.className = 'btn btn-secondary';
                     returnLink.style.width = '100%';
-                    returnLink.textContent = '📄 Акт сдачи';
+                    returnLink.style.textAlign = 'center';
+                    returnLink.textContent = 'Акт сдачи';
                     rentalActionsContent.appendChild(returnLink);
                 }
 
@@ -1823,7 +1825,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const endButton = document.createElement('button');
                     endButton.className = 'btn btn-danger';
                     endButton.style.width = '100%';
-                    endButton.textContent = '🏁 Завершить аренду';
+                    endButton.textContent = 'Завершить аренду';
                     endButton.dataset.id = rentalId;
                     endButton.classList.add('end-rental-btn');
                     rentalActionsContent.appendChild(endButton);

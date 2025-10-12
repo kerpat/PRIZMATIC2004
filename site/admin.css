@@ -2183,6 +2183,18 @@ select:focus::placeholder {
   margin: 0 auto;
 }
 
+/* Стили для модалки действий с арендой */
+#rental-actions-content .btn,
+#rental-actions-content a {
+  text-align: center;
+  display: block;
+  text-decoration: none;
+}
+
+#rental-actions-content a.btn {
+  padding: 12px 20px;
+}
+
 /*
  * Стили для таблицы "Велосипеды" для лучшего распределения пространства
  */
