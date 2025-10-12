@@ -1684,9 +1684,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Обработчик кликов внутри модалки действий
     if (rentalActionsContent) {
-        rentalActionsContent.addEventListener('click', (e) => {
-            // Закрываем модалку действий при клике на любую кнопку
-            rentalActionsModal.classList.add('hidden');
+        rentalActionsContent.addEventListener('click', async (e) => {
+            const target = e.target;
+            
+            // Если кликнули на кнопку редактирования
+            if (target.classList.contains('edit-rental-btn')) {
+                const rentalId = target.dataset.id;
+                rentalActionsModal.classList.add('hidden');
+                
+                // Открываем модалку редактирования
+                try {
+                    const { data: rentalData, error: rentalError } = await supabase
+                        .from('rentals')
+                        .select('*, bikes(*)')
+                        .eq('id', rentalId)
+                        .single();
+                    if (rentalError) throw rentalError;
+
+                    const { data: availableBikes, error: bikesError } = await supabase
+                        .from('bikes')
+                        .select('*')
+                        .eq('status', 'available');
+                    if (bikesError) throw bikesError;
+
+                    rentalBikeSelect.innerHTML = '';
+                    if (rentalData.bikes) {
+                        const currentBikeOption = new Option(`${rentalData.bikes.model_name} (#${rentalData.bikes.bike_code}) - Текущий`, rentalData.bike_id);
+                        rentalBikeSelect.add(currentBikeOption);
+                    }
+                    availableBikes.forEach(bike => {
+                        if (bike.id !== rentalData.bike_id) {
+                            const option = new Option(`${bike.model_name} (#${bike.bike_code})`, bike.id);
+                            rentalBikeSelect.add(option);
+                        }
+                    });
+
+                    rentalIdInput.value = rentalData.id;
+                    rentalBikeSelect.value = rentalData.bike_id;
+                    rentalStatusSelect.value = rentalData.status;
+
+                    if (rentalData.current_period_ends_at) {
+                        const date = new Date(rentalData.current_period_ends_at);
+                        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+                        rentalEndDateInput.value = date.toISOString().slice(0, 16);
+                    }
+
+                    // Загружаем АКБ для этой аренды
+                    const { data: batteries, error: battError } = await supabase
+                        .from('rental_batteries')
+                        .select('battery_id, batteries(serial_number)')
+                        .eq('rental_id', rentalId);
+
+                    if (!battError && batteries) {
+                        currentRentalBatteries = batteries.map(b => ({
+                            id: b.battery_id,
+                            serial: b.batteries?.serial_number || 'Неизвестно'
+                        }));
+                        renderRentalBatteriesList();
+                    }
+
+                    rentalEditModal.classList.remove('hidden');
+                } catch (err) {
+                    alert('Ошибка загрузки данных аренды: ' + err.message);
+                }
+            }
+            // Если кликнули на кнопку завершения
+            else if (target.classList.contains('end-rental-btn')) {
+                const rentalId = target.dataset.id;
+                rentalActionsModal.classList.add('hidden');
+                
+                if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
+                    try {
+                        const { error } = await supabase
+                            .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
+                        if (error) throw error;
+                        alert('Аренда завершена!');
+                        loadRentals();
+                    } catch (err) {
+                        alert('Ошибка завершения аренды: ' + err.message);
+                    }
+                }
+            }
+            // Для ссылок - просто закрываем модалку
+            else if (target.tagName === 'A') {
+                rentalActionsModal.classList.add('hidden');
+            }
         });
     }
 
