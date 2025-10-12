@@ -314,6 +314,11 @@ body {
   animation: slide-in-from-top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+#rentals-section {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 #payments-section:not(.hidden) {
   transform: translateX(0) scale(1);
   animation: slide-in-from-right 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -2052,18 +2057,20 @@ select:focus::placeholder {
 
 /* 1. Убираем фиксированную ширину таблицы */
 .admin-table.table-wide-actions {
-  table-layout: auto;
-  /* Вместо 'fixed'. Это позволит колонкам менять ширину */
+  table-layout: fixed;
+  /* Фиксированные колонки для предсказуемой ширины */
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 /* 2. Задаем минимальную ширину для колонки "Действия" */
 .admin-table.table-wide-actions th:last-child,
 .admin-table.table-wide-actions td:last-child {
-  min-width: 220px;
-  /* Минимальная ширина, чтобы все кнопки влезли. Можете поменять значение. */
-  width: auto;
-  /* Ширина будет подстраиваться под контент */
+  min-width: 120px;
+  /* Минимальная ширина для одной кнопки */
+  width: 120px;
+  max-width: 120px;
 }
 
 /* 3. Уменьшаем ширину некоторых других колонок, чтобы освободить место */
@@ -2126,16 +2133,21 @@ select:focus::placeholder {
 }
 
 /* Стили для просроченных аренд */
-.admin-table tbody tr.overdue-rental td {
+#rentals-table tbody tr.overdue-rental {
   background: linear-gradient(90deg, #fff5f5 0%, #ffe8e8 100%) !important;
 }
 
-.admin-table tbody tr.overdue-rental td:first-child {
+#rentals-table tbody tr.overdue-rental td {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+#rentals-table tbody tr.overdue-rental td:first-child {
   border-left: 4px solid #dc3545;
   padding-left: 10px;
 }
 
-.admin-table tbody tr.overdue-rental:hover td {
+#rentals-table tbody tr.overdue-rental:hover {
   background: linear-gradient(90deg, #ffebeb 0%, #ffd9d9 100%) !important;
 }
 
