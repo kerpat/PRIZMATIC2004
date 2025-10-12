@@ -2125,6 +2125,21 @@ select:focus::placeholder {
   /* Выравнивание для flex-элементов внутри */
 }
 
+/* Стили для просроченных аренд */
+.admin-table tbody tr.overdue-rental td {
+  background: linear-gradient(90deg, #fff5f5 0%, #ffe8e8 100%) !important;
+  border-left: 4px solid #dc3545;
+}
+
+.admin-table tbody tr.overdue-rental td:first-child {
+  border-left: 4px solid #dc3545;
+  padding-left: 10px;
+}
+
+.admin-table tbody tr.overdue-rental:hover td {
+  background: linear-gradient(90deg, #ffebeb 0%, #ffd9d9 100%) !important;
+}
+
 /* 2. Специальное правило для таблицы АРЕНД, где кнопок может быть много: разрешаем перенос. */
 #rentals-table td.table-actions {
   white-space: normal;

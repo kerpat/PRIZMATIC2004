@@ -1611,10 +1611,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const overdue = calculateOverdue(r.current_period_ends_at);
                 let overdueCell = '';
                 if (r.status === 'active' && overdue.isOverdue) {
-                    overdueCell = `<span style="color: #dc3545; font-weight: 600;">Просрочка: ${overdue.days} дн ${overdue.hours} ч ${overdue.minutes} мин</span>`;
-                    tr.style.backgroundColor = '#ffe6e6';
+                    overdueCell = `<span style="color: #dc3545; font-weight: 600;">⚠️ ${overdue.days} дн ${overdue.hours} ч ${overdue.minutes} мин</span>`;
+                    tr.classList.add('overdue-rental'); // Добавляем CSS класс вместо inline-стиля
                 } else if (r.status === 'active') {
-                    overdueCell = `<span style="color: #28a745; font-weight: 500;">В порядке</span>`;
+                    overdueCell = `<span style="color: #28a745; font-weight: 500;">✓ В порядке</span>`;
                 } else {
                     overdueCell = '—';
                 }
