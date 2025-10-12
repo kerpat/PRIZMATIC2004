@@ -2080,12 +2080,22 @@ select:focus::placeholder {
   width: 100px;
 }
 
+/* Просрочка - 6-я колонка */
 .admin-table.table-wide-actions th:nth-child(6),
-/* Сумма */
 .admin-table.table-wide-actions td:nth-child(6) {
+  width: 150px;
+  min-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Сумма - 7-я колонка */
+.admin-table.table-wide-actions th:nth-child(7),
+.admin-table.table-wide-actions td:nth-child(7) {
   width: 80px;
+  min-width: 80px;
   text-align: right;
-  /* Сумму лучше выровнять по правому краю */
 }
 
 /* 4. Стилизуем сами кнопки/ссылки внутри ячейки для аккуратности */
