@@ -2128,7 +2128,6 @@ select:focus::placeholder {
 /* Стили для просроченных аренд */
 .admin-table tbody tr.overdue-rental td {
   background: linear-gradient(90deg, #fff5f5 0%, #ffe8e8 100%) !important;
-  border-left: 4px solid #dc3545;
 }
 
 .admin-table tbody tr.overdue-rental td:first-child {

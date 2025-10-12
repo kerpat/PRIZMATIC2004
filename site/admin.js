@@ -1619,23 +1619,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     overdueCell = '—';
                 }
 
-                // --- НОВАЯ ЛОГИКА ДЛЯ КНОПОК ДЕЙСТВИЙ ---
-                let actionsCell = `<button type="button" class="edit-rental-btn" data-id="${r.id}">Ред.</button>`;
-
-                // Получаем ссылки из extra_data
-                const contractUrl = r.extra_data?.contract_document_url;
-                const returnActUrl = r.extra_data?.return_act_url;
-
-                if (contractUrl) {
-                    actionsCell += ` <a href="${contractUrl}" target="_blank" class="btn-link">Акт приёма</a>`;
-                }
-                if (returnActUrl) {
-                    actionsCell += ` <a href="${returnActUrl}" target="_blank" class="btn-link">Акт сдачи</a>`;
-                }
-
-                if (r.status === 'active') {
-                    actionsCell += ` <button type="button" class="end-rental-btn" data-id="${r.id}">Завершить</button>`;
-                }
+                // --- УПРОЩЕННАЯ ЛОГИКА: ОДНА КНОПКА "ДЕЙСТВИЯ" ---
+                const actionsCell = `<button type="button" class="rental-actions-btn" data-rental-id="${r.id}" data-rental-status="${r.status}" data-contract-url="${r.extra_data?.contract_document_url || ''}" data-return-url="${r.extra_data?.return_act_url || ''}">Действия</button>`;
 
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
@@ -1678,10 +1663,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentRentalBatteries = [];
 
+    // Модалка действий с арендой
+    const rentalActionsModal = document.getElementById('rental-actions-modal');
+    const rentalActionsCloseBtn = document.getElementById('rental-actions-close-btn');
+    const rentalActionsContent = document.getElementById('rental-actions-content');
+
+    if (rentalActionsCloseBtn) {
+        rentalActionsCloseBtn.addEventListener('click', () => {
+            rentalActionsModal.classList.add('hidden');
+        });
+    }
+
+    if (rentalActionsModal) {
+        rentalActionsModal.addEventListener('click', (e) => {
+            if (e.target === rentalActionsModal) {
+                rentalActionsModal.classList.add('hidden');
+            }
+        });
+    }
+
+    // Обработчик кликов внутри модалки действий
+    if (rentalActionsContent) {
+        rentalActionsContent.addEventListener('click', (e) => {
+            // Закрываем модалку действий при клике на любую кнопку
+            rentalActionsModal.classList.add('hidden');
+        });
+    }
+
     if (rentalsTableBody) {
         rentalsTableBody.addEventListener('click', async (e) => {
+            const actionsBtn = e.target.closest('.rental-actions-btn');
             const editBtn = e.target.closest('.edit-rental-btn');
             const endBtn = e.target.closest('.end-rental-btn');
+
+            // --- ОБРАБОТЧИК КНОПКИ "ДЕЙСТВИЯ" (НОВАЯ МОДАЛКА) ---
+            if (actionsBtn) {
+                const rentalId = actionsBtn.dataset.rentalId;
+                const rentalStatus = actionsBtn.dataset.rentalStatus;
+                const contractUrl = actionsBtn.dataset.contractUrl;
+                const returnUrl = actionsBtn.dataset.returnUrl;
+
+                // Очищаем содержимое модалки
+                rentalActionsContent.innerHTML = '';
+
+                // Кнопка "Редактировать"
+                const editButton = document.createElement('button');
+                editButton.className = 'btn btn-primary';
+                editButton.style.width = '100%';
+                editButton.textContent = '✏️ Редактировать аренду';
+                editButton.dataset.id = rentalId;
+                editButton.classList.add('edit-rental-btn');
+                rentalActionsContent.appendChild(editButton);
+
+                // Ссылки на документы
+                if (contractUrl) {
+                    const contractLink = document.createElement('a');
+                    contractLink.href = contractUrl;
+                    contractLink.target = '_blank';
+                    contractLink.className = 'btn btn-secondary';
+                    contractLink.style.width = '100%';
+                    contractLink.textContent = '📄 Акт приёма';
+                    rentalActionsContent.appendChild(contractLink);
+                }
+
+                if (returnUrl) {
+                    const returnLink = document.createElement('a');
+                    returnLink.href = returnUrl;
+                    returnLink.target = '_blank';
+                    returnLink.className = 'btn btn-secondary';
+                    returnLink.style.width = '100%';
+                    returnLink.textContent = '📄 Акт сдачи';
+                    rentalActionsContent.appendChild(returnLink);
+                }
+
+                // Кнопка "Завершить"
+                if (rentalStatus === 'active') {
+                    const endButton = document.createElement('button');
+                    endButton.className = 'btn btn-danger';
+                    endButton.style.width = '100%';
+                    endButton.textContent = '🏁 Завершить аренду';
+                    endButton.dataset.id = rentalId;
+                    endButton.classList.add('end-rental-btn');
+                    rentalActionsContent.appendChild(endButton);
+                }
+
+                // Открываем модалку
+                rentalActionsModal.classList.remove('hidden');
+                return;
+            }
 
             // --- ОБРАБОТЧИК КНОПКИ "РЕДАКТИРОВАТЬ" ---
             if (editBtn) {
