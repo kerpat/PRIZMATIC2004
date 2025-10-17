@@ -2671,54 +2671,41 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // ... остальной скрипт ...
-
-
             const userId = localStorage.getItem('userId');
             if (!userId) return; // Only track logged-in users
-
+    
             function startTracking() {
                 if (!navigator.geolocation) {
                     console.log('Geolocation is not supported by your browser');
                     return;
                 }
-
+    
                 function success(position) {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
-
                     console.log(`Sending location: ${latitude}, ${longitude}`);
-
                     fetch('/api/user', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'update-location', userId, latitude, longitude })
                     }).catch(err => console.error('Failed to send location:', err));
                 }
-
+    
                 function error() {
                     console.log('Unable to retrieve your location');
                 }
-
+    
                 // Initial position send
                 navigator.geolocation.getCurrentPosition(success, error);
-
-                // Send position every 30 seconds
-                setInterval(() => {
-                    navigator.geolocation.getCurrentPosition(success, error);
-                }, 30000);
+    
+                // БЛОК setInterval УДАЛЕН
             }
-
+    
             // Ask for permission and start tracking
             navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
-                if (result.state === 'granted') {
-                    startTracking();
-                } else if (result.state === 'prompt') {
-                    // We can ask the user with a button click, but for now, we'll just start
-                    // which will trigger the browser's native prompt.
+                if (result.state === 'granted' || result.state === 'prompt') {
                     startTracking();
                 }
-                // If state is 'denied', we can't do anything.
             });
         });
     </script>
