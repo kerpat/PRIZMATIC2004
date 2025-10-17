@@ -848,41 +848,6 @@
                 }
             };
 
-            const handleUnbindClick = async () => {
-                const userId = localStorage.getItem('userId');
-                if (!userId) {
-                    alert('Ошибка: не удалось определить пользователя.');
-                    return;
-                }
-                if (!confirm('Вы уверены, что хотите отвязать способ оплаты?')) {
-                    return;
-                }
-                const btn = document.getElementById('unbind-card-btn');
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Отвязываем...';
-                }
-                try {
-                    // Логика отвязки через ваш API
-                    const response = await fetch(`/api/user`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'unbind-payment-method', userId: userId })
-                    });
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Не удалось отвязать способ оплаты');
-                    }
-                    alert('Способ оплаты успешно отвязан.');
-                    updateCardView();
-                } catch (error) {
-                    alert('Ошибка: ' + error.message);
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = 'Отвязать карту';
-                    }
-                }
-            };
 
             let isUpdatingCardView = false;
             const updateCardView = async () => {
@@ -943,9 +908,7 @@
                                 <span>Привязана</span>
                             </div>
                         </div>
-                        <button class="btn btn-secondary" id="unbind-card-btn" style="margin-top: 20px;">Отвязать карту</button>
                     </div>`;
-                    document.getElementById('unbind-card-btn').addEventListener('click', handleUnbindClick);
 
                 } catch (error) {
                     cardViewContainer.innerHTML = `
