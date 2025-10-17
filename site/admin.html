@@ -4,20 +4,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=1280">
-  <script src="/api/config"></script>
-  <title>Админ‑панель | Bike App</title>
+  <title>Админ‑панель | PRIZMATIC</title>
+
+  <!-- ⚡ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются СРАЗУ -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=9.0">
-  <link rel="stylesheet" href="blend.css?v=9.0">
-  <link rel="stylesheet" href="admin.css?v=9.0">
+  <link rel="stylesheet" href="style.css?v=10.0">
+  <link rel="stylesheet" href="blend.css?v=10.0">
+  <link rel="stylesheet" href="admin.css?v=10.0">
+
+  <!-- ⚡ ОПТИМИЗАЦИЯ: Легкие скрипты загружаются сразу -->
+  <script src="local-cache.js"></script>
+  <script src="db-proxy.js"></script>
+  <script src="loading-skeletons.js"></script>
+
+  <!-- ⚡ ОПТИМИЗАЦИЯ: Тяжёлые библиотеки грузятся АСИНХРОННО -->
+  <script>
+    // Ленивая загрузка тяжёлых библиотек ТОЛЬКО когда они нужны
+    window.loadSupabase = () => {
+      if (window.supabase) return Promise.resolve();
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js';
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
+
+    window.loadChartJS = () => {
+      if (window.Chart) return Promise.resolve();
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
+
+    window.loadTipTap = () => {
+      if (window.TipTap) return Promise.resolve();
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@tiptap/starter-kit@2.0.0-beta.183/dist/index.global.js';
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
+
+    window.loadYandexMaps = () => {
+      if (window.ymaps) return Promise.resolve();
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a32fae3e-06f9-4231-87a0-f225b5d7a04a';
+        script.onload = () => {
+          ymaps.ready(resolve);
+        };
+        document.head.appendChild(script);
+      });
+    };
+  </script>
+
+  <script src="/api/config" defer></script>
+  <script src="transitions.js" defer></script>
+
   <style>
     /* Map container styles */
     #admin-map-container {
       width: 100%;
       height: 650px;
-      /* Fixed pixel height for Yandex Maps compatibility */
       border-radius: 16px;
       overflow: hidden;
       border: 1px solid var(--border);
@@ -64,12 +119,6 @@
       border-bottom: none;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/@tiptap/starter-kit@2.0.0-beta.183/dist/index.global.js"></script>
-  <!-- Yandex Maps API -->
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a32fae3e-06f9-4231-87a0-f225b5d7a04a"></script>
-  <script src="transitions.js" defer></script>
 </head>
 
 <body>
