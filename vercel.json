@@ -1,17 +1,9 @@
 {
   "regions": ["iad1"],
   "functions": {
-    "api/auth.js": {
+    "api/router.js": {
       "memory": 1024,
-      "maxDuration": 45
-    },
-    "api/user.js": {
-      "memory": 1024,
-      "maxDuration": 45
-    },
-    "api/**/*.js": {
-      "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 60
     }
   },
   "headers": [
@@ -44,6 +36,50 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/config",
+      "destination": "/api/router?endpoint=config"
+    },
+    {
+      "source": "/api/auth",
+      "destination": "/api/router?endpoint=auth"
+    },
+    {
+      "source": "/api/user",
+      "destination": "/api/router?endpoint=user"
+    },
+    {
+      "source": "/api/admin",
+      "destination": "/api/router?endpoint=admin"
+    },
+    {
+      "source": "/api/payments",
+      "destination": "/api/router?endpoint=payments"
+    },
+    {
+      "source": "/api/payment-webhook",
+      "destination": "/api/router?endpoint=payment-webhook"
+    },
+    {
+      "source": "/api/getTariffByBike",
+      "destination": "/api/router?endpoint=getTariffByBike"
+    },
+    {
+      "source": "/api/gemini-ocr",
+      "destination": "/api/router?endpoint=gemini-ocr"
+    },
+    {
+      "source": "/api/storage",
+      "destination": "/api/router?endpoint=storage"
+    },
+    {
+      "source": "/api/notify",
+      "destination": "/api/router?endpoint=notify"
+    },
+    {
+      "source": "/api/data",
+      "destination": "/api/router?endpoint=data"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/site/$1"
