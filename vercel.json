@@ -6,6 +6,7 @@
       "maxDuration": 60
     }
   },
+  "ignoreCommand": "echo 'Skipping build step'",
   "headers": [
     {
       "source": "/(.*)",

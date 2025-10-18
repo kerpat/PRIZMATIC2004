@@ -18,8 +18,10 @@
     <script src="db-proxy.js"></script>
     <script src="loading-skeletons.js"></script>
 
+    <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
+    <script src="/api/config"></script>
+
     <!-- ⚡ НЕ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются АСИНХРОННО -->
-    <script src="/api/config" defer></script>
     <script src="https://telegram.org/js/telegram-web-app.js?59" defer></script>
     <script src="transitions.js" defer></script>
     <style>

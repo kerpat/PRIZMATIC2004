@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add api/_lib_user.js api/router.js api/_lib_*.js)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix environment variables loading and add debug logging\n\nAdded debug logging to check environment variables in config and user endpoints.\nThis will help diagnose why Supabase credentials are not being read on Vercel.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(cat .vercelignore)",
+      "Bash(git add .vercelignore)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix .vercelignore to include _lib_*.js files\n\nThe previous configuration was ignoring all api/*.js files except router.js,\nwhich meant the _lib_*.js library files were not being deployed to Vercel.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
