@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест подключения к Supabase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .log {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .log-entry {
+            padding: 8px;
+            margin: 4px 0;
+            border-left: 3px solid #ddd;
+            padding-left: 12px;
+        }
+        .log-entry.success {
+            border-color: #4caf50;
+            background: #f1f8f4;
+        }
+        .log-entry.error {
+            border-color: #f44336;
+            background: #fef1f1;
+        }
+        .log-entry.info {
+            border-color: #2196f3;
+            background: #f1f6fc;
+        }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест подключения к Supabase</h1>
+
+    <div id="status" class="status loading">Ожидание теста...</div>
+
+    <button onclick="runTest()">Запустить тест</button>
+
+    <div class="log" id="log"></div>
+
+    <script src="supabase.min.js"></script>
+    <script src="/api/config"></script>
+
+    <script>
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        async function runTest() {
+            logEl.innerHTML = '';
+            statusEl.className = 'status loading';
+            statusEl.textContent = 'Тестирование...';
+
+            try {
+                // Шаг 1: Проверка CONFIG
+                log('Проверка CONFIG...', 'info');
+                if (!window.CONFIG) {
+                    throw new Error('CONFIG не загружен');
+                }
+                log('✓ CONFIG загружен', 'success');
+                log(`  URL: ${window.CONFIG.SUPABASE_URL?.substring(0, 30)}...`, 'info');
+
+                // Шаг 2: Проверка Supabase SDK
+                log('Проверка Supabase SDK...', 'info');
+                if (!window.supabase) {
+                    throw new Error('Supabase SDK не загружен');
+                }
+                log('✓ Supabase SDK загружен', 'success');
+
+                // Шаг 3: Создание клиента
+                log('Создание Supabase клиента...', 'info');
+                const startCreateClient = Date.now();
+                const supabase = window.supabase.createClient(
+                    window.CONFIG.SUPABASE_URL,
+                    window.CONFIG.SUPABASE_ANON_KEY
+                );
+                log(`✓ Клиент создан за ${Date.now() - startCreateClient}ms`, 'success');
+
+                // Шаг 4: Тестовый запрос
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    log('⚠ userId не найден в localStorage', 'error');
+                    log('Тест пропущен - войдите в приложение сначала', 'info');
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Ошибка: нет userId';
+                    return;
+                }
+
+                log(`Тестовый запрос для userId: ${userId}...`, 'info');
+                const startQuery = Date.now();
+
+                const { data, error } = await supabase
+                    .from('clients')
+                    .select('id, name, verification_status')
+                    .eq('id', userId)
+                    .single();
+
+                const queryTime = Date.now() - startQuery;
+
+                if (error) {
+                    throw new Error(`Ошибка запроса: ${error.message}`);
+                }
+
+                log(`✓ Запрос выполнен за ${queryTime}ms`, 'success');
+                log(`  Имя: ${data.name}`, 'info');
+                log(`  Статус: ${data.verification_status}`, 'info');
+
+                // Итог
+                statusEl.className = 'status success';
+                statusEl.textContent = `✓ Все тесты пройдены! Общее время: ${queryTime}ms`;
+                log('=== ТЕСТ ЗАВЕРШЕН УСПЕШНО ===', 'success');
+
+            } catch (err) {
+                log(`✗ ОШИБКА: ${err.message}`, 'error');
+                statusEl.className = 'status error';
+                statusEl.textContent = `✗ Тест провален: ${err.message}`;
+            }
+        }
+
+        // Автозапуск при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('Страница загружена, готов к тесту', 'info');
+            }, 100);
+        });
+    </script>
+</body>
+</html>

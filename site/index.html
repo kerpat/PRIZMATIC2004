@@ -7,7 +7,7 @@
     <title>PRIZMATIC</title>
 
     <!-- ⚡ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются СРАЗУ -->
-    <link rel="stylesheet" href="style.css?v=11.2">
+    <link rel="stylesheet" href="style.css?v=11.3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Шрифты загружаются асинхронно для ускорения -->
@@ -16,19 +16,19 @@
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 
     <!-- ⚡ ОПТИМИЗАЦИЯ: Заменили Supabase SDK (120KB) на легкий прокси (3KB) -->
-    <script src="local-cache.js?v=11.2"></script>
-    <script src="db-proxy.js?v=11.2"></script>
-    <script src="loading-skeletons.js?v=11.2"></script>
+    <script src="local-cache.js?v=11.3"></script>
+    <script src="db-proxy.js?v=11.3"></script>
+    <script src="loading-skeletons.js?v=11.3"></script>
 
     <!-- ⚡ SUPABASE SDK - Загружается ЛОКАЛЬНО для быстрой работы в России -->
     <script src="supabase.min.js" async></script>
 
     <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
-    <script src="/api/config?v=11.2"></script>
+    <script src="/api/config?v=11.3"></script>
 
     <!-- ⚡ НЕ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются АСИНХРОННО -->
     <script src="https://telegram.org/js/telegram-web-app.js?59" defer></script>
-    <script src="transitions.js?v=11.2" defer></script>
+    <script src="transitions.js?v=11.3" defer></script>
     <style>
         /* Центрируем лейбл в модальном окне ввода ID */
         #id-input-modal .modal-form-group {
@@ -523,7 +523,7 @@
         // Ожидаем загрузки CONFIG с проверкой
         function initializeApp() {
             if (!window.CONFIG || !window.CONFIG.SUPABASE_URL) {
-                console.warn('CONFIG not loaded or invalid, retrying...', window.CONFIG);
+                console.warn('[Init] CONFIG not loaded or invalid, retrying...', window.CONFIG);
                 setTimeout(initializeApp, 100);
                 return;
             }
@@ -537,18 +537,26 @@
             const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
 
             if (!window.supabase) {
-                console.error('Supabase library not loaded!');
+                console.error('[Init] Supabase library not loaded! Retrying...');
                 setTimeout(initializeApp, 100);
                 return;
             }
 
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                realtime: {
-                    params: {
-                        eventsPerSecond: 10, // Это стандартное значение, можно оставить
+            console.log('[Init] Creating Supabase client...');
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    realtime: {
+                        params: {
+                            eventsPerSecond: 10,
+                        },
                     },
-                },
-            });
+                });
+                console.log('[Init] ✓ Supabase client created successfully');
+            } catch (err) {
+                console.error('[Init] ✗ Failed to create Supabase client:', err);
+                alert('Ошибка подключения к базе данных. Попробуйте обновить страницу.');
+                return;
+            }
 
         // +++ ДОБАВЬ ЭТУ СТРОЧКУ +++
         let balanceChannel = null;
@@ -1026,38 +1034,64 @@
 
             try {
                 console.log('[loadUserData] Fetching all data from Supabase in parallel...');
+                const startTime = Date.now();
 
-                // Делаем ВСЕ запросы параллельно для ускорения
+                // Функция для добавления таймаута к промису
+                const withTimeout = (promise, ms, name) => {
+                    return Promise.race([
+                        promise.then(r => {
+                            console.log(`[Query ${name}] Completed in ${Date.now() - startTime}ms`, r?.error ? 'ERROR' : 'OK');
+                            return r;
+                        }),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error(`${name} query timeout after ${ms}ms`)), ms)
+                        )
+                    ]);
+                };
+
+                // Делаем ВСЕ запросы параллельно для ускорения с таймаутами
                 const [clientResult, bookingResult, rentalResult] = await Promise.all([
-                    // 1. Данные клиента
-                    supabase
-                        .from('clients')
-                        .select('verification_status, name, balance_rub, city')
-                        .eq('id', userId)
-                        .single(),
+                    // 1. Данные клиента (таймаут 10 сек)
+                    withTimeout(
+                        supabase
+                            .from('clients')
+                            .select('verification_status, name, balance_rub, city')
+                            .eq('id', userId)
+                            .single(),
+                        10000,
+                        'CLIENT'
+                    ),
 
-                    // 2. Активная бронь
-                    supabase
-                        .from('bookings')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .eq('status', 'active')
-                        .gt('expires_at', new Date().toISOString())
-                        .limit(1)
-                        .maybeSingle(),
+                    // 2. Активная бронь (таймаут 10 сек)
+                    withTimeout(
+                        supabase
+                            .from('bookings')
+                            .select('*')
+                            .eq('user_id', userId)
+                            .eq('status', 'active')
+                            .gt('expires_at', new Date().toISOString())
+                            .limit(1)
+                            .maybeSingle(),
+                        10000,
+                        'BOOKING'
+                    ),
 
-                    // 3. Активная аренда
-                    supabase
-                        .from('rentals')
-                        .select('*, tariffs(*)')
-                        .eq('user_id', userId)
-                        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle()
+                    // 3. Активная аренда (таймаут 10 сек)
+                    withTimeout(
+                        supabase
+                            .from('rentals')
+                            .select('*, tariffs(*)')
+                            .eq('user_id', userId)
+                            .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle(),
+                        10000,
+                        'RENTAL'
+                    )
                 ]);
 
-                console.log('[loadUserData] All data fetched:', { clientResult, bookingResult, rentalResult });
+                console.log(`[loadUserData] All queries completed in ${Date.now() - startTime}ms`);
 
                 const { data: client, error: clientError } = clientResult;
                 const { data: booking, error: bookingError } = bookingResult;
@@ -1263,7 +1297,21 @@
                     if (h1) h1.textContent = `Ошибка`;
                 }
                 if (mainContent) {
-                    mainContent.innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных: ${err.message}</h2>`;
+                    // Показываем дружественное сообщение с кнопкой повтора
+                    mainContent.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <h2 style="color: #e53e3e;">Ошибка загрузки данных</h2>
+                            <p style="color: var(--text-secondary); margin: 20px 0;">
+                                ${err.message || 'Не удалось подключиться к серверу'}
+                            </p>
+                            <button class="btn btn-primary" onclick="location.reload()">
+                                Обновить страницу
+                            </button>
+                            <p style="margin-top: 20px; font-size: 0.9rem; color: var(--text-secondary);">
+                                Если проблема повторяется, попробуйте включить VPN
+                            </p>
+                        </div>
+                    `;
                 }
             }
         }
