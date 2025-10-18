@@ -1017,20 +1017,49 @@
             }
 
             try {
-                console.log('[loadUserData] Fetching client data from Supabase...');
-                const { data: clients, error } = await supabase
-                    .from('clients')
-                    .select('verification_status, name, balance_rub, city')
-                    .eq('id', userId);
+                console.log('[loadUserData] Fetching all data from Supabase in parallel...');
 
-                console.log('[loadUserData] Supabase response:', { clients, error });
+                // Делаем ВСЕ запросы параллельно для ускорения
+                const [clientResult, bookingResult, rentalResult] = await Promise.all([
+                    // 1. Данные клиента
+                    supabase
+                        .from('clients')
+                        .select('verification_status, name, balance_rub, city')
+                        .eq('id', userId)
+                        .single(),
 
-                if (error) throw new Error(error.message);
-                if (!clients || clients.length === 0) {
+                    // 2. Активная бронь
+                    supabase
+                        .from('bookings')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .eq('status', 'active')
+                        .gt('expires_at', new Date().toISOString())
+                        .limit(1)
+                        .maybeSingle(),
+
+                    // 3. Активная аренда
+                    supabase
+                        .from('rentals')
+                        .select('*, tariffs(*)')
+                        .eq('user_id', userId)
+                        .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle()
+                ]);
+
+                console.log('[loadUserData] All data fetched:', { clientResult, bookingResult, rentalResult });
+
+                const { data: client, error: clientError } = clientResult;
+                const { data: booking, error: bookingError } = bookingResult;
+                const { data: rental, error: rentalError } = rentalResult;
+
+                if (clientError) throw new Error(clientError.message);
+                if (!client) {
                     throw new Error("Клиент не найден в базе данных. Пожалуйста, зарегистрируйтесь через бота.");
                 }
 
-                const client = clients[0]; // Берём первого (должен быть только один)
                 console.log('[loadUserData] Client found:', client.name, 'Status:', client.verification_status);
 
                 const userName = client.name ? client.name.split(' ')[0] : 'Пользователь';
@@ -1086,17 +1115,7 @@
                             });
                     }
 
-                    // +++ ИЗМЕНЕНИЕ: СНАЧАЛА ПРОВЕРЯЕМ БРОНЬ, ПОТОМ АРЕНДУ +++
-
-                    // 1. Проверяем наличие активной брони
-                    const { data: booking, error: bookingError } = await supabase
-                        .from('bookings')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .eq('status', 'active')
-                        .gt('expires_at', new Date().toISOString()) // Убеждаемся, что бронь не истекла
-                        .limit(1)
-                        .single();
+                    // +++ ИСПОЛЬЗУЕМ УЖЕ ЗАГРУЖЕННЫЕ ДАННЫЕ (из Promise.all) +++
 
                     if (booking) {
                         // Если есть активная бронь, показываем экран бронирования
@@ -1104,18 +1123,10 @@
 
                     } else {
                         // 2. Если брони нет, проверяем наличие активной аренды
-                        const { data: rental, error: rentalError } = await supabase
-                            .from('rentals')
-                            .select('*, tariffs(*)')
-                            .eq('user_id', userId)
-                            .in('status', ['active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing'])
-                            .order('created_at', { ascending: false })
-                            .limit(1)
-                            .single();
-
                         if (rentalError && rentalError.code !== 'PGRST116') {
                             console.error("Ошибка при получении аренды:", rentalError);
                             mainContent.innerHTML = `<h2 style="text-align: center; color: red;">Не удалось загрузить данные об аренде.</h2>`;
+                            isLoadingUserData = false;
                             return;
                         }
 
