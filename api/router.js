@@ -31,18 +31,34 @@ module.exports = async (req, res) => {
     }
 
     // Определяем endpoint из query параметра или URL
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const endpoint = url.searchParams.get('endpoint') || url.pathname.split('/').pop();
+    let endpoint;
 
-    console.log(`[Router] ${req.method} /${endpoint}`);
+    // Проверяем query параметр ?endpoint=XXX
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    endpoint = url.searchParams.get('endpoint');
+
+    // Если нет query параметра, берём из пути: /api/router/auth -> auth
+    if (!endpoint) {
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        // pathParts = ['api', 'router', 'auth'] -> берём последнее
+        endpoint = pathParts[pathParts.length - 1];
+
+        // Если endpoint === 'router', значит путь был /api/router без дополнительного сегмента
+        if (endpoint === 'router') {
+            endpoint = null;
+        }
+    }
+
+    console.log(`[Router] ${req.method} endpoint="${endpoint}" url="${req.url}"`);
 
     try {
         switch (endpoint) {
             case 'config':
+                res.setHeader('Content-Type', 'application/javascript');
                 return res.status(200).send(`
                     window.CONFIG = {
-                        SUPABASE_URL: "${process.env.SUPABASE_URL}",
-                        SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY}",
+                        SUPABASE_URL: "${process.env.SUPABASE_URL || ''}",
+                        SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY || ''}",
                         CONTRACTS_API_URL: "${process.env.CONTRACTS_API_URL || process.env.VERCEL_URL || ''}"
                     };
                 `);
