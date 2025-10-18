@@ -6,7 +6,9 @@
       "Bash(git push)",
       "Bash(cat .vercelignore)",
       "Bash(git add .vercelignore)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nFix .vercelignore to include _lib_*.js files\n\nThe previous configuration was ignoring all api/*.js files except router.js,\nwhich meant the _lib_*.js library files were not being deployed to Vercel.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix .vercelignore to include _lib_*.js files\n\nThe previous configuration was ignoring all api/*.js files except router.js,\nwhich meant the _lib_*.js library files were not being deployed to Vercel.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(cat .gitignore)",
+      "Bash(git add site/index.html site/admin.html site/profile.html site/recover.html site/stats.html site/stats.js site/admin_support.js)"
     ],
     "deny": [],
     "ask": []
