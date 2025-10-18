@@ -514,14 +514,26 @@
 
         // Ожидаем загрузки CONFIG с проверкой
         function initializeApp() {
-            if (!window.CONFIG) {
-                console.warn('CONFIG not loaded yet, retrying...');
-                setTimeout(initializeApp, 50);
+            if (!window.CONFIG || !window.CONFIG.SUPABASE_URL) {
+                console.warn('CONFIG not loaded or invalid, retrying...', window.CONFIG);
+                setTimeout(initializeApp, 100);
                 return;
             }
 
+            console.log('[Init] CONFIG loaded:', {
+                url: window.CONFIG.SUPABASE_URL?.substring(0, 20) + '...',
+                hasKey: !!window.CONFIG.SUPABASE_ANON_KEY
+            });
+
             const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
             const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
+
+            if (!window.supabase) {
+                console.error('Supabase library not loaded!');
+                setTimeout(initializeApp, 100);
+                return;
+            }
+
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                 realtime: {
                     params: {

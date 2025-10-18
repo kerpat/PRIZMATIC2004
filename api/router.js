@@ -61,14 +61,18 @@ module.exports = async (req, res) => {
                     hasContractsUrl: !!process.env.CONTRACTS_API_URL
                 });
 
+                // Fallback значения для локальной разработки
+                const config = {
+                    SUPABASE_URL: process.env.SUPABASE_URL || 'https://avamqfmuhiwtlumjkzmv.supabase.co',
+                    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I',
+                    CONTRACTS_API_URL: process.env.CONTRACTS_API_URL || 'https://gogovorprizmatic.onrender.com'
+                };
+
+                console.log('[Config] Returning config with URL:', config.SUPABASE_URL?.substring(0, 30) + '...');
+
                 res.setHeader('Content-Type', 'application/javascript');
-                return res.status(200).send(`
-                    window.CONFIG = {
-                        SUPABASE_URL: "${process.env.SUPABASE_URL || ''}",
-                        SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY || ''}",
-                        CONTRACTS_API_URL: "${process.env.CONTRACTS_API_URL || process.env.VERCEL_URL || ''}"
-                    };
-                `);
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                return res.status(200).send(`window.CONFIG = ${JSON.stringify(config, null, 2)};`);
 
             case 'auth':
                 return authHandler(req, res);
