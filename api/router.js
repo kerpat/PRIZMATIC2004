@@ -6,18 +6,19 @@
  * Например: /api/router?endpoint=auth
  */
 
-// Импортируем ВСЕ обработчики из lib/ (не из api/)
-// Это важно! Vercel игнорирует файлы не в /api, поэтому они не считаются функциями
-const authHandler = require('../lib/auth');
-const userHandler = require('../lib/user');
-const adminHandler = require('../lib/admin');
-const paymentsHandler = require('../lib/payments');
-const webhookHandler = require('../lib/payment-webhook');
-const getTariffHandler = require('../lib/getTariffByBike');
-const geminiOCR = require('../lib/gemini-ocr');
-const storageHandler = require('../lib/storage');
-const notifyHandler = require('../lib/notify');
-const dataHandler = require('../lib/data');
+// Импортируем обработчики из api/_lib_*.js
+// Префикс "_lib_" нужен чтобы Vercel не деплоил их как отдельные функции
+// Vercel игнорирует файлы начинающиеся с _ (underscore)
+const authHandler = require('./_lib_auth');
+const userHandler = require('./_lib_user');
+const adminHandler = require('./_lib_admin');
+const paymentsHandler = require('./_lib_payments');
+const webhookHandler = require('./_lib_payment-webhook');
+const getTariffHandler = require('./_lib_getTariffByBike');
+const geminiOCR = require('./_lib_gemini-ocr');
+const storageHandler = require('./_lib_storage');
+const notifyHandler = require('./_lib_notify');
+const dataHandler = require('./_lib_data');
 
 module.exports = async (req, res) => {
     // CORS
@@ -54,6 +55,12 @@ module.exports = async (req, res) => {
     try {
         switch (endpoint) {
             case 'config':
+                console.log('[Config] ENV check:', {
+                    hasUrl: !!process.env.SUPABASE_URL,
+                    hasKey: !!process.env.SUPABASE_ANON_KEY,
+                    hasContractsUrl: !!process.env.CONTRACTS_API_URL
+                });
+
                 res.setHeader('Content-Type', 'application/javascript');
                 return res.status(200).send(`
                     window.CONFIG = {
