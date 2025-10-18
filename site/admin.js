@@ -193,10 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapClientsData = []; // Храним данные клиентов для поиска на карте
 
     // Инициализация карты (вызывается один раз)
-    function initAdminMap() {
+    async function initAdminMap() {
         if (mapInitialized || !document.getElementById('admin-map-container')) {
             return;
         }
+
+        // Загружаем Yandex Maps, если ещё не загружена
+        await window.loadYandexMaps();
+
         mapInitialized = true; // Ставим флаг, что карта создана
 
         ymaps.ready(() => {
@@ -792,7 +796,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (section && section.element) {
             section.element.classList.remove('hidden'); // Показываем нужную секцию
             if (section.loader) {
-                section.loader(); // Вызываем её загрузчик/инициализатор
+                // Если loader асинхронный, ждём его
+                Promise.resolve(section.loader()).catch(err => {
+                    console.error(`Error loading section ${name}:`, err);
+                });
             }
         }
 
@@ -2211,6 +2218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateDashboardTime, 60000);
 
     async function loadDashboardData() {
+        // Загружаем Chart.js если ещё не загружена
+        await window.loadChartJS();
+
         // 1. Load Bike Stats
         const bikesContainer = document.getElementById('dashboard-bikes');
         if (bikesContainer) {

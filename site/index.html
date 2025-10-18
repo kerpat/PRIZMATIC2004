@@ -10,7 +10,9 @@
     <link rel="stylesheet" href="style.css?v=11.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Шрифты загружаются асинхронно для ускорения -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 
     <!-- ⚡ ОПТИМИЗАЦИЯ: Заменили Supabase SDK (120KB) на легкий прокси (3KB) -->
@@ -18,8 +20,29 @@
     <script src="db-proxy.js?v=11.1"></script>
     <script src="loading-skeletons.js?v=11.1"></script>
 
-    <!-- ⚡ SUPABASE SDK - Необходим для работы приложения -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <!-- ⚡ SUPABASE SDK - Загружается АСИНХРОННО для ускорения -->
+    <script>
+        // Загрузка Supabase с fallback на другой CDN
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js';
+            script.async = true;
+
+            // Fallback на unpkg если jsdelivr не загрузится за 3 секунды
+            const timeout = setTimeout(() => {
+                if (!window.supabase) {
+                    console.warn('jsDelivr CDN timeout, trying unpkg...');
+                    const fallback = document.createElement('script');
+                    fallback.src = 'https://unpkg.com/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js';
+                    fallback.async = true;
+                    document.head.appendChild(fallback);
+                }
+            }, 3000);
+
+            script.onload = () => clearTimeout(timeout);
+            document.head.appendChild(script);
+        })();
+    </script>
 
     <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
     <script src="/api/config?v=11.1"></script>
