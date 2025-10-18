@@ -1342,16 +1342,16 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const userName = localStorage.getItem('userName');
-            if (userName) {
-                document.querySelector('.app-header h1').textContent = '';
-            }
+        // === ОСНОВНОЙ КОД ИНИЦИАЛИЗАЦИИ (выполняется сразу после инициализации Supabase) ===
+        const userName = localStorage.getItem('userName');
+        if (userName) {
+            document.querySelector('.app-header h1').textContent = '';
+        }
 
-            // +++ ДОБАВЬТЕ ЭТОТ БЛОК КОДА +++
-            // Проверяем, вернулся ли пользователь после успешной оплаты
-            const urlParams = new URLSearchParams(window.location.search);
-            const rentalSuccess = urlParams.get('rental_success');
+        // +++ ДОБАВЬТЕ ЭТОТ БЛОК КОДА +++
+        // Проверяем, вернулся ли пользователь после успешной оплаты
+        const urlParams = new URLSearchParams(window.location.search);
+        const rentalSuccess = urlParams.get('rental_success');
             const topupSuccess = urlParams.get('topup_success');
             const bookingSuccess = urlParams.get('booking_success');
             const renewalSuccess = urlParams.get('renewal_success');
@@ -2596,12 +2596,12 @@
             });
 
             // При загрузке страницы получаем данные пользователя
+            console.log('[Init] About to call loadUserData()');
             loadUserData();
             // После восстановления состояния проверяем, есть ли активная аренда
             if (typeof updateExtendButton === 'function') {
                 updateExtendButton();
             }
-        });
         } // Закрываем функцию initializeApp
 
         // Запускаем инициализацию приложения
