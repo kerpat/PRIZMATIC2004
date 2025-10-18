@@ -996,19 +996,27 @@
             const userId = localStorage.getItem('userId');
             const appHeader = document.querySelector('.app-header'); // Находим заголовок
 
+            console.log('[loadUserData] Starting with userId:', userId);
+
             if (!userId) {
+                console.warn('[loadUserData] No userId found in localStorage');
                 // Removed redirection to registration.html
                 return;
             }
 
             try {
+                console.log('[loadUserData] Fetching client data from Supabase...');
                 const { data: client, error } = await supabase
                     .from('clients')
                     .select('verification_status, name, balance_rub, city') // <-- ИЗМЕНЕНИЕ 1
                     .eq('id', userId)
                     .single();
 
+                console.log('[loadUserData] Supabase response:', { client, error });
+
                 if (error || !client) throw new Error(error ? error.message : "Клиент не найден.");
+
+                console.log('[loadUserData] Client found:', client.name, 'Status:', client.verification_status);
 
                 const userName = client.name ? client.name.split(' ')[0] : 'Пользователь';
                 const mainContent = document.querySelector('.app-main');
