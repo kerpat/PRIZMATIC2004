@@ -1006,16 +1006,19 @@
 
             try {
                 console.log('[loadUserData] Fetching client data from Supabase...');
-                const { data: client, error } = await supabase
+                const { data: clients, error } = await supabase
                     .from('clients')
-                    .select('verification_status, name, balance_rub, city') // <-- ИЗМЕНЕНИЕ 1
-                    .eq('id', userId)
-                    .single();
+                    .select('verification_status, name, balance_rub, city')
+                    .eq('id', userId);
 
-                console.log('[loadUserData] Supabase response:', { client, error });
+                console.log('[loadUserData] Supabase response:', { clients, error });
 
-                if (error || !client) throw new Error(error ? error.message : "Клиент не найден.");
+                if (error) throw new Error(error.message);
+                if (!clients || clients.length === 0) {
+                    throw new Error("Клиент не найден в базе данных. Пожалуйста, зарегистрируйтесь через бота.");
+                }
 
+                const client = clients[0]; // Берём первого (должен быть только один)
                 console.log('[loadUserData] Client found:', client.name, 'Status:', client.verification_status);
 
                 const userName = client.name ? client.name.split(' ')[0] : 'Пользователь';
@@ -1206,9 +1209,15 @@
 
             } catch (err) {
                 console.error("Ошибка загрузки данных пользователя:", err);
-                appHeader.classList.add('header-centered');
-                appHeader.querySelector('h1').textContent = `Ошибка`;
-                mainContent.innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных. Попробуйте позже.</h2>`;
+                const mainContent = document.querySelector('.app-main'); // Добавляем определение
+                if (appHeader) {
+                    appHeader.classList.add('header-centered');
+                    const h1 = appHeader.querySelector('h1');
+                    if (h1) h1.textContent = `Ошибка`;
+                }
+                if (mainContent) {
+                    mainContent.innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных: ${err.message}</h2>`;
+                }
             }
         }
 
@@ -2606,8 +2615,10 @@
 
         // Запускаем инициализацию приложения
         if (document.readyState === 'loading') {
+            console.log('[Init] DOM not ready, waiting for DOMContentLoaded');
             document.addEventListener('DOMContentLoaded', initializeApp);
         } else {
+            console.log('[Init] DOM already ready, calling initializeApp immediately');
             initializeApp();
         }
     </script>
