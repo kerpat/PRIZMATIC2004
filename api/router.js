@@ -6,17 +6,18 @@
  * Например: /api/router?endpoint=auth
  */
 
-// Импортируем ВСЕ существующие обработчики
-const authHandler = require('./auth');
-const userHandler = require('./user');
-const adminHandler = require('./admin');
-const paymentsHandler = require('./payments');
-const webhookHandler = require('./payment-webhook');
-const getTariffHandler = require('./getTariffByBike');
-const geminiOCR = require('./gemini-ocr');
-const storageHandler = require('./storage');
-const notifyHandler = require('./notify');
-const dataHandler = require('./data');
+// Импортируем ВСЕ обработчики из lib/ (не из api/)
+// Это важно! Vercel игнорирует файлы не в /api, поэтому они не считаются функциями
+const authHandler = require('../lib/auth');
+const userHandler = require('../lib/user');
+const adminHandler = require('../lib/admin');
+const paymentsHandler = require('../lib/payments');
+const webhookHandler = require('../lib/payment-webhook');
+const getTariffHandler = require('../lib/getTariffByBike');
+const geminiOCR = require('../lib/gemini-ocr');
+const storageHandler = require('../lib/storage');
+const notifyHandler = require('../lib/notify');
+const dataHandler = require('../lib/data');
 
 module.exports = async (req, res) => {
     // CORS
