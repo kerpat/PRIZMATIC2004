@@ -1,6 +1,13 @@
 // Файл: stats.js (ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ)
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- ПРОВЕРКА КОНФИГУРАЦИИ ---
+    if (!window.CONFIG) {
+        console.error('CONFIG not loaded! Make sure /api/config is loaded before stats.js');
+        alert('Ошибка конфигурации. Пожалуйста, обновите страницу.');
+        return;
+    }
+
     // --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
     const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;

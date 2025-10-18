@@ -1,5 +1,12 @@
 // ▼▼▼ ВСТАВЬТЕ ЭТОТ КОД В ПУСТОЙ ФАЙЛ admin_support.js ▼▼▼
 document.addEventListener('DOMContentLoaded', () => {
+    // --- ПРОВЕРКА КОНФИГУРАЦИИ ---
+    if (!window.CONFIG) {
+        console.error('CONFIG not loaded! Make sure /api/config is loaded before admin_support.js');
+        alert('Ошибка конфигурации. Пожалуйста, обновите страницу.');
+        return;
+    }
+
     const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

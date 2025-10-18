@@ -509,15 +509,26 @@
 
 
     <script>
-        const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
-        const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            realtime: {
-                params: {
-                    eventsPerSecond: 10, // Это стандартное значение, можно оставить
+        // Глобальные переменные
+        let supabase;
+
+        // Ожидаем загрузки CONFIG с проверкой
+        function initializeApp() {
+            if (!window.CONFIG) {
+                console.warn('CONFIG not loaded yet, retrying...');
+                setTimeout(initializeApp, 50);
+                return;
+            }
+
+            const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
+            const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                realtime: {
+                    params: {
+                        eventsPerSecond: 10, // Это стандартное значение, можно оставить
+                    },
                 },
-            },
-        });
+            });
 
         // +++ ДОБАВЬ ЭТУ СТРОЧКУ +++
         let balanceChannel = null;
@@ -2568,6 +2579,14 @@
                 updateExtendButton();
             }
         });
+        } // Закрываем функцию initializeApp
+
+        // Запускаем инициализацию приложения
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
     </script>
     <!-- Общий скрипт меню PRIZMATIC, подключается после основного скрипта -->
     <script src="menu.js" defer></script>

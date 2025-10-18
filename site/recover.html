@@ -170,8 +170,18 @@
 
 <script src="/api/config"></script>
 <script>
-    const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
+    // Проверяем загрузку CONFIG
+    if (!window.CONFIG) {
+        console.error('CONFIG not loaded! Retrying...');
+        setTimeout(() => {
+            if (!window.CONFIG) {
+                alert('Ошибка конфигурации. Пожалуйста, обновите страницу.');
+            }
+        }, 1000);
+    }
+
+    const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || '';
+    const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || '';
 
     let supabase = null;
     let recoverViaSupportBtn = null;

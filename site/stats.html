@@ -350,10 +350,20 @@
     </div>
 
     <script>
+        // Проверяем загрузку CONFIG
+        if (!window.CONFIG) {
+            console.error('CONFIG not loaded! Retrying...');
+            setTimeout(() => {
+                if (!window.CONFIG) {
+                    alert('Ошибка конфигурации. Пожалуйста, обновите страницу.');
+                }
+            }, 1000);
+        }
+
         // --- Подключение к Supabase ---
-        const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
-        const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || '';
+        const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || '';
+        const supabase = window.CONFIG ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
         document.addEventListener('DOMContentLoaded', () => {
             // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
