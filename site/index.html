@@ -20,29 +20,8 @@
     <script src="db-proxy.js?v=11.1"></script>
     <script src="loading-skeletons.js?v=11.1"></script>
 
-    <!-- ⚡ SUPABASE SDK - Загружается АСИНХРОННО для ускорения -->
-    <script>
-        // Загрузка Supabase с fallback на другой CDN
-        (function() {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js';
-            script.async = true;
-
-            // Fallback на unpkg если jsdelivr не загрузится за 3 секунды
-            const timeout = setTimeout(() => {
-                if (!window.supabase) {
-                    console.warn('jsDelivr CDN timeout, trying unpkg...');
-                    const fallback = document.createElement('script');
-                    fallback.src = 'https://unpkg.com/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js';
-                    fallback.async = true;
-                    document.head.appendChild(fallback);
-                }
-            }, 3000);
-
-            script.onload = () => clearTimeout(timeout);
-            document.head.appendChild(script);
-        })();
-    </script>
+    <!-- ⚡ SUPABASE SDK - Загружается ЛОКАЛЬНО для быстрой работы в России -->
+    <script src="supabase.min.js" async></script>
 
     <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
     <script src="/api/config?v=11.1"></script>
