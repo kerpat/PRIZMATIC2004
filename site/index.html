@@ -514,6 +514,9 @@
     <script>
         // Глобальные переменные
         let supabase;
+        let globalRentalChannel = null;
+        let globalBookingChannel = null;
+        let isLoadingUserData = false; // Флаг для предотвращения множественных вызовов
 
         // Ожидаем загрузки CONFIG с проверкой
         function initializeApp() {
@@ -993,6 +996,12 @@
         };
 
         async function loadUserData() {
+            if (isLoadingUserData) {
+                console.log('[loadUserData] Already loading, skipping...');
+                return;
+            }
+
+            isLoadingUserData = true;
             const userId = localStorage.getItem('userId');
             const appHeader = document.querySelector('.app-header'); // Находим заголовок
 
@@ -1000,6 +1009,7 @@
 
             if (!userId) {
                 console.warn('[loadUserData] No userId found in localStorage');
+                isLoadingUserData = false;
                 // Removed redirection to registration.html
                 return;
             }
@@ -1207,8 +1217,14 @@
                     initializeVerificationScreenEventListeners();
                 }
 
+                // Устанавливаем глобальные real-time подписки в конце успешной загрузки
+                setupGlobalRealtimeSubscriptions(userId);
+
+                isLoadingUserData = false; // Сбрасываем флаг
+
             } catch (err) {
                 console.error("Ошибка загрузки данных пользователя:", err);
+                isLoadingUserData = false; // Сбрасываем флаг при ошибке
                 const mainContent = document.querySelector('.app-main'); // Добавляем определение
                 if (appHeader) {
                     appHeader.classList.add('header-centered');
@@ -1219,6 +1235,55 @@
                     mainContent.innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных: ${err.message}</h2>`;
                 }
             }
+        }
+
+        // Функция для установки глобальных real-time подписок
+        function setupGlobalRealtimeSubscriptions(userId) {
+            console.log('[Realtime] Setting up global subscriptions for user:', userId);
+
+            // Подписка на изменения в таблице rentals
+            if (globalRentalChannel) {
+                supabase.removeChannel(globalRentalChannel);
+            }
+
+            globalRentalChannel = supabase.channel(`global-rentals-${userId}`)
+                .on('postgres_changes', {
+                    event: '*', // Любые изменения (INSERT, UPDATE, DELETE)
+                    schema: 'public',
+                    table: 'rentals',
+                    filter: `user_id=eq.${userId}`
+                }, payload => {
+                    console.log('[Realtime] Rental changed:', payload);
+                    // Перезагружаем данные при любом изменении аренды
+                    loadUserData();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('[Realtime] ✓ Subscribed to rentals updates');
+                    }
+                });
+
+            // Подписка на изменения в таблице bookings
+            if (globalBookingChannel) {
+                supabase.removeChannel(globalBookingChannel);
+            }
+
+            globalBookingChannel = supabase.channel(`global-bookings-${userId}`)
+                .on('postgres_changes', {
+                    event: '*', // Любые изменения
+                    schema: 'public',
+                    table: 'bookings',
+                    filter: `user_id=eq.${userId}`
+                }, payload => {
+                    console.log('[Realtime] Booking changed:', payload);
+                    // Перезагружаем данные при любом изменении брони
+                    loadUserData();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('[Realtime] ✓ Subscribed to bookings updates');
+                    }
+                });
         }
 
         async function loadAvailableBikesCount(userCity) {
