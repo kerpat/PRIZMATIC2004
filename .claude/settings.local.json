@@ -11,7 +11,9 @@
       "Bash(git add site/index.html site/admin.html site/profile.html site/recover.html site/stats.html site/stats.js site/admin_support.js)",
       "Bash(vercel --version)",
       "Bash(vercel --prod --yes)",
-      "Bash(curl -o \"C:\\Users\\Kerpat\\Desktop\\prizmaaaa\\site\\supabase.min.js\" https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js)"
+      "Bash(curl -o \"C:\\Users\\Kerpat\\Desktop\\prizmaaaa\\site\\supabase.min.js\" https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js)",
+      "Bash(del registration.html)",
+      "Bash(curl -o reg1.html \"https://pastebin.com/raw/example\")"
     ],
     "deny": [],
     "ask": []
