@@ -85,7 +85,7 @@ const telegramSection=document.getElementById('telegram-section');
 const platformBadge=document.getElementById('platform-badge');
 if(isAndroidApp){platformBadge.innerHTML='<span class="platform-badge">📱 Android</span>'}
 else if(isTelegramMiniApp){platformBadge.innerHTML='<span class="platform-badge">✈️ Telegram</span>'}
-else{platformBadge.innerHTML='<span class="platform-badge">🌐 Браузер</span>'}
+else{platformBadge.innerHTML='<span class="platform-badge">🌐 Приложение</span>'}
 function showLoading(show){loadingScreen.classList.toggle('active',show)}
 function showError(msg){errorMessage.textContent=msg;errorMessage.classList.add('active');setTimeout(()=>errorMessage.classList.remove('active'),5000)}
 function showSuccess(msg){successMessage.textContent=msg;successMessage.classList.add('active');setTimeout(()=>successMessage.classList.remove('active'),3000)}
