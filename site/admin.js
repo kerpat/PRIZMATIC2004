@@ -1413,6 +1413,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Clients Logic ---
 
+    // Helper: format phone for display
+    function formatPhoneDisplay(phone) {
+        if (!phone) return '';
+        
+        // Remove all non-digits
+        const cleaned = phone.replace(/\D/g, '');
+        
+        // Format as +7 (XXX) XXX-XX-XX
+        if (cleaned.length === 11 && cleaned.startsWith('7')) {
+            return `+7 (${cleaned.substring(1, 4)}) ${cleaned.substring(4, 7)}-${cleaned.substring(7, 9)}-${cleaned.substring(9, 11)}`;
+        }
+        
+        // Return as-is if format is unexpected
+        return phone;
+    }
+
     async function loadClients() {
         clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
         try {
@@ -1443,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tr.innerHTML = `
                 <td>${client.name}</td>
-                <td>${client.phone || ''}</td>
+                <td>${formatPhoneDisplay(client.phone)}</td>
                 <td>${createStatusBadge(status, 'client')}</td>
                 <td><div class="chips">${tagsHtml}</div></td>
                 <td>${date}</td>
@@ -3700,13 +3716,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Helper: clean phone number
+    function cleanPhoneNumber(phone) {
+        // Remove all non-digit characters
+        let cleaned = phone.replace(/\D/g, '');
+        
+        // If starts with 8, replace with 7
+        if (cleaned.startsWith('8')) {
+            cleaned = '7' + cleaned.substring(1);
+        }
+        
+        // If doesn't start with 7, add it
+        if (!cleaned.startsWith('7')) {
+            cleaned = '7' + cleaned;
+        }
+        
+        return cleaned;
+    }
+
     // Submit form
     if (addClientSubmitBtn) {
         addClientSubmitBtn.addEventListener('click', async () => {
-            const phone = document.getElementById('new-client-phone').value.trim();
+            const phoneRaw = document.getElementById('new-client-phone').value.trim();
             
-            if (!phone) {
+            if (!phoneRaw) {
                 alert('Телефон обязателен для заполнения!');
+                return;
+            }
+
+            // Clean phone number for database
+            const phoneClean = cleanPhoneNumber(phoneRaw);
+            
+            // Validate phone length (should be 11 digits: 7XXXXXXXXXX)
+            if (phoneClean.length !== 11) {
+                alert('Неверный формат номера телефона. Ожидается 11 цифр.');
                 return;
             }
 
@@ -3716,7 +3759,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Собираем основные данные
                 const clientData = {
-                    phone: phone,
+                    phone: phoneClean, // Save cleaned phone
                     name: document.getElementById('new-client-name').value.trim() || null,
                     city: document.getElementById('new-client-city').value || null,
                     verification_status: document.getElementById('new-client-status').value || 'pending',
@@ -3745,11 +3788,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Дополнительные данные в extra
                 const extraData = {};
                 const country = document.getElementById('new-client-country').value;
-                const emergencyPhone = document.getElementById('new-client-emergency-phone').value.trim();
+                const emergencyPhoneRaw = document.getElementById('new-client-emergency-phone').value.trim();
                 const notes = document.getElementById('new-client-notes').value.trim();
 
                 if (country) extraData.country = country;
-                if (emergencyPhone) extraData.emergency_contact = emergencyPhone;
+                if (emergencyPhoneRaw) {
+                    // Clean emergency phone too
+                    extraData.emergency_contact = cleanPhoneNumber(emergencyPhoneRaw);
+                }
                 if (notes) extraData.admin_notes = notes;
 
                 if (Object.keys(extraData).length > 0) {
