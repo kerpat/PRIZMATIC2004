@@ -2,8 +2,10 @@ const axios = require('axios');
 
 const SMS_RU_API_ID = process.env.SMS_RU_API_ID;
 
+console.log('[Call Verify] SMS_RU_API_ID configured:', !!SMS_RU_API_ID);
+
 if (!SMS_RU_API_ID) {
-    console.warn('SMS_RU_API_ID not configured');
+    console.error('[Call Verify] SMS_RU_API_ID not configured! Set it in Vercel environment variables.');
 }
 
 /**
@@ -12,6 +14,8 @@ if (!SMS_RU_API_ID) {
  */
 async function initiateCallVerification(phone) {
     try {
+        console.log('[Call Verify] Initiating call for phone:', phone);
+
         const response = await axios.get('https://sms.ru/callcheck/add', {
             params: {
                 api_id: SMS_RU_API_ID,
@@ -22,10 +26,14 @@ async function initiateCallVerification(phone) {
         });
 
         const data = response.data;
+        console.log('[Call Verify] SMS.ru response:', JSON.stringify(data));
 
         if (data.status !== 'OK') {
+            console.error('[Call Verify] SMS.ru error:', data.status_text);
             throw new Error(data.status_text || 'Failed to initiate call verification');
         }
+
+        console.log('[Call Verify] Call initiated successfully. Check ID:', data.check_id);
 
         return {
             check_id: data.check_id,
@@ -35,8 +43,8 @@ async function initiateCallVerification(phone) {
         };
 
     } catch (error) {
-        console.error('[Call Verify] Initiate error:', error);
-        throw new Error('Failed to initiate call verification');
+        console.error('[Call Verify] Initiate error:', error.message);
+        throw new Error('Failed to initiate call verification: ' + error.message);
     }
 }
 
@@ -46,6 +54,8 @@ async function initiateCallVerification(phone) {
  */
 async function checkCallStatus(checkId) {
     try {
+        console.log('[Call Verify] Checking status for check_id:', checkId);
+
         const response = await axios.get('https://sms.ru/callcheck/status', {
             params: {
                 api_id: SMS_RU_API_ID,
@@ -56,10 +66,14 @@ async function checkCallStatus(checkId) {
         });
 
         const data = response.data;
+        console.log('[Call Verify] Status response:', JSON.stringify(data));
 
         if (data.status !== 'OK') {
+            console.error('[Call Verify] SMS.ru status error:', data.status_text);
             throw new Error(data.status_text || 'Failed to check status');
         }
+
+        console.log('[Call Verify] Status:', data.check_status, data.check_status_text);
 
         return {
             check_status: data.check_status, // '400' = not verified, '401' = verified, '402' = expired
@@ -67,13 +81,15 @@ async function checkCallStatus(checkId) {
         };
 
     } catch (error) {
-        console.error('[Call Verify] Check status error:', error);
-        throw new Error('Failed to check call status');
+        console.error('[Call Verify] Check status error:', error.message);
+        throw new Error('Failed to check call status: ' + error.message);
     }
 }
 
 async function handler(req, res) {
     try {
+        console.log('[Call Verify] Request received:', req.method, req.url);
+
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -88,6 +104,8 @@ async function handler(req, res) {
 
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         const { action, phone, check_id } = body;
+
+        console.log('[Call Verify] Action:', action, 'Phone:', phone, 'Check ID:', check_id);
 
         if (action === 'initiate') {
             // Initiate call verification
