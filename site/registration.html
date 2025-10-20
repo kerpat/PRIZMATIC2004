@@ -4,47 +4,63 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Регистрация - PRIZMATIC</title>
-<link rel="stylesheet" href="style.css?v=11.4">
+<link rel="stylesheet" href="style.css?v=11.5">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.registration-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.registration-content{width:100%;max-width:400px}
-.logo-section{text-align:center;margin-bottom:30px}
-.logo-section h1{font-size:2rem;font-weight:800;color:var(--dark-green);margin-bottom:8px}
-.logo-section p{font-size:0.9rem;color:#666}
-.reg-card{background:var(--card-bg);border-radius:24px;padding:32px 24px;box-shadow:0 4px 20px rgba(13,115,119,0.08);margin-bottom:20px}
-.reg-card h2{font-size:1.2rem;font-weight:600;color:var(--dark-green);margin-bottom:8px;text-align:center}
-.reg-card .subtitle{font-size:14px;color:#666;text-align:center;margin-bottom:24px}
-.step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
-.step-dot{width:8px;height:8px;border-radius:50%;background:#e0e0e0;transition:all 0.3s}
-.step-dot.active{background:var(--dark-green);width:24px}
-.form-group{margin-bottom:20px}
-.form-group label{display:block;font-size:14px;font-weight:600;color:var(--dark-green);margin-bottom:8px}
-.form-group input,.form-group select{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;transition:border-color 0.2s;box-sizing:border-box}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--dark-green)}
-.form-group .hint{font-size:12px;color:#999;margin-top:4px}
-.btn-primary{width:100%;padding:16px;background:linear-gradient(135deg,var(--dark-green) 0%,var(--primary-blue) 100%);color:white;border:none;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 12px rgba(13,115,119,0.3)}
-.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 16px rgba(13,115,119,0.4)}
-.btn-primary:disabled{opacity:0.6;cursor:not-allowed}
-.btn-call{width:100%;padding:20px;background:linear-gradient(135deg,#00C853 0%,#00E676 100%);color:white;border:none;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,200,83,0.4);transition:all 0.3s;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:12px;text-decoration:none}
-.btn-call:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,200,83,0.5)}
-.btn-call svg{width:28px;height:28px}
-.call-info{background:#e8f5e9;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center}
-.call-info .phone-number{font-size:24px;font-weight:700;color:var(--dark-green);margin:8px 0;letter-spacing:1px}
-.call-info .note{font-size:13px;color:#2e7d32;margin-top:8px;font-weight:500}
-.waiting-call{text-align:center;padding:20px;display:none}
+.registration-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.registration-content{width:100%;max-width:420px}
+.logo-section{text-align:center;margin-bottom:32px}
+.logo-section h1{font-size:2rem;font-weight:800;color:var(--dark-green);margin-bottom:8px;letter-spacing:-0.5px}
+.logo-section p{font-size:0.95rem;color:#666;font-weight:500}
+.reg-card{background:var(--card-bg);border-radius:24px;padding:36px 28px;box-shadow:0 4px 24px rgba(13,115,119,0.08);margin-bottom:20px}
+.reg-card h2{font-size:1.25rem;font-weight:700;color:var(--dark-green);margin-bottom:6px;text-align:center;letter-spacing:-0.3px}
+.reg-card .subtitle{font-size:14px;color:#777;text-align:center;margin-bottom:28px;line-height:1.5}
+.step-indicator{display:flex;justify-content:center;gap:10px;margin-bottom:32px}
+.step-dot{width:10px;height:10px;border-radius:50%;background:#e0e0e0;transition:all 0.3s ease}
+.step-dot.active{background:linear-gradient(135deg,var(--dark-green) 0%,var(--primary-blue) 100%);width:28px;box-shadow:0 2px 8px rgba(13,115,119,0.3)}
+.form-group{margin-bottom:24px}
+.form-group label{display:block;font-size:14px;font-weight:600;color:var(--dark-green);margin-bottom:10px}
+.form-group input[type="tel"],.form-group select{width:100%;padding:14px 18px;border:2px solid #e8e8e8;border-radius:14px;font-size:15px;font-family:'Inter',sans-serif;transition:all 0.2s;box-sizing:border-box;background:white}
+.form-group input[type="tel"]:focus,.form-group select:focus{outline:none;border-color:var(--dark-green);box-shadow:0 0 0 3px rgba(13,115,119,0.08)}
+.form-group .hint{font-size:12px;color:#999;margin-top:6px;line-height:1.4}
+.btn-primary{width:100%;padding:16px;background:linear-gradient(135deg,var(--dark-green) 0%,var(--primary-blue) 100%);color:white;border:none;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 16px rgba(13,115,119,0.25);letter-spacing:0.3px}
+.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,115,119,0.35)}
+.btn-primary:active:not(:disabled){transform:translateY(0)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-call{width:100%;padding:18px;background:linear-gradient(135deg,#00C853 0%,#00E676 100%);color:white;border:none;border-radius:16px;font-size:17px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,200,83,0.3);transition:all 0.3s;margin-bottom:20px;text-decoration:none;display:block;text-align:center;letter-spacing:0.3px}
+.btn-call:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,200,83,0.4)}
+.btn-call:active{transform:translateY(0)}
+.call-info{background:linear-gradient(135deg,#e8f5e9 0%,#f1f8f4 100%);border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;border:1px solid #c8e6c9}
+.call-info .label{font-size:13px;color:#558b2f;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.call-info .phone-number{font-size:26px;font-weight:800;color:var(--dark-green);margin:12px 0;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.call-info .note{font-size:13px;color:#2e7d32;margin-top:12px;font-weight:600;background:white;display:inline-block;padding:6px 14px;border-radius:20px}
+.waiting-call{text-align:center;padding:24px;display:none;background:#fafafa;border-radius:12px;margin-top:16px}
 .waiting-call.active{display:block}
-.waiting-call .spinner{border:3px solid #e0e0e0;border-top:3px solid var(--dark-green);border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 16px}
+.waiting-call .spinner{border:4px solid #e0e0e0;border-top:4px solid var(--dark-green);border-radius:50%;width:44px;height:44px;animation:spin 1s linear infinite;margin:0 auto 16px}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.waiting-call p{color:#666;font-size:14px}
-.error-message{display:none;padding:12px 16px;background:#ffebee;color:#c62828;border-radius:12px;margin-top:12px;font-size:14px}
+.waiting-call p{color:#666;font-size:14px;margin:8px 0;font-weight:500}
+.waiting-call .note{font-size:12px;color:#999;margin-top:4px}
+.error-message{display:none;padding:14px 18px;background:#ffebee;color:#c62828;border-radius:12px;margin-top:16px;font-size:14px;font-weight:500;border-left:4px solid #c62828}
 .error-message.active{display:block}
-.success-message{display:none;padding:12px 16px;background:#e8f5e9;color:#2e7d32;border-radius:12px;margin-top:12px;font-size:14px}
+.success-message{display:none;padding:14px 18px;background:#e8f5e9;color:#2e7d32;border-radius:12px;margin-top:16px;font-size:14px;font-weight:500;border-left:4px solid #2e7d32}
 .success-message.active{display:block}
 .step{display:none}
 .step.active{display:block}
-.info-banner{background:#fff3e0;border-left:4px solid #ff9800;padding:12px 16px;border-radius:8px;margin-bottom:20px;font-size:13px;color:#e65100}
-.info-banner strong{display:block;margin-bottom:4px;font-size:14px}
+.info-banner{background:linear-gradient(135deg,#fff9e6 0%,#fffbf0 100%);border-left:4px solid var(--dark-green);padding:16px 18px;border-radius:12px;margin-bottom:24px;font-size:13px;color:#5d4037;line-height:1.6;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.info-banner .title{display:block;margin-bottom:8px;font-size:14px;font-weight:700;color:var(--dark-green)}
+.file-upload-wrapper{position:relative;margin-bottom:24px}
+.file-upload-wrapper input[type="file"]{position:absolute;width:0.1px;height:0.1px;opacity:0;overflow:hidden;z-index:-1}
+.file-upload-label{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;background:white;border:2px dashed #d0d0d0;border-radius:14px;cursor:pointer;transition:all 0.3s;min-height:70px}
+.file-upload-label:hover{border-color:var(--dark-green);background:#fafffe}
+.file-upload-label.has-file{border-style:solid;border-color:var(--dark-green);background:linear-gradient(135deg,#e8f5f0 0%,#f0f9f6 100%)}
+.file-upload-info{flex:1}
+.file-upload-info .title{font-size:14px;font-weight:600;color:var(--dark-green);margin-bottom:4px;display:block}
+.file-upload-info .hint{font-size:12px;color:#999}
+.file-upload-info.has-file .title{color:#2e7d32}
+.file-upload-info.has-file .hint{color:#558b2f;font-weight:500}
+.file-upload-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--dark-green) 0%,var(--primary-blue) 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px;box-shadow:0 2px 8px rgba(13,115,119,0.2)}
+.file-upload-icon svg{width:22px;height:22px;fill:white}
+.file-upload-label.has-file .file-upload-icon{background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%)}
 </style>
 </head>
 <body>
@@ -65,17 +81,17 @@
 <div class="step active" id="step-1">
 <div class="reg-card">
 <h2>Основная информация</h2>
-<p class="subtitle">Введите ваши данные для регистрации</p>
+<p class="subtitle">Введите ваши данные для продолжения</p>
 <form id="phone-form">
 <div class="form-group">
-<label for="phone">Номер телефона *</label>
+<label for="phone">Номер телефона</label>
 <input type="tel" id="phone" name="phone" placeholder="+7 (900) 123-45-67" required>
-<div class="hint">Используется для авторизации</div>
+<div class="hint">Используется для входа в приложение</div>
 </div>
 <div class="form-group">
-<label for="city">Город *</label>
+<label for="city">Город</label>
 <select id="city" name="city" required>
-<option value="">Выберите город</option>
+<option value="">Выберите ваш город</option>
 <option value="Москва">Москва</option>
 <option value="Санкт-Петербург">Санкт-Петербург</option>
 <option value="Казань">Казань</option>
@@ -96,30 +112,25 @@
 <div class="step" id="step-2">
 <div class="reg-card">
 <h2>Подтверждение номера</h2>
-<p class="subtitle">Позвоните на указанный номер</p>
+<p class="subtitle">Позвоните на указанный номер для подтверждения</p>
 
 <div class="info-banner">
-<strong>☎️ Звонок абсолютно бесплатный!</strong>
-Даже если вы в роуминге или за границей
+<span class="title">Звонок абсолютно бесплатный</span>
+Даже если вы в роуминге или за границей. Звонок автоматически сбрасывается, вы не платите ни копейки.
 </div>
 
 <div class="call-info">
-<p style="font-size:14px;color:#666;margin-bottom:4px">Позвоните на номер:</p>
+<div class="label">Позвоните на номер</div>
 <div class="phone-number" id="call-number">...</div>
-<p class="note">✓ Звонок бесплатный для вас</p>
+<div class="note">Бесплатный звонок</div>
 </div>
 
-<a href="#" class="btn-call" id="call-btn">
-<svg viewBox="0 0 24 24" fill="currentColor">
-<path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
-</svg>
-Позвонить сейчас
-</a>
+<a href="#" class="btn-call" id="call-btn">Позвонить сейчас</a>
 
 <div class="waiting-call" id="waiting-call">
 <div class="spinner"></div>
-<p>Ожидаем ваш звонок...</p>
-<p style="font-size:12px;margin-top:8px;color:#999">Проверяем автоматически</p>
+<p>Ожидаем ваш звонок</p>
+<p class="note">Проверяем автоматически</p>
 </div>
 
 <div class="error-message" id="error-step2"></div>
@@ -131,25 +142,42 @@
 <div class="step" id="step-3">
 <div class="reg-card">
 <h2>Документы для аренды</h2>
-<p class="subtitle">Загрузите фотографии паспорта</p>
+<p class="subtitle">Загрузите фотографии вашего паспорта</p>
 
 <div class="info-banner">
-<strong>📸 Требуется 2 фотографии:</strong>
-1. Лицевая сторона паспорта<br>
-2. Страница с пропиской
+<span class="title">Требуется 2 фотографии</span>
+Лицевая сторона паспорта с фотографией и страница с регистрацией по месту жительства.
 </div>
 
 <form id="documents-form">
-<div class="form-group">
-<label for="passport-main">Лицевая сторона паспорта *</label>
+<div class="file-upload-wrapper">
 <input type="file" id="passport-main" accept="image/*" capture="environment" required>
-<div class="hint">Фото разворота с фотографией</div>
+<label for="passport-main" class="file-upload-label" id="label-main">
+<div class="file-upload-info" id="info-main">
+<span class="title">Лицевая сторона</span>
+<span class="hint">Разворот с фотографией</span>
+</div>
+<div class="file-upload-icon">
+<svg viewBox="0 0 24 24">
+<path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+</svg>
+</div>
+</label>
 </div>
 
-<div class="form-group">
-<label for="passport-reg">Страница с пропиской *</label>
+<div class="file-upload-wrapper">
 <input type="file" id="passport-reg" accept="image/*" capture="environment" required>
-<div class="hint">Фото страницы с регистрацией</div>
+<label for="passport-reg" class="file-upload-label" id="label-reg">
+<div class="file-upload-info" id="info-reg">
+<span class="title">Страница с пропиской</span>
+<span class="hint">Регистрация по месту жительства</span>
+</div>
+<div class="file-upload-icon">
+<svg viewBox="0 0 24 24">
+<path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+</svg>
+</div>
+</label>
 </div>
 
 <button type="submit" class="btn-primary" id="finish-btn">Завершить регистрацию</button>
@@ -199,6 +227,33 @@ phoneInput.addEventListener('focus', () => {
         phoneInput.value = '+7 ';
     }
 });
+
+// File upload UI
+function setupFileInput(inputId, labelId, infoId) {
+    const input = document.getElementById(inputId);
+    const label = document.getElementById(labelId);
+    const info = document.getElementById(infoId);
+
+    input.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const fileName = e.target.files[0].name;
+            label.classList.add('has-file');
+            info.classList.add('has-file');
+            info.querySelector('.hint').textContent = fileName.length > 30 ? fileName.substring(0, 27) + '...' : fileName;
+        } else {
+            label.classList.remove('has-file');
+            info.classList.remove('has-file');
+            if (inputId === 'passport-main') {
+                info.querySelector('.hint').textContent = 'Разворот с фотографией';
+            } else {
+                info.querySelector('.hint').textContent = 'Регистрация по месту жительства';
+            }
+        }
+    });
+}
+
+setupFileInput('passport-main', 'label-main', 'info-main');
+setupFileInput('passport-reg', 'label-reg', 'info-reg');
 
 // Step management
 let currentStep = 1;
@@ -255,7 +310,6 @@ document.getElementById('phone-form').addEventListener('submit', async (e) => {
     registrationData.phone = cleaned;
     registrationData.city = city;
 
-    // Переходим к шагу 2 и инициируем звонок
     showStep(2);
     await initiateCall(cleaned);
 });
@@ -280,14 +334,11 @@ async function initiateCall(phone) {
         registrationData.checkId = data.check_id;
         registrationData.callNumber = data.call_phone;
 
-        // Показываем номер для звонка
         document.getElementById('call-number').textContent = data.call_phone_pretty;
         document.getElementById('call-btn').href = `tel:${data.call_phone}`;
 
-        // Показываем индикатор ожидания
         document.getElementById('waiting-call').classList.add('active');
 
-        // Начинаем проверку статуса
         startStatusCheck();
 
     } catch (error) {
@@ -312,14 +363,11 @@ function startStatusCheck() {
             const data = await response.json();
             console.log('[Call Status]', data);
 
-            // Проверяем и строку и число
             if (data.check_status === '401' || data.check_status === 401) {
-                // Номер подтвержден!
                 clearInterval(statusCheckInterval);
-                showSuccess(2, '✓ Номер подтвержден!');
+                showSuccess(2, 'Номер подтвержден');
                 setTimeout(() => showStep(3), 1500);
             } else if (data.check_status === '402' || data.check_status === 402) {
-                // Время истекло
                 clearInterval(statusCheckInterval);
                 showError(2, 'Время ожидания истекло. Попробуйте еще раз.');
             }
@@ -327,7 +375,7 @@ function startStatusCheck() {
         } catch (error) {
             console.error('Status check error:', error);
         }
-    }, 2000); // Проверяем каждые 2 секунды
+    }, 2000);
 }
 
 // Step 3: Documents upload
@@ -347,7 +395,6 @@ document.getElementById('documents-form').addEventListener('submit', async (e) =
     finishBtn.textContent = 'Загрузка...';
 
     try {
-        // Upload to Supabase Storage
         const formData = new FormData();
         formData.append('phone', registrationData.phone);
         formData.append('city', registrationData.city);
@@ -365,12 +412,11 @@ document.getElementById('documents-form').addEventListener('submit', async (e) =
             throw new Error(data.error || 'Ошибка регистрации');
         }
 
-        // Сохраняем данные пользователя
         localStorage.setItem('userId', data.user.id);
         localStorage.setItem('userName', data.user.name || 'Пользователь');
         localStorage.setItem('isRegistered', 'true');
 
-        showSuccess(3, 'Регистрация завершена!');
+        showSuccess(3, 'Регистрация завершена');
 
         setTimeout(() => {
             window.location.href = 'index.html';
