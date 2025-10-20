@@ -136,6 +136,96 @@ async function recognizeDocumentsWithGemini(supabaseAdmin, filePaths, countryCod
 }
 
 /**
+ * Complete VK registration with phone and city
+ */
+async function handleVKCompleteRegistration(req, res) {
+    const { vkData, phone, city } = req.body;
+
+    if (!vkData || !vkData.user_id || !phone || !city) {
+        return res.status(400).json({ error: 'Missing required registration data' });
+    }
+
+    try {
+        const supabaseAdmin = createSupabaseAdmin();
+
+        // Check if user already exists
+        const { data: existingClient } = await supabaseAdmin
+            .from('clients')
+            .select('*')
+            .eq('vk_user_id', vkData.user_id)
+            .single();
+
+        if (existingClient) {
+            // User already registered, just return user data
+            return res.status(200).json({
+                success: true,
+                user: {
+                    id: existingClient.id,
+                    name: existingClient.name,
+                    phone: existingClient.phone,
+                    city: existingClient.city,
+                    balance_rub: existingClient.balance_rub,
+                    verification_status: existingClient.verification_status
+                }
+            });
+        }
+
+        // Create new user
+        const newClientData = {
+            vk_user_id: vkData.user_id,
+            name: `${vkData.first_name} ${vkData.last_name}`,
+            phone: phone,
+            city: city,
+            verification_status: 'pending',
+            balance_rub: 0,
+            extra: {
+                vk_photo: vkData.photo_url,
+                auth_provider: 'vk',
+                registered_at: new Date().toISOString()
+            }
+        };
+
+        const { data: newClient, error: insertError } = await supabaseAdmin
+            .from('clients')
+            .insert([newClientData])
+            .select()
+            .single();
+
+        if (insertError) {
+            console.error('[VK Complete Reg] Insert error:', insertError);
+
+            if (insertError.code === '23505') {
+                // Duplicate phone
+                return res.status(409).json({ error: 'Phone number already registered' });
+            }
+
+            throw new Error('Failed to create user account');
+        }
+
+        console.log('[VK Complete Reg] New user created:', newClient.id);
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: newClient.id,
+                name: newClient.name,
+                phone: newClient.phone,
+                city: newClient.city,
+                balance_rub: newClient.balance_rub,
+                verification_status: newClient.verification_status
+            }
+        });
+
+    } catch (error) {
+        console.error('[VK Complete Reg] Error:', error);
+        return res.status(500).json({
+            error: 'Registration failed',
+            details: error.message
+        });
+    }
+}
+
+/**
  * Handle VK ID authentication
  */
 async function handleVKLogin(req, res) {
@@ -285,6 +375,11 @@ async function handler(req, res) {
 
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         const { action } = body;
+
+        // Handle VK ID complete registration
+        if (action === 'vk-complete-registration') {
+            return await handleVKCompleteRegistration(req, res);
+        }
 
         // Handle VK ID login
         if (action === 'vk-login') {

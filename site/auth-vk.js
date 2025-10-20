@@ -102,21 +102,23 @@ class VKAuthManager {
                     try {
                         const authData = await this.exchangeCode(payload.code, payload.device_id);
 
-                        // Аутентификация с backend
-                        const backendResponse = await this.authenticateWithBackend(authData);
+                        // Get user info first
+                        const userInfo = await this.getUserInfo(authData.access_token, authData.user_id);
 
-                        // Сохраняем данные
-                        if (backendResponse.success && backendResponse.user) {
-                            localStorage.setItem('userId', backendResponse.user.id);
-                            localStorage.setItem('userName', backendResponse.user.name);
-                            localStorage.setItem('isRegistered', 'true');
-                            localStorage.setItem('authProvider', 'vk');
-                        }
+                        // Save temp data for complete-registration page
+                        const tempUserData = {
+                            user_id: authData.user_id,
+                            first_name: userInfo.first_name,
+                            last_name: userInfo.last_name,
+                            photo_url: userInfo.photo_200,
+                            city: userInfo.city?.title || ''
+                        };
 
-                        // Вызываем колбэк успеха
-                        if (this.onSuccessCallback) {
-                            this.onSuccessCallback(backendResponse);
-                        }
+                        localStorage.setItem('vk_temp_user', JSON.stringify(tempUserData));
+
+                        // Redirect to complete registration
+                        console.log('[VK Auth] Redirecting to complete registration...');
+                        window.location.href = 'complete-registration.html';
                     } catch (error) {
                         console.error('[VK Auth] Exchange error:', error);
                         if (this.onErrorCallback) {
