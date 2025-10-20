@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const axios = require('axios');
+const busboy = require('busboy');
 // +++ ДОБАВЛЯЕМ НОВЫЙ ИМПОРТ +++
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
@@ -360,17 +361,65 @@ async function handleVKLogin(req, res) {
 }
 
 /**
+ * Parse multipart/form-data with busboy
+ */
+function parseMultipartForm(req) {
+    return new Promise((resolve, reject) => {
+        const bb = busboy({ headers: req.headers });
+        const fields = {};
+        const files = {};
+
+        bb.on('field', (name, value) => {
+            fields[name] = value;
+        });
+
+        bb.on('file', (name, file, info) => {
+            const { filename, encoding, mimeType } = info;
+            const chunks = [];
+
+            file.on('data', (data) => {
+                chunks.push(data);
+            });
+
+            file.on('end', () => {
+                files[name] = {
+                    filename,
+                    mimeType,
+                    buffer: Buffer.concat(chunks)
+                };
+            });
+        });
+
+        bb.on('finish', () => {
+            resolve({ fields, files });
+        });
+
+        bb.on('error', (error) => {
+            reject(error);
+        });
+
+        req.pipe(bb);
+    });
+}
+
+/**
  * Handle phone registration with document upload (SMS.ru flow)
  */
 async function handlePhoneRegistration(req, res) {
-    const formData = req.body; // multipart/form-data parsed by Vercel
-    const { phone, city } = formData;
-
-    if (!phone || !city) {
-        return res.status(400).json({ error: 'Phone and city are required' });
-    }
-
     try {
+        console.log('[Phone Reg] Parsing multipart form data...');
+        const { fields, files } = await parseMultipartForm(req);
+
+        const phone = fields.phone;
+        const city = fields.city;
+
+        console.log('[Phone Reg] Phone:', phone, 'City:', city);
+        console.log('[Phone Reg] Files:', Object.keys(files));
+
+        if (!phone || !city) {
+            return res.status(400).json({ error: 'Phone and city are required' });
+        }
+
         const supabaseAdmin = createSupabaseAdmin();
 
         // Check if user already exists
@@ -384,13 +433,15 @@ async function handlePhoneRegistration(req, res) {
             return res.status(409).json({ error: 'Пользователь с таким номером уже зарегистрирован' });
         }
 
-        // Upload passport photos to Supabase Storage
-        const passportMain = req.files?.passport_main?.[0];
-        const passportReg = req.files?.passport_reg?.[0];
+        // Get uploaded files
+        const passportMain = files.passport_main;
+        const passportReg = files.passport_reg;
 
         if (!passportMain || !passportReg) {
             return res.status(400).json({ error: 'Passport photos are required' });
         }
+
+        console.log('[Phone Reg] Uploading files to Supabase Storage...');
 
         const timestamp = Date.now();
         const passportMainPath = `${phone}/${timestamp}_main.jpg`;
@@ -400,7 +451,7 @@ async function handlePhoneRegistration(req, res) {
         const { error: uploadMainError } = await supabaseAdmin.storage
             .from('passports')
             .upload(passportMainPath, passportMain.buffer, {
-                contentType: passportMain.mimetype,
+                contentType: passportMain.mimeType,
                 upsert: false
             });
 
@@ -412,7 +463,7 @@ async function handlePhoneRegistration(req, res) {
         const { error: uploadRegError } = await supabaseAdmin.storage
             .from('passports')
             .upload(passportRegPath, passportReg.buffer, {
-                contentType: passportReg.mimetype,
+                contentType: passportReg.mimeType,
                 upsert: false
             });
 
@@ -420,6 +471,8 @@ async function handlePhoneRegistration(req, res) {
             console.error('[Phone Reg] Upload reg error:', uploadRegError);
             throw new Error('Failed to upload registration photo');
         }
+
+        console.log('[Phone Reg] Files uploaded. Running OCR...');
 
         // Run OCR on documents
         let recognized_data = {};
@@ -429,6 +482,7 @@ async function handlePhoneRegistration(req, res) {
                 [passportMainPath, passportRegPath],
                 'ru'
             );
+            console.log('[Phone Reg] OCR result:', recognized_data);
         } catch (e) {
             console.error('[Phone Reg] OCR failed:', e);
             recognized_data = { error: `OCR failed: ${e.message}` };
@@ -438,7 +492,7 @@ async function handlePhoneRegistration(req, res) {
         const newClientData = {
             phone: phone,
             city: city,
-            name: recognized_data.full_name || 'Клиент', // Use OCR name or default
+            name: recognized_data.full_name || recognized_data.last_name + ' ' + recognized_data.first_name || 'Клиент',
             verification_status: 'needs_confirmation',
             balance_rub: 0,
             recognized_passport_data: recognized_data,
@@ -449,6 +503,8 @@ async function handlePhoneRegistration(req, res) {
                 passport_reg_path: passportRegPath
             }
         };
+
+        console.log('[Phone Reg] Creating client in database...');
 
         const { data: newClient, error: insertError } = await supabaseAdmin
             .from('clients')
