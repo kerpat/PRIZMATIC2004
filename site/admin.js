@@ -3559,6 +3559,123 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Add Client Modal Logic ---
+    const addClientBtn = document.getElementById('add-client-btn');
+    const addClientModal = document.getElementById('add-client-modal');
+    const addClientCloseBtn = document.getElementById('add-client-close-btn');
+    const addClientCancelBtn = document.getElementById('add-client-cancel-btn');
+    const addClientSubmitBtn = document.getElementById('add-client-submit-btn');
+    const addClientForm = document.getElementById('add-client-form');
+
+    // Open modal
+    if (addClientBtn) {
+        addClientBtn.addEventListener('click', () => {
+            addClientModal.classList.remove('hidden');
+            addClientForm.reset();
+        });
+    }
+
+    // Close modal
+    const closeAddClientModal = () => {
+        addClientModal.classList.add('hidden');
+        addClientForm.reset();
+    };
+
+    if (addClientCloseBtn) {
+        addClientCloseBtn.addEventListener('click', closeAddClientModal);
+    }
+
+    if (addClientCancelBtn) {
+        addClientCancelBtn.addEventListener('click', closeAddClientModal);
+    }
+
+    // Close on overlay click
+    if (addClientModal) {
+        addClientModal.addEventListener('click', (e) => {
+            if (e.target === addClientModal) {
+                closeAddClientModal();
+            }
+        });
+    }
+
+    // Submit form
+    if (addClientSubmitBtn) {
+        addClientSubmitBtn.addEventListener('click', async () => {
+            const phone = document.getElementById('new-client-phone').value.trim();
+            
+            if (!phone) {
+                alert('Телефон обязателен для заполнения!');
+                return;
+            }
+
+            try {
+                addClientSubmitBtn.disabled = true;
+                addClientSubmitBtn.textContent = 'Создание...';
+
+                // Собираем основные данные
+                const clientData = {
+                    phone: phone,
+                    name: document.getElementById('new-client-name').value.trim() || null,
+                    city: document.getElementById('new-client-city').value || null,
+                    verification_status: document.getElementById('new-client-status').value || 'pending',
+                };
+
+                // Собираем паспортные данные в recognized_data
+                const passportData = {};
+                const passportSeries = document.getElementById('new-client-passport-series').value.trim();
+                const passportIssued = document.getElementById('new-client-passport-issued').value.trim();
+                const passportDate = document.getElementById('new-client-passport-date').value;
+                const birthDate = document.getElementById('new-client-birth-date').value;
+                const birthPlace = document.getElementById('new-client-birth-place').value.trim();
+                const registration = document.getElementById('new-client-registration').value.trim();
+
+                if (passportSeries) passportData.passport_series = passportSeries;
+                if (passportIssued) passportData.passport_issued_by = passportIssued;
+                if (passportDate) passportData.passport_issue_date = passportDate;
+                if (birthDate) passportData.birth_date = birthDate;
+                if (birthPlace) passportData.birth_place = birthPlace;
+                if (registration) passportData.registration_address = registration;
+
+                if (Object.keys(passportData).length > 0) {
+                    clientData.recognized_data = passportData;
+                }
+
+                // Дополнительные данные в extra
+                const extraData = {};
+                const emergencyPhone = document.getElementById('new-client-emergency-phone').value.trim();
+                const notes = document.getElementById('new-client-notes').value.trim();
+
+                if (emergencyPhone) extraData.emergency_contact = emergencyPhone;
+                if (notes) extraData.admin_notes = notes;
+
+                if (Object.keys(extraData).length > 0) {
+                    clientData.extra = extraData;
+                }
+
+                // Создаем клиента в базе
+                const { data, error } = await supabase
+                    .from('clients')
+                    .insert([clientData])
+                    .select();
+
+                if (error) throw error;
+
+                alert('Клиент успешно создан!');
+                closeAddClientModal();
+                
+                // Обновляем таблицу клиентов
+                await loadClients();
+
+            } catch (err) {
+                console.error('Ошибка создания клиента:', err);
+                alert('Ошибка создания клиента: ' + err.message);
+            } finally {
+                addClientSubmitBtn.disabled = false;
+                addClientSubmitBtn.textContent = 'Создать клиента';
+            }
+        });
+    }
+
     // --- New Step-by-Step Return Processing Logic ---
     const returnProcessModal = document.getElementById('return-process-modal');
     if (returnProcessModal) {
