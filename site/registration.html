@@ -263,6 +263,7 @@ document.getElementById('phone-form').addEventListener('submit', async (e) => {
 // Step 2: Call verification
 async function initiateCall(phone) {
     try {
+        console.log('[Call Init] Sending phone:', phone);
         const response = await fetch('/api/call-verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -270,6 +271,7 @@ async function initiateCall(phone) {
         });
 
         const data = await response.json();
+        console.log('[Call Init] Response:', data);
 
         if (!response.ok) {
             throw new Error(data.error || 'Ошибка инициализации звонка');
@@ -308,13 +310,15 @@ function startStatusCheck() {
             });
 
             const data = await response.json();
+            console.log('[Call Status]', data);
 
-            if (data.check_status === '401') {
+            // Проверяем и строку и число
+            if (data.check_status === '401' || data.check_status === 401) {
                 // Номер подтвержден!
                 clearInterval(statusCheckInterval);
                 showSuccess(2, '✓ Номер подтвержден!');
                 setTimeout(() => showStep(3), 1500);
-            } else if (data.check_status === '402') {
+            } else if (data.check_status === '402' || data.check_status === 402) {
                 // Время истекло
                 clearInterval(statusCheckInterval);
                 showError(2, 'Время ожидания истекло. Попробуйте еще раз.');
