@@ -563,6 +563,54 @@ async function handler(req, res) {
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         const { action } = body;
 
+        // Check if user exists by phone
+        if (action === 'check-user-exists') {
+            const { phone } = body;
+            if (!phone) {
+                return res.status(400).json({ error: 'Phone is required' });
+            }
+
+            const supabaseAdmin = createSupabaseAdmin();
+            const { data: client } = await supabaseAdmin
+                .from('clients')
+                .select('id')
+                .eq('phone', phone)
+                .single();
+
+            return res.status(200).json({ exists: !!client });
+        }
+
+        // Login by phone (after call verification)
+        if (action === 'login-by-phone') {
+            const { phone } = body;
+            if (!phone) {
+                return res.status(400).json({ error: 'Phone is required' });
+            }
+
+            const supabaseAdmin = createSupabaseAdmin();
+            const { data: client, error } = await supabaseAdmin
+                .from('clients')
+                .select('*')
+                .eq('phone', phone)
+                .single();
+
+            if (error || !client) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+
+            return res.status(200).json({
+                success: true,
+                user: {
+                    id: client.id,
+                    name: client.name,
+                    phone: client.phone,
+                    city: client.city,
+                    balance_rub: client.balance_rub,
+                    verification_status: client.verification_status
+                }
+            });
+        }
+
         // Handle VK ID complete registration
         if (action === 'vk-complete-registration') {
             return await handleVKCompleteRegistration(req, res);
