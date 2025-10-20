@@ -412,8 +412,9 @@ async function handlePhoneRegistration(req, res) {
 
         const phone = fields.phone;
         const city = fields.city;
+        const citizenship = fields.citizenship || 'ru';
 
-        console.log('[Phone Reg] Phone:', phone, 'City:', city);
+        console.log('[Phone Reg] Phone:', phone, 'City:', city, 'Citizenship:', citizenship);
         console.log('[Phone Reg] Files:', Object.keys(files));
 
         if (!phone || !city) {
@@ -436,18 +437,30 @@ async function handlePhoneRegistration(req, res) {
         // Get uploaded files
         const passportMain = files.passport_main;
         const passportReg = files.passport_reg;
+        const passportVisa = files.passport_visa;
 
-        if (!passportMain || !passportReg) {
-            return res.status(400).json({ error: 'Passport photos are required' });
+        if (!passportMain) {
+            return res.status(400).json({ error: 'Passport main photo is required' });
+        }
+
+        // For 'other' citizenship, require visa instead of reg
+        if (citizenship === 'other' && !passportVisa) {
+            return res.status(400).json({ error: 'Visa or residence permit is required' });
+        }
+
+        // For ru/by/kz, require reg page
+        if (citizenship !== 'other' && !passportReg) {
+            return res.status(400).json({ error: 'Passport registration page is required' });
         }
 
         console.log('[Phone Reg] Uploading files to Supabase Storage...');
 
         const timestamp = Date.now();
         const passportMainPath = `${phone}/${timestamp}_main.jpg`;
-        const passportRegPath = `${phone}/${timestamp}_reg.jpg`;
 
-        // Upload files
+        const uploadedPaths = [passportMainPath];
+
+        // Upload main passport photo
         const { error: uploadMainError } = await supabaseAdmin.storage
             .from('passports')
             .upload(passportMainPath, passportMain.buffer, {
@@ -460,16 +473,36 @@ async function handlePhoneRegistration(req, res) {
             throw new Error('Failed to upload passport main photo');
         }
 
-        const { error: uploadRegError } = await supabaseAdmin.storage
-            .from('passports')
-            .upload(passportRegPath, passportReg.buffer, {
-                contentType: passportReg.mimeType,
-                upsert: false
-            });
+        // Upload second document (reg or visa)
+        let secondDocPath;
+        if (passportReg) {
+            secondDocPath = `${phone}/${timestamp}_reg.jpg`;
+            const { error: uploadRegError } = await supabaseAdmin.storage
+                .from('passports')
+                .upload(secondDocPath, passportReg.buffer, {
+                    contentType: passportReg.mimeType,
+                    upsert: false
+                });
 
-        if (uploadRegError) {
-            console.error('[Phone Reg] Upload reg error:', uploadRegError);
-            throw new Error('Failed to upload registration photo');
+            if (uploadRegError) {
+                console.error('[Phone Reg] Upload reg error:', uploadRegError);
+                throw new Error('Failed to upload registration photo');
+            }
+            uploadedPaths.push(secondDocPath);
+        } else if (passportVisa) {
+            secondDocPath = `${phone}/${timestamp}_visa.jpg`;
+            const { error: uploadVisaError } = await supabaseAdmin.storage
+                .from('passports')
+                .upload(secondDocPath, passportVisa.buffer, {
+                    contentType: passportVisa.mimeType,
+                    upsert: false
+                });
+
+            if (uploadVisaError) {
+                console.error('[Phone Reg] Upload visa error:', uploadVisaError);
+                throw new Error('Failed to upload visa photo');
+            }
+            uploadedPaths.push(secondDocPath);
         }
 
         console.log('[Phone Reg] Files uploaded. Running OCR...');
@@ -479,8 +512,8 @@ async function handlePhoneRegistration(req, res) {
         try {
             recognized_data = await recognizeDocumentsWithGemini(
                 supabaseAdmin,
-                [passportMainPath, passportRegPath],
-                'ru'
+                uploadedPaths,
+                citizenship
             );
             console.log('[Phone Reg] OCR result:', recognized_data);
         } catch (e) {
@@ -499,8 +532,9 @@ async function handlePhoneRegistration(req, res) {
             extra: {
                 auth_provider: 'phone',
                 registered_at: new Date().toISOString(),
+                citizenship: citizenship,
                 passport_main_path: passportMainPath,
-                passport_reg_path: passportRegPath
+                passport_second_path: secondDocPath
             }
         };
 

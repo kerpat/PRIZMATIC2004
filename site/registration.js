@@ -90,7 +90,8 @@ let registrationData = {
     phone: '',
     city: '',
     checkId: '',
-    mode: '' // 'login' or 'register'
+    mode: '', // 'login' or 'register'
+    citizenship: '' // 'ru', 'by', 'kz', 'other'
 };
 
 // Show step function
@@ -125,6 +126,7 @@ document.getElementById('btn-login').addEventListener('click', () => {
 document.getElementById('btn-register').addEventListener('click', () => {
     registrationData.mode = 'register';
     showStep('step-reg-1');
+    updateProgressDots(1);
 });
 
 // Back buttons
@@ -254,9 +256,12 @@ function startStatusCheck(mode) {
                     // Login: fetch user and redirect
                     await completeLogin();
                 } else {
-                    // Registration: go to step 3 (documents)
+                    // Registration: go to step 3 (citizenship selection)
                     showSuccess('reg-2', 'Номер подтвержден');
-                    setTimeout(() => showStep('step-reg-3'), 1500);
+                    setTimeout(() => {
+                        showStep('step-reg-3');
+                        updateProgressDots(3);
+                    }, 1500);
                 }
             } else if (data.check_status === '402' || data.check_status === 402) {
                 clearInterval(statusCheckInterval);
@@ -307,15 +312,150 @@ async function completeLogin() {
     }
 }
 
-// Step 3 (Registration): Documents upload
-document.getElementById('documents-form').addEventListener('submit', async (e) => {
+// Step 4 (Registration): Documents upload - REMOVED OLD CODE, replaced with new version below
+
+// Progress dots update
+function updateProgressDots(currentStep) {
+    for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById(`dot-${i}`);
+        if (dot) {
+            if (i === currentStep) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        }
+    }
+}
+
+// Step 3 (Registration): Citizenship selection
+const citizenshipOptions = document.querySelectorAll('.citizenship-option');
+const citizenshipContinueBtn = document.getElementById('citizenship-continue');
+
+citizenshipOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        // Remove selected from all options
+        citizenshipOptions.forEach(opt => opt.classList.remove('selected'));
+
+        // Mark this option as selected
+        option.classList.add('selected');
+
+        // Store citizenship
+        registrationData.citizenship = option.getAttribute('data-country');
+
+        // Enable continue button
+        citizenshipContinueBtn.disabled = false;
+    });
+});
+
+citizenshipContinueBtn.addEventListener('click', () => {
+    if (!registrationData.citizenship) {
+        showError('reg-3', 'Выберите гражданство');
+        return;
+    }
+
+    showStep('step-reg-4');
+    updateProgressDots(4);
+    generateDocumentInputs(registrationData.citizenship);
+});
+
+// Generate document inputs based on citizenship
+function generateDocumentInputs(citizenship) {
+    const docsContainer = document.getElementById('docs-container');
+    const docsSubtitle = document.getElementById('docs-subtitle');
+    const docsInfo = document.getElementById('docs-info');
+
+    let subtitle = '';
+    let infoTitle = '';
+    let infoText = '';
+    let documents = [];
+
+    switch(citizenship) {
+        case 'ru':
+            subtitle = 'Загрузите фотографии вашего паспорта РФ';
+            infoTitle = 'Требуется 2 фотографии';
+            infoText = 'Лицевая сторона паспорта с фотографией и страница с регистрацией по месту жительства.';
+            documents = [
+                { id: 'passport-main', label: 'Лицевая сторона паспорта', hint: 'Разворот с фотографией' },
+                { id: 'passport-reg', label: 'Страница с регистрацией', hint: 'Регистрация по месту жительства' }
+            ];
+            break;
+        case 'by':
+            subtitle = 'Загрузите фотографии паспорта Республики Беларусь';
+            infoTitle = 'Требуется 2 фотографии';
+            infoText = 'Лицевая сторона паспорта с фотографией и страница с регистрацией.';
+            documents = [
+                { id: 'passport-main', label: 'Лицевая сторона паспорта', hint: 'Разворот с фотографией' },
+                { id: 'passport-reg', label: 'Страница с регистрацией', hint: 'Регистрация' }
+            ];
+            break;
+        case 'kz':
+            subtitle = 'Загрузите фотографии паспорта Республики Казахстан';
+            infoTitle = 'Требуется 2 фотографии';
+            infoText = 'Лицевая сторона паспорта с фотографией и страница с регистрацией.';
+            documents = [
+                { id: 'passport-main', label: 'Лицевая сторона паспорта', hint: 'Разворот с фотографией' },
+                { id: 'passport-reg', label: 'Страница с регистрацией', hint: 'Регистрация' }
+            ];
+            break;
+        case 'other':
+            subtitle = 'Загрузите фотографии документов';
+            infoTitle = 'Требуется паспорт и виза/разрешение';
+            infoText = 'Лицевая сторона паспорта и виза или разрешение на пребывание в РФ.';
+            documents = [
+                { id: 'passport-main', label: 'Лицевая сторона паспорта', hint: 'Разворот с фотографией' },
+                { id: 'passport-visa', label: 'Виза или разрешение', hint: 'Документ на пребывание в РФ' }
+            ];
+            break;
+    }
+
+    // Update subtitle and info
+    docsSubtitle.textContent = subtitle;
+    docsInfo.innerHTML = `<span class="title">${infoTitle}</span>${infoText}`;
+
+    // Generate file inputs
+    docsContainer.innerHTML = documents.map(doc => `
+        <div class="file-upload-wrapper">
+            <input type="file" id="${doc.id}" name="${doc.id}" accept="image/*" capture="environment" required>
+            <label for="${doc.id}" class="file-upload-label" id="label-${doc.id}">
+                <div class="file-upload-info" id="info-${doc.id}">
+                    <span class="title">${doc.label}</span>
+                    <span class="hint">${doc.hint}</span>
+                </div>
+                <div class="file-upload-icon">
+                    <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                </div>
+            </label>
+        </div>
+    `).join('');
+
+    // Setup file inputs
+    documents.forEach(doc => {
+        setupFileInput(doc.id, `label-${doc.id}`, `info-${doc.id}`);
+    });
+}
+
+// Update Step 4 form submission to include citizenship
+const originalFormSubmit = document.getElementById('documents-form');
+originalFormSubmit.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const passportMain = document.getElementById('passport-main').files[0];
-    const passportReg = document.getElementById('passport-reg').files[0];
+    const passportReg = document.getElementById('passport-reg')?.files[0];
+    const passportVisa = document.getElementById('passport-visa')?.files[0];
 
-    if (!passportMain || !passportReg) {
-        showError('reg-3', 'Загрузите обе фотографии');
+    if (!passportMain) {
+        showError('reg-4', 'Загрузите фотографию паспорта');
+        return;
+    }
+
+    if (registrationData.citizenship !== 'other' && !passportReg) {
+        showError('reg-4', 'Загрузите все необходимые фотографии');
+        return;
+    }
+
+    if (registrationData.citizenship === 'other' && !passportVisa) {
+        showError('reg-4', 'Загрузите визу или разрешение');
         return;
     }
 
@@ -327,8 +467,16 @@ document.getElementById('documents-form').addEventListener('submit', async (e) =
         const formData = new FormData();
         formData.append('phone', registrationData.phone);
         formData.append('city', registrationData.city);
+        formData.append('citizenship', registrationData.citizenship);
         formData.append('passport_main', passportMain);
-        formData.append('passport_reg', passportReg);
+
+        if (passportReg) {
+            formData.append('passport_reg', passportReg);
+        }
+
+        if (passportVisa) {
+            formData.append('passport_visa', passportVisa);
+        }
 
         const response = await fetch('/api/auth', {
             method: 'POST',
@@ -348,7 +496,7 @@ document.getElementById('documents-form').addEventListener('submit', async (e) =
         localStorage.setItem('isRegistered', 'true');
         localStorage.setItem('authProvider', 'phone');
 
-        showSuccess('reg-3', 'Регистрация завершена');
+        showSuccess('reg-4', 'Регистрация завершена');
 
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -356,8 +504,9 @@ document.getElementById('documents-form').addEventListener('submit', async (e) =
 
     } catch (error) {
         console.error('Registration error:', error);
-        showError('reg-3', error.message);
+        showError('reg-4', error.message);
         finishBtn.disabled = false;
         finishBtn.textContent = 'Завершить регистрацию';
     }
 });
+

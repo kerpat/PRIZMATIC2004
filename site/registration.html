@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PRIZMATIC</title>
-<link rel="stylesheet" href="style.css?v=11.7">
+<link rel="stylesheet" href="style.css?v=11.8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.registration-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
-.registration-content{width:100%;max-width:420px}
+.registration-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;overflow:hidden}
+.registration-content{width:100%;max-width:420px;position:relative}
 .logo-section{text-align:center;margin-bottom:32px}
 .logo-section h1{font-size:2rem;font-weight:800;color:var(--dark-green);margin-bottom:8px;letter-spacing:-0.5px}
 .logo-section p{font-size:0.95rem;color:#666;font-weight:500}
@@ -47,8 +47,11 @@
 .error-message.active{display:block}
 .success-message{display:none;padding:14px 18px;background:linear-gradient(135deg,var(--light-blue-bg) 0%,#e8f4f5 100%);color:var(--dark-green);border-radius:12px;margin-top:16px;font-size:14px;font-weight:600;border-left:4px solid var(--dark-green)}
 .success-message.active{display:block}
-.step{display:none}
+.step{display:none;animation:fadeIn 0.4s ease-out}
 .step.active{display:block}
+.step.fade-out{animation:fadeOut 0.3s ease-out}
+@keyframes fadeIn{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes fadeOut{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-20px)}}
 .info-banner{background:linear-gradient(135deg,var(--light-blue-bg) 0%,#e8f4f5 100%);border-left:4px solid var(--dark-green);padding:16px 18px;border-radius:12px;margin-bottom:24px;font-size:13px;color:#555;line-height:1.6;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
 .info-banner .title{display:block;margin-bottom:8px;font-size:14px;font-weight:700;color:var(--dark-green)}
 .file-upload-wrapper{position:relative;margin-bottom:24px}
@@ -66,8 +69,17 @@
 .file-upload-label.has-file .file-upload-icon{background:linear-gradient(135deg,var(--dark-green) 0%,var(--primary-blue) 100%);box-shadow:0 2px 12px rgba(13,115,119,0.35)}
 .page-title{text-align:center;margin-bottom:28px}
 .page-title h2{font-size:1.5rem;font-weight:800;color:var(--dark-green);letter-spacing:-0.5px}
-.text-link{text-align:center;margin-top:16px;font-size:14px;color:#666}
-.text-link button{background:none;border:none;color:var(--dark-green);font-weight:600;cursor:pointer;text-decoration:underline}
+.back-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;background:white;border:2px solid #e8e8e8;border-radius:12px;color:var(--dark-green);font-weight:600;font-size:14px;cursor:pointer;transition:all 0.3s;margin-bottom:20px}
+.back-btn:hover{border-color:var(--dark-green);background:var(--light-blue-bg);transform:translateX(-4px)}
+.back-btn svg{width:18px;height:18px;fill:var(--dark-green)}
+.citizenship-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:24px}
+.citizenship-option{padding:16px 18px;background:white;border:2px solid #e8e8e8;border-radius:14px;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;gap:12px}
+.citizenship-option:hover{border-color:var(--dark-green);background:var(--light-blue-bg);transform:translateY(-2px)}
+.citizenship-option.selected{border-color:var(--dark-green);background:linear-gradient(135deg,var(--light-blue-bg) 0%,#e8f4f5 100%);box-shadow:0 2px 8px rgba(13,115,119,0.15)}
+.citizenship-option .flag{font-size:24px;line-height:1}
+.citizenship-option .text{flex:1}
+.citizenship-option .text .name{font-size:15px;font-weight:600;color:var(--dark-green);display:block;margin-bottom:2px}
+.citizenship-option .text .desc{font-size:12px;color:#999}
 </style>
 </head>
 <body>
@@ -96,6 +108,11 @@
 <p>Вход в систему</p>
 </div>
 
+<button class="back-btn" id="back-to-choice-1">
+<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+Назад
+</button>
+
 <div class="reg-card">
 <h2>Введите номер телефона</h2>
 <p class="subtitle">Мы отправим вам бесплатный звонок</p>
@@ -107,9 +124,6 @@
 <button type="submit" class="btn-primary">Продолжить</button>
 </form>
 <div class="error-message" id="error-login-1"></div>
-<div class="text-link">
-<button id="back-to-choice-1">← Назад</button>
-</div>
 </div>
 </div>
 
@@ -157,7 +171,13 @@
 <div class="step-dot active" id="dot-1"></div>
 <div class="step-dot" id="dot-2"></div>
 <div class="step-dot" id="dot-3"></div>
+<div class="step-dot" id="dot-4"></div>
 </div>
+
+<button class="back-btn" id="back-to-choice-2">
+<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+Назад
+</button>
 
 <div class="reg-card">
 <h2>Основная информация</h2>
@@ -185,9 +205,6 @@
 <button type="submit" class="btn-primary">Продолжить</button>
 </form>
 <div class="error-message" id="error-reg-1"></div>
-<div class="text-link">
-<button id="back-to-choice-2">← Назад</button>
-</div>
 </div>
 </div>
 
@@ -224,56 +241,75 @@
 </div>
 </div>
 
-<!-- Шаг 3 (Регистрация): Загрузка документов -->
+<!-- Шаг 3 (Регистрация): Выбор гражданства -->
 <div class="step" id="step-reg-3">
+<div class="page-title">
+<h2>Выбор гражданства</h2>
+</div>
+
+<div class="reg-card">
+<p class="subtitle">Выберите ваше гражданство</p>
+
+<div class="citizenship-grid">
+<div class="citizenship-option" data-country="ru">
+<span class="flag">🇷🇺</span>
+<div class="text">
+<span class="name">Россия</span>
+<span class="desc">Паспорт РФ</span>
+</div>
+</div>
+<div class="citizenship-option" data-country="by">
+<span class="flag">🇧🇾</span>
+<div class="text">
+<span class="name">Беларусь</span>
+<span class="desc">Паспорт Республики Беларусь</span>
+</div>
+</div>
+<div class="citizenship-option" data-country="kz">
+<span class="flag">🇰🇿</span>
+<div class="text">
+<span class="name">Казахстан</span>
+<span class="desc">Паспорт Республики Казахстан</span>
+</div>
+</div>
+<div class="citizenship-option" data-country="other">
+<span class="flag">🌍</span>
+<div class="text">
+<span class="name">Другая страна</span>
+<span class="desc">Иностранный паспорт</span>
+</div>
+</div>
+</div>
+
+<button class="btn-primary" id="citizenship-continue" disabled>Продолжить</button>
+<div class="error-message" id="error-reg-3"></div>
+</div>
+</div>
+
+<!-- Шаг 4 (Регистрация): Загрузка документов -->
+<div class="step" id="step-reg-4">
 <div class="page-title">
 <h2>Документы для аренды</h2>
 </div>
 
 <div class="reg-card">
-<p class="subtitle">Загрузите фотографии вашего паспорта</p>
+<p class="subtitle" id="docs-subtitle">Загрузите фотографии вашего паспорта</p>
 
-<div class="info-banner">
+<div class="info-banner" id="docs-info">
 <span class="title">Требуется 2 фотографии</span>
 Лицевая сторона паспорта с фотографией и страница с регистрацией по месту жительства.
 </div>
 
 <form id="documents-form">
-<div class="file-upload-wrapper">
-<input type="file" id="passport-main" accept="image/*" capture="environment" required>
-<label for="passport-main" class="file-upload-label" id="label-main">
-<div class="file-upload-info" id="info-main">
-<span class="title">Лицевая сторона</span>
-<span class="hint">Разворот с фотографией</span>
-</div>
-<div class="file-upload-icon">
-<svg viewBox="0 0 24 24">
-<path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
-</svg>
-</div>
-</label>
-</div>
-
-<div class="file-upload-wrapper">
-<input type="file" id="passport-reg" accept="image/*" capture="environment" required>
-<label for="passport-reg" class="file-upload-label" id="label-reg">
-<div class="file-upload-info" id="info-reg">
-<span class="title">Страница с пропиской</span>
-<span class="hint">Регистрация по месту жительства</span>
-</div>
-<div class="file-upload-icon">
-<svg viewBox="0 0 24 24">
-<path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
-</svg>
-</div>
-</label>
+<div id="docs-container">
+<!-- Динамически заполняется JS -->
 </div>
 
 <button type="submit" class="btn-primary" id="finish-btn">Завершить регистрацию</button>
 </form>
 
-<div class="error-message" id="error-reg-3"></div>
-<div class="success-message" id="success-reg-3"></div>
+<div class="error-message" id="error-reg-4"></div>
+<div class="success-message" id="success-reg-4"></div>
 </div>
 </div>
 
