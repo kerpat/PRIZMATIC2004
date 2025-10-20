@@ -413,8 +413,9 @@ async function handlePhoneRegistration(req, res) {
         const phone = fields.phone;
         const city = fields.city;
         const citizenship = fields.citizenship || 'ru';
+        const country = fields.country || ''; // Country name for "other" citizenship
 
-        console.log('[Phone Reg] Phone:', phone, 'City:', city, 'Citizenship:', citizenship);
+        console.log('[Phone Reg] Phone:', phone, 'City:', city, 'Citizenship:', citizenship, 'Country:', country);
         console.log('[Phone Reg] Files:', Object.keys(files));
 
         if (!phone || !city) {
@@ -533,6 +534,7 @@ async function handlePhoneRegistration(req, res) {
                 auth_provider: 'phone',
                 registered_at: new Date().toISOString(),
                 citizenship: citizenship,
+                country: country, // Save country name if provided
                 passport_main_path: passportMainPath,
                 passport_second_path: secondDocPath
             }

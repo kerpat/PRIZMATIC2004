@@ -91,7 +91,8 @@ let registrationData = {
     city: '',
     checkId: '',
     mode: '', // 'login' or 'register'
-    citizenship: '' // 'ru', 'by', 'kz', 'other'
+    citizenship: '', // 'ru', 'by', 'kz', 'other'
+    country: '' // Name of country if citizenship is 'other'
 };
 
 // Show step function
@@ -339,6 +340,8 @@ function updateProgressDots(currentStep) {
 // Step 3 (Registration): Citizenship selection
 const citizenshipOptions = document.querySelectorAll('.citizenship-option');
 const citizenshipContinueBtn = document.getElementById('citizenship-continue');
+const otherCountryInput = document.getElementById('other-country-input');
+const countryNameInput = document.getElementById('country-name');
 
 citizenshipOptions.forEach(option => {
     option.addEventListener('click', () => {
@@ -351,6 +354,16 @@ citizenshipOptions.forEach(option => {
         // Store citizenship
         registrationData.citizenship = option.getAttribute('data-country');
 
+        // Show/hide country input for "other"
+        if (registrationData.citizenship === 'other') {
+            otherCountryInput.style.display = 'block';
+            countryNameInput.required = true;
+        } else {
+            otherCountryInput.style.display = 'none';
+            countryNameInput.required = false;
+            countryNameInput.value = '';
+        }
+
         // Enable continue button
         citizenshipContinueBtn.disabled = false;
     });
@@ -360,6 +373,16 @@ citizenshipContinueBtn.addEventListener('click', () => {
     if (!registrationData.citizenship) {
         showError('reg-3', 'Выберите гражданство');
         return;
+    }
+
+    // Check if "other" is selected and country name is provided
+    if (registrationData.citizenship === 'other') {
+        const countryName = countryNameInput.value.trim();
+        if (!countryName) {
+            showError('reg-3', 'Укажите вашу страну');
+            return;
+        }
+        registrationData.country = countryName;
     }
 
     showStep('step-reg-4');
@@ -476,6 +499,9 @@ originalFormSubmit.addEventListener('submit', async (e) => {
         formData.append('phone', registrationData.phone);
         formData.append('city', registrationData.city);
         formData.append('citizenship', registrationData.citizenship);
+        if (registrationData.country) {
+            formData.append('country', registrationData.country);
+        }
         formData.append('passport_main', passportMain);
 
         if (passportReg) {
