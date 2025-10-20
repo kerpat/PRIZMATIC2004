@@ -516,6 +516,7 @@
     <script>
         // Глобальные переменные
         let supabase;
+        let globalClientChannel = null;
         let globalRentalChannel = null;
         let globalBookingChannel = null;
         let isLoadingUserData = false; // Флаг для предотвращения множественных вызовов
@@ -1319,6 +1320,102 @@
         // Функция для установки глобальных real-time подписок
         function setupGlobalRealtimeSubscriptions(userId) {
             console.log('[Realtime] Setting up global subscriptions for user:', userId);
+
+            // Подписка на изменения статуса верификации клиента
+            if (globalClientChannel) {
+                supabase.removeChannel(globalClientChannel);
+            }
+
+            globalClientChannel = supabase.channel(`global-client-${userId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'clients',
+                    filter: `id=eq.${userId}`
+                }, payload => {
+                    console.log('[Realtime] Client verification status changed:', payload);
+                    
+                    // Проверяем изменение статуса верификации
+                    if (payload.new && payload.new.verification_status) {
+                        const newStatus = payload.new.verification_status;
+                        const oldStatus = payload.old ? payload.old.verification_status : null;
+                        
+                        console.log(`[Realtime] Status changed from ${oldStatus} to ${newStatus}`);
+                        
+                        // Если статус изменился на 'approved', показываем уведомление и перезагружаем
+                        if (newStatus === 'approved' && oldStatus !== 'approved') {
+                            console.log('[Realtime] ✅ Account approved! Reloading interface...');
+                            
+                            // Показываем красивое уведомление
+                            const notification = document.createElement('div');
+                            notification.style.cssText = `
+                                position: fixed;
+                                top: 20px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: linear-gradient(135deg, #0d7377, #0a5a5e);
+                                color: white;
+                                padding: 20px 30px;
+                                border-radius: 16px;
+                                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                                z-index: 10000;
+                                font-weight: 600;
+                                font-size: 16px;
+                                animation: slideDown 0.3s ease-out;
+                            `;
+                            notification.innerHTML = '✅ Ваш аккаунт одобрен!';
+                            document.body.appendChild(notification);
+                            
+                            // Добавляем анимацию
+                            const style = document.createElement('style');
+                            style.textContent = `
+                                @keyframes slideDown {
+                                    from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+                                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                                }
+                            `;
+                            document.head.appendChild(style);
+                            
+                            // Перезагружаем данные через 1.5 секунды
+                            setTimeout(() => {
+                                notification.remove();
+                                loadUserData();
+                            }, 1500);
+                        } 
+                        // Если статус изменился на 'rejected', также уведомляем
+                        else if (newStatus === 'rejected' && oldStatus !== 'rejected') {
+                            console.log('[Realtime] ❌ Account rejected');
+                            
+                            const notification = document.createElement('div');
+                            notification.style.cssText = `
+                                position: fixed;
+                                top: 20px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: #e53e3e;
+                                color: white;
+                                padding: 20px 30px;
+                                border-radius: 16px;
+                                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+                                z-index: 10000;
+                                font-weight: 600;
+                                font-size: 16px;
+                            `;
+                            notification.innerHTML = 'В верификации отказано';
+                            document.body.appendChild(notification);
+                            
+                            setTimeout(() => {
+                                notification.remove();
+                                loadUserData();
+                            }, 2000);
+                        }
+                    }
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('[Realtime] ✓ Subscribed to client verification updates');
+                    }
+                });
 
             // Подписка на изменения в таблице rentals
             if (globalRentalChannel) {
