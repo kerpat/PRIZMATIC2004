@@ -19,6 +19,7 @@ const geminiOCR = require('./_lib_gemini-ocr');
 const storageHandler = require('./_lib_storage');
 const notifyHandler = require('./_lib_notify');
 const dataHandler = require('./_lib_data');
+const callVerifyHandler = require('./_lib_call_verify');
 
 module.exports = async (req, res) => {
     // CORS
@@ -103,6 +104,9 @@ module.exports = async (req, res) => {
 
             case 'data':
                 return dataHandler(req, res);
+
+            case 'call-verify':
+                return callVerifyHandler(req, res);
 
             default:
                 return res.status(404).json({

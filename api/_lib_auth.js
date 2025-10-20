@@ -359,6 +359,131 @@ async function handleVKLogin(req, res) {
     }
 }
 
+/**
+ * Handle phone registration with document upload (SMS.ru flow)
+ */
+async function handlePhoneRegistration(req, res) {
+    const formData = req.body; // multipart/form-data parsed by Vercel
+    const { phone, city } = formData;
+
+    if (!phone || !city) {
+        return res.status(400).json({ error: 'Phone and city are required' });
+    }
+
+    try {
+        const supabaseAdmin = createSupabaseAdmin();
+
+        // Check if user already exists
+        const { data: existingClient } = await supabaseAdmin
+            .from('clients')
+            .select('*')
+            .eq('phone', phone)
+            .single();
+
+        if (existingClient) {
+            return res.status(409).json({ error: 'Пользователь с таким номером уже зарегистрирован' });
+        }
+
+        // Upload passport photos to Supabase Storage
+        const passportMain = req.files?.passport_main?.[0];
+        const passportReg = req.files?.passport_reg?.[0];
+
+        if (!passportMain || !passportReg) {
+            return res.status(400).json({ error: 'Passport photos are required' });
+        }
+
+        const timestamp = Date.now();
+        const passportMainPath = `${phone}/${timestamp}_main.jpg`;
+        const passportRegPath = `${phone}/${timestamp}_reg.jpg`;
+
+        // Upload files
+        const { error: uploadMainError } = await supabaseAdmin.storage
+            .from('passports')
+            .upload(passportMainPath, passportMain.buffer, {
+                contentType: passportMain.mimetype,
+                upsert: false
+            });
+
+        if (uploadMainError) {
+            console.error('[Phone Reg] Upload main error:', uploadMainError);
+            throw new Error('Failed to upload passport main photo');
+        }
+
+        const { error: uploadRegError } = await supabaseAdmin.storage
+            .from('passports')
+            .upload(passportRegPath, passportReg.buffer, {
+                contentType: passportReg.mimetype,
+                upsert: false
+            });
+
+        if (uploadRegError) {
+            console.error('[Phone Reg] Upload reg error:', uploadRegError);
+            throw new Error('Failed to upload registration photo');
+        }
+
+        // Run OCR on documents
+        let recognized_data = {};
+        try {
+            recognized_data = await recognizeDocumentsWithGemini(
+                supabaseAdmin,
+                [passportMainPath, passportRegPath],
+                'ru'
+            );
+        } catch (e) {
+            console.error('[Phone Reg] OCR failed:', e);
+            recognized_data = { error: `OCR failed: ${e.message}` };
+        }
+
+        // Create new client
+        const newClientData = {
+            phone: phone,
+            city: city,
+            name: recognized_data.full_name || 'Клиент', // Use OCR name or default
+            verification_status: 'needs_confirmation',
+            balance_rub: 0,
+            recognized_passport_data: recognized_data,
+            extra: {
+                auth_provider: 'phone',
+                registered_at: new Date().toISOString(),
+                passport_main_path: passportMainPath,
+                passport_reg_path: passportRegPath
+            }
+        };
+
+        const { data: newClient, error: insertError } = await supabaseAdmin
+            .from('clients')
+            .insert([newClientData])
+            .select()
+            .single();
+
+        if (insertError) {
+            console.error('[Phone Reg] Insert error:', insertError);
+            throw new Error('Failed to create user account');
+        }
+
+        console.log('[Phone Reg] New user created:', newClient.id);
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: newClient.id,
+                name: newClient.name,
+                phone: newClient.phone,
+                city: newClient.city,
+                balance_rub: newClient.balance_rub,
+                verification_status: newClient.verification_status
+            }
+        });
+
+    } catch (error) {
+        console.error('[Phone Reg] Error:', error);
+        return res.status(500).json({
+            error: 'Registration failed',
+            details: error.message
+        });
+    }
+}
+
 async function handler(req, res) {
     try {
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -372,6 +497,11 @@ async function handler(req, res) {
         if (req.method !== 'POST') {
             res.setHeader('Allow', 'POST, OPTIONS');
             return res.status(405).json({ error: 'Method Not Allowed' });
+        }
+
+        // Check if this is multipart/form-data (file upload)
+        if (req.headers['content-type']?.includes('multipart/form-data')) {
+            return await handlePhoneRegistration(req, res);
         }
 
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
