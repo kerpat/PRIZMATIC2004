@@ -1389,92 +1389,139 @@
   <div id="add-client-modal" class="overlay hidden">
     <div class="modal" style="max-width: 600px;">
       <div class="modal-header">
-        <h3>Добавить клиента вручную</h3>
+        <h3 id="add-client-modal-title">Добавить клиента вручную</h3>
         <button id="add-client-close-btn" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
+        
+        <!-- Индикатор шагов -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px; position: relative;">
+          <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--progress-bar-bg); z-index: 0;"></div>
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-label">Основные данные</div>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Паспортные данные</div>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Дополнительно</div>
+          </div>
+        </div>
+
         <form id="add-client-form">
-          <!-- Основные данные -->
-          <div class="form-group">
-            <label for="new-client-phone">Телефон <span style="color: red;">*</span></label>
-            <input type="tel" id="new-client-phone" class="modal-form-input" placeholder="+7 (900) 123-45-67" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-name">ФИО</label>
-            <input type="text" id="new-client-name" class="modal-form-input" placeholder="Иванов Иван Иванович">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-city">Город</label>
-            <select id="new-client-city" class="modal-form-input">
-              <option value="">Выберите город</option>
-              <option value="Москва">Москва</option>
-              <option value="Санкт-Петербург">Санкт-Петербург</option>
-            </select>
+          <!-- Шаг 1: Основные данные -->
+          <div id="client-step-1" class="client-step">
+            <h4 style="margin-bottom: 15px;">Основные данные</h4>
+            
+            <div class="form-group">
+              <label for="new-client-phone">Телефон <span style="color: red;">*</span></label>
+              <input type="tel" id="new-client-phone" class="form-control" placeholder="+7 (900) 123-45-67" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-name">ФИО</label>
+              <input type="text" id="new-client-name" class="form-control" placeholder="Иванов Иван Иванович">
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-city">Город</label>
+              <select id="new-client-city" class="form-control">
+                <option value="">Выберите город</option>
+                <option value="Москва">Москва</option>
+                <option value="Санкт-Петербург">Санкт-Петербург</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="new-client-country">Страна/Гражданство</label>
+              <select id="new-client-country" class="form-control">
+                <option value="">Выберите страну</option>
+                <option value="Россия">🇷🇺 Россия</option>
+                <option value="Беларусь">🇧🇾 Беларусь</option>
+                <option value="Казахстан">🇰🇿 Казахстан</option>
+                <option value="Узбекистан">🇺🇿 Узбекистан</option>
+                <option value="Кыргызстан">🇰🇬 Кыргызстан</option>
+                <option value="Таджикистан">🇹🇯 Таджикистан</option>
+                <option value="Армения">🇦🇲 Армения</option>
+                <option value="Азербайджан">🇦🇿 Азербайджан</option>
+                <option value="Молдова">🇲🇩 Молдова</option>
+                <option value="Другая">🌍 Другая страна</option>
+              </select>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="new-client-status">Статус верификации</label>
-            <select id="new-client-status" class="modal-form-input">
-              <option value="pending">Ожидает проверки</option>
-              <option value="approved">Одобрен</option>
-              <option value="rejected">Отклонен</option>
-              <option value="pending_ocr">Ожидает OCR</option>
-              <option value="ocr_complete">OCR завершен</option>
-            </select>
+          <!-- Шаг 2: Паспортные данные -->
+          <div id="client-step-2" class="client-step hidden">
+            <h4 style="margin-bottom: 15px;">Паспортные данные</h4>
+            <p style="color: #666; margin-bottom: 15px; font-size: 13px;">Все поля опциональны</p>
+            
+            <div class="form-group">
+              <label for="new-client-passport-series">Серия и номер паспорта</label>
+              <input type="text" id="new-client-passport-series" class="form-control" placeholder="1234 567890">
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-passport-issued">Кем выдан</label>
+              <input type="text" id="new-client-passport-issued" class="form-control" placeholder="ОВД района...">
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-passport-date">Дата выдачи</label>
+              <input type="text" id="new-client-passport-date" class="form-control" placeholder="ДД.ММ.ГГГГ">
+              <small style="color: #666; margin-top: 5px; display: block;">Формат: 01.01.2020</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-birth-date">Дата рождения</label>
+              <input type="text" id="new-client-birth-date" class="form-control" placeholder="ДД.ММ.ГГГГ">
+              <small style="color: #666; margin-top: 5px; display: block;">Формат: 01.01.1990</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-birth-place">Место рождения</label>
+              <input type="text" id="new-client-birth-place" class="form-control" placeholder="г. Москва">
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-registration">Адрес регистрации</label>
+              <textarea id="new-client-registration" class="form-control" rows="2" placeholder="г. Москва, ул. Ленина, д. 1, кв. 1"></textarea>
+            </div>
           </div>
 
-          <!-- Паспортные данные (опционально) -->
-          <h4 style="margin-top: 20px; margin-bottom: 10px; color: var(--dark-green);">Паспортные данные (опционально)</h4>
-          
-          <div class="form-group">
-            <label for="new-client-passport-series">Серия и номер паспорта</label>
-            <input type="text" id="new-client-passport-series" class="modal-form-input" placeholder="1234 567890">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-passport-issued">Кем выдан</label>
-            <input type="text" id="new-client-passport-issued" class="modal-form-input" placeholder="ОВД района...">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-passport-date">Дата выдачи</label>
-            <input type="date" id="new-client-passport-date" class="modal-form-input">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-birth-date">Дата рождения</label>
-            <input type="date" id="new-client-birth-date" class="modal-form-input">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-birth-place">Место рождения</label>
-            <input type="text" id="new-client-birth-place" class="modal-form-input" placeholder="г. Москва">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-registration">Адрес регистрации</label>
-            <textarea id="new-client-registration" class="modal-form-input" rows="2" placeholder="г. Москва, ул. Ленина, д. 1, кв. 1"></textarea>
-          </div>
-
-          <!-- Дополнительные данные -->
-          <h4 style="margin-top: 20px; margin-bottom: 10px; color: var(--dark-green);">Дополнительно</h4>
-          
-          <div class="form-group">
-            <label for="new-client-emergency-phone">Экстренный контакт</label>
-            <input type="tel" id="new-client-emergency-phone" class="modal-form-input" placeholder="+7 (900) 123-45-67">
-          </div>
-          
-          <div class="form-group">
-            <label for="new-client-notes">Заметки</label>
-            <textarea id="new-client-notes" class="modal-form-input" rows="3" placeholder="Дополнительная информация о клиенте"></textarea>
+          <!-- Шаг 3: Дополнительные данные -->
+          <div id="client-step-3" class="client-step hidden">
+            <h4 style="margin-bottom: 15px;">Дополнительная информация</h4>
+            
+            <div class="form-group">
+              <label for="new-client-status">Статус верификации</label>
+              <select id="new-client-status" class="form-control">
+                <option value="pending">Ожидает проверки</option>
+                <option value="approved">Одобрен</option>
+                <option value="rejected">Отклонен</option>
+                <option value="pending_ocr">Ожидает OCR</option>
+                <option value="ocr_complete">OCR завершен</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-emergency-phone">Экстренный контакт</label>
+              <input type="tel" id="new-client-emergency-phone" class="form-control" placeholder="+7 (900) 123-45-67">
+            </div>
+            
+            <div class="form-group">
+              <label for="new-client-notes">Заметки администратора</label>
+              <textarea id="new-client-notes" class="form-control" rows="3" placeholder="Дополнительная информация о клиенте"></textarea>
+            </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" id="add-client-submit-btn" class="btn btn-primary">Создать клиента</button>
-        <button type="button" id="add-client-cancel-btn" class="btn btn-secondary">Отмена</button>
+        <button type="button" id="client-prev-btn" class="btn btn-secondary hidden">← Назад</button>
+        <button type="button" id="client-next-btn" class="btn btn-primary">Далее →</button>
+        <button type="button" id="add-client-submit-btn" class="btn btn-primary hidden">Создать клиента</button>
       </div>
     </div>
   </div>

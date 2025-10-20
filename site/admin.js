@@ -3563,15 +3563,119 @@ document.addEventListener('DOMContentLoaded', () => {
     const addClientBtn = document.getElementById('add-client-btn');
     const addClientModal = document.getElementById('add-client-modal');
     const addClientCloseBtn = document.getElementById('add-client-close-btn');
-    const addClientCancelBtn = document.getElementById('add-client-cancel-btn');
     const addClientSubmitBtn = document.getElementById('add-client-submit-btn');
     const addClientForm = document.getElementById('add-client-form');
+    const clientPrevBtn = document.getElementById('client-prev-btn');
+    const clientNextBtn = document.getElementById('client-next-btn');
+    const clientStep1 = document.getElementById('client-step-1');
+    const clientStep2 = document.getElementById('client-step-2');
+    const clientStep3 = document.getElementById('client-step-3');
+
+    let currentClientStep = 1;
+
+    // Phone mask helper
+    function formatPhoneInput(input) {
+        input.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.startsWith('7')) value = value.substring(1);
+            else if (value.startsWith('8')) value = value.substring(1);
+            
+            let formatted = '+7';
+            if (value.length > 0) formatted += ' (' + value.substring(0, 3);
+            if (value.length > 3) formatted += ') ' + value.substring(3, 6);
+            if (value.length > 6) formatted += '-' + value.substring(6, 8);
+            if (value.length > 8) formatted += '-' + value.substring(8, 10);
+            
+            e.target.value = formatted;
+        });
+    }
+
+    // Date mask helper (DD.MM.YYYY)
+    function formatDateInput(input) {
+        input.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            let formatted = '';
+            
+            if (value.length > 0) formatted += value.substring(0, 2);
+            if (value.length > 2) formatted += '.' + value.substring(2, 4);
+            if (value.length > 4) formatted += '.' + value.substring(4, 8);
+            
+            e.target.value = formatted;
+        });
+    }
+
+    // Apply masks
+    const phoneInputs = [
+        document.getElementById('new-client-phone'),
+        document.getElementById('new-client-emergency-phone')
+    ];
+    phoneInputs.forEach(input => {
+        if (input) formatPhoneInput(input);
+    });
+
+    const dateInputs = [
+        document.getElementById('new-client-passport-date'),
+        document.getElementById('new-client-birth-date')
+    ];
+    dateInputs.forEach(input => {
+        if (input) formatDateInput(input);
+    });
+
+    // Update step display
+    function updateClientStepDisplay() {
+        [clientStep1, clientStep2, clientStep3].forEach((step, idx) => {
+            if (step) step.classList.toggle('hidden', idx + 1 !== currentClientStep);
+        });
+
+        if (clientPrevBtn) clientPrevBtn.classList.toggle('hidden', currentClientStep === 1);
+        if (clientNextBtn) clientNextBtn.classList.toggle('hidden', currentClientStep === 3);
+        if (addClientSubmitBtn) addClientSubmitBtn.classList.toggle('hidden', currentClientStep !== 3);
+
+        // Update step indicators
+        document.querySelectorAll('#add-client-modal .step-indicator').forEach((indicator, idx) => {
+            const circle = indicator.querySelector('.step-circle');
+            const stepNum = idx + 1;
+            
+            circle.classList.toggle('active', stepNum === currentClientStep);
+            circle.classList.toggle('completed', stepNum < currentClientStep);
+        });
+    }
 
     // Open modal
     if (addClientBtn) {
         addClientBtn.addEventListener('click', () => {
             addClientModal.classList.remove('hidden');
             addClientForm.reset();
+            currentClientStep = 1;
+            updateClientStepDisplay();
+        });
+    }
+
+    // Navigation buttons
+    if (clientPrevBtn) {
+        clientPrevBtn.addEventListener('click', () => {
+            if (currentClientStep > 1) {
+                currentClientStep--;
+                updateClientStepDisplay();
+            }
+        });
+    }
+
+    if (clientNextBtn) {
+        clientNextBtn.addEventListener('click', () => {
+            // Validation for step 1
+            if (currentClientStep === 1) {
+                const phone = document.getElementById('new-client-phone').value.trim();
+                if (!phone) {
+                    alert('Пожалуйста, введите номер телефона');
+                    return;
+                }
+            }
+            
+            if (currentClientStep < 3) {
+                currentClientStep++;
+                updateClientStepDisplay();
+            }
         });
     }
 
@@ -3579,14 +3683,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeAddClientModal = () => {
         addClientModal.classList.add('hidden');
         addClientForm.reset();
+        currentClientStep = 1;
+        updateClientStepDisplay();
     };
 
     if (addClientCloseBtn) {
         addClientCloseBtn.addEventListener('click', closeAddClientModal);
-    }
-
-    if (addClientCancelBtn) {
-        addClientCancelBtn.addEventListener('click', closeAddClientModal);
     }
 
     // Close on overlay click
@@ -3642,9 +3744,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Дополнительные данные в extra
                 const extraData = {};
+                const country = document.getElementById('new-client-country').value;
                 const emergencyPhone = document.getElementById('new-client-emergency-phone').value.trim();
                 const notes = document.getElementById('new-client-notes').value.trim();
 
+                if (country) extraData.country = country;
                 if (emergencyPhone) extraData.emergency_contact = emergencyPhone;
                 if (notes) extraData.admin_notes = notes;
 

@@ -2411,3 +2411,23 @@ Step-by-step return process styles */
   height: 18px;
   cursor: pointer;
 }
+
+/* Client step styles */
+.client-step {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.client-step.hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
