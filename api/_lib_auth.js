@@ -135,6 +135,121 @@ async function recognizeDocumentsWithGemini(supabaseAdmin, filePaths, countryCod
     }
 }
 
+/**
+ * Handle VK ID authentication
+ */
+async function handleVKLogin(req, res) {
+    const { authData } = req.body;
+
+    if (!authData || !authData.access_token || !authData.user_id) {
+        return res.status(400).json({ error: 'Missing VK authentication data' });
+    }
+
+    try {
+        const supabaseAdmin = createSupabaseAdmin();
+
+        // Get user info from VK API
+        const vkApiUrl = `https://api.vk.com/method/users.get?user_ids=${authData.user_id}&fields=photo_200,city,bdate,contacts_phone&access_token=${authData.access_token}&v=5.131`;
+
+        const vkResponse = await axios.get(vkApiUrl);
+
+        if (vkResponse.data.error) {
+            throw new Error(`VK API Error: ${vkResponse.data.error.error_msg}`);
+        }
+
+        const vkUser = vkResponse.data.response[0];
+
+        if (!vkUser) {
+            throw new Error('Failed to fetch VK user data');
+        }
+
+        console.log('[VK Auth] VK user data received:', vkUser.id);
+
+        // Check if user exists in database
+        const { data: existingClient, error: selectError } = await supabaseAdmin
+            .from('clients')
+            .select('*')
+            .eq('vk_user_id', authData.user_id)
+            .single();
+
+        let client;
+
+        if (selectError && selectError.code === 'PGRST116') {
+            // User doesn't exist - create new account
+            console.log('[VK Auth] Creating new user...');
+
+            const newClientData = {
+                vk_user_id: authData.user_id,
+                name: `${vkUser.first_name} ${vkUser.last_name}`,
+                verification_status: 'pending',
+                balance_rub: 0,
+                extra: {
+                    vk_photo: vkUser.photo_200,
+                    vk_city: vkUser.city?.title || '',
+                    auth_provider: 'vk'
+                }
+            };
+
+            const { data: newClient, error: insertError } = await supabaseAdmin
+                .from('clients')
+                .insert([newClientData])
+                .select()
+                .single();
+
+            if (insertError) {
+                console.error('[VK Auth] Insert error:', insertError);
+                throw new Error('Failed to create user account');
+            }
+
+            client = newClient;
+            console.log('[VK Auth] New user created:', client.id);
+
+        } else if (selectError) {
+            // Other database error
+            throw selectError;
+        } else {
+            // User exists - update last login
+            client = existingClient;
+            console.log('[VK Auth] Existing user found:', client.id);
+
+            // Update user data
+            await supabaseAdmin
+                .from('clients')
+                .update({
+                    name: `${vkUser.first_name} ${vkUser.last_name}`,
+                    extra: {
+                        ...client.extra,
+                        vk_photo: vkUser.photo_200,
+                        vk_city: vkUser.city?.title || '',
+                        last_vk_login: new Date().toISOString()
+                    }
+                })
+                .eq('id', client.id);
+        }
+
+        // Return user data
+        return res.status(200).json({
+            success: true,
+            isNewUser: !existingClient,
+            user: {
+                id: client.id,
+                name: client.name,
+                phone: client.phone,
+                city: client.city,
+                balance_rub: client.balance_rub,
+                verification_status: client.verification_status
+            }
+        });
+
+    } catch (error) {
+        console.error('[VK Auth] Error:', error);
+        return res.status(500).json({
+            error: 'VK authentication failed',
+            details: error.message
+        });
+    }
+}
+
 async function handler(req, res) {
     try {
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -149,13 +264,20 @@ async function handler(req, res) {
             res.setHeader('Allow', 'POST, OPTIONS');
             return res.status(405).json({ error: 'Method Not Allowed' });
         }
+
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const { action } = body;
+
+        // Handle VK ID login
+        if (action === 'vk-login') {
+            return await handleVKLogin(req, res);
+        }
+
+        // Telegram auth requires bot token
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
         if (!botToken) {
             throw new Error('TELEGRAM_BOT_TOKEN is not configured');
         }
-
-        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-        const { action } = body;
 
         if (action === 'login') {
             const { initData } = body;

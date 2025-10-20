@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 538AB@0F8O - PRIZMATIC</title>
+    <link rel="stylesheet" href="style.css?v=11.3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- VK ID SDK -->
+    <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+
+    <!-- Supabase SDK -->
+    <script src="supabase.min.js" async></script>
+    <script src="/api/config?v=11.3"></script>
+
+    <!-- VK Auth Module -->
+    <script src="auth-vk.js" defer></script>
+
+    <style>
+        .registration-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .registration-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .registration-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .registration-header h1 {
+            font-size: 28px;
+            color: var(--dark-green);
+            margin-bottom: 8px;
+        }
+
+        .registration-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .auth-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-section {
+            width: 100%;
+        }
+
+        .auth-section-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .vk-auth-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .divider span {
+            padding: 0 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .telegram-auth-section {
+            text-align: center;
+        }
+
+        .telegram-auth-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #2AABEE 0%, #229ED9 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+            max-width: 340px;
+        }
+
+        .telegram-auth-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .telegram-auth-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .loading-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-screen.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--dark-green);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            display: none;
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .success-message {
+            display: none;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+
+        .info-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+
+        .platform-badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-spinner"></div>
+        <h2>2B>@870F8O...</h2>
+        <p style="color: var(--text-secondary); margin-top: 10px;">@>25@O5< 20H8 40==K5</p>
+    </div>
+
+    <!-- Main Registration Container -->
+    <div class="registration-container">
+        <div class="registration-card">
+            <div class="registration-header">
+                <h1>>1@> ?>60;>20BL</h1>
+                <p>>948B5 2 PRIZMATIC 4;O 0@5=4K 25;>A8?54>2</p>
+            </div>
+
+            <div class="auth-methods">
+                <!-- VK ID Auth Section -->
+                <div class="auth-section" id="vk-auth-section">
+                    <div class="auth-section-title">KAB@K9 2E>4 G5@57 VK ID</div>
+                    <div class="vk-auth-container" id="vk-auth-container">
+                        <!-- VK One Tap button will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="divider">
+                    <span>8;8</span>
+                </div>
+
+                <!-- Telegram Auth Section -->
+                <div class="auth-section telegram-auth-section" id="telegram-auth-section" style="display: none;">
+                    <div class="auth-section-title">E>4 G5@57 Telegram Mini App</div>
+                    <button class="telegram-auth-btn" id="telegram-auth-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.752-.244-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.14.121.098.155.23.171.324.016.062.036.201.02.31z"/>
+                        </svg>
+                        B:@KBL 2 Telegram
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error/Success Messages -->
+            <div class="error-message" id="error-message"></div>
+            <div class="success-message" id="success-message"></div>
+
+            <!-- Platform Info -->
+            <div class="info-text">
+                <div id="platform-info"></div>
+                 538AB@8@COAL, 2K ?@8=8<05B5
+                <a href="/privacy" target="_blank" style="color: var(--dark-green);">?>;8B8:C :>=D845=F80;L=>AB8</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detect platform
+        const isAndroidApp = typeof AndroidInterface !== 'undefined';
+        const isTelegramMiniApp = window.Telegram?.WebApp?.initData;
+        const isWebBrowser = !isAndroidApp && !isTelegramMiniApp;
+
+        console.log('[Registration] Platform detected:', {
+            isAndroidApp,
+            isTelegramMiniApp,
+            isWebBrowser
+        });
+
+        // Show platform badge
+        const platformInfo = document.getElementById('platform-info');
+        if (isAndroidApp) {
+            platformInfo.innerHTML = '<span class="platform-badge">=ñ Android App</span>';
+        } else if (isTelegramMiniApp) {
+            platformInfo.innerHTML = '<span class="platform-badge"> Telegram Mini App</span>';
+        } else {
+            platformInfo.innerHTML = '<span class="platform-badge">< Web Browser</span>';
+        }
+
+        // UI Elements
+        const loadingScreen = document.getElementById('loading-screen');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        const vkAuthSection = document.getElementById('vk-auth-section');
+        const telegramAuthSection = document.getElementById('telegram-auth-section');
+
+        // Show/hide loading screen
+        function showLoading(show) {
+            loadingScreen.classList.toggle('active', show);
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            setTimeout(() => errorMessage.classList.remove('active'), 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.classList.add('active');
+            setTimeout(() => successMessage.classList.remove('active'), 3000);
+        }
+
+        // Initialize authentication based on platform
+        async function initAuth() {
+            if (isTelegramMiniApp) {
+                // Show only Telegram auth for Telegram Mini App
+                vkAuthSection.style.display = 'none';
+                telegramAuthSection.style.display = 'block';
+
+                // Setup Telegram auth button
+                document.getElementById('telegram-auth-btn').addEventListener('click', () => {
+                    // This will be handled by existing Telegram flow
+                    window.location.href = 'index.html';
+                });
+
+            } else {
+                // Show VK ID auth for Android App and Web Browser
+                vkAuthSection.style.display = 'block';
+                telegramAuthSection.style.display = 'none';
+
+                // Initialize VK Auth
+                await initVKAuth();
+            }
+        }
+
+        // Initialize VK ID authentication
+        async function initVKAuth() {
+            try {
+                console.log('[VK Auth] Initializing...');
+
+                // Wait for VKAuthManager to load
+                if (typeof VKAuthManager === 'undefined') {
+                    await new Promise((resolve) => {
+                        const checkManager = setInterval(() => {
+                            if (typeof VKAuthManager !== 'undefined') {
+                                clearInterval(checkManager);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                }
+
+                // Create VK Auth instance
+                const vkAuth = new VKAuthManager({
+                    appId: 54250661,
+                    redirectUrl: 'https://prizmatic-2004.vercel.app/',
+                    scope: 'phone email'
+                });
+
+                // Start login flow
+                await vkAuth.login(
+                    'vk-auth-container',
+                    // Success callback
+                    (response) => {
+                        console.log('[VK Auth] Login successful:', response);
+                        showSuccess('E>4 2K?>;=5= CA?5H=>!');
+
+                        // Redirect to main app after 1 second
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1000);
+                    },
+                    // Error callback
+                    (error) => {
+                        console.error('[VK Auth] Login error:', error);
+                        showError('H81:0 2E>40. >?@>1C9B5 5I5 @07.');
+                        showLoading(false);
+                    }
+                );
+
+            } catch (error) {
+                console.error('[VK Auth] Initialization error:', error);
+                showError('5 C40;>AL 703@C78BL VK ID. 1=>28B5 AB@0=8FC.');
+            }
+        }
+
+        // Check if user is already logged in
+        function checkExistingAuth() {
+            const userId = localStorage.getItem('userId');
+            const isRegistered = localStorage.getItem('isRegistered');
+
+            if (userId && isRegistered === 'true') {
+                console.log('[Auth] User already logged in, redirecting...');
+                window.location.href = 'index.html';
+                return true;
+            }
+            return false;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if already logged in
+            if (checkExistingAuth()) {
+                showLoading(true);
+                return;
+            }
+
+            // Initialize auth based on platform
+            initAuth().catch(error => {
+                console.error('[Auth] Initialization failed:', error);
+                showError('H81:0 8=8F80;870F88. 1=>28B5 AB@0=8FC.');
+            });
+        });
+
+        // Handle page transitions
+        const appScreen = document.querySelector('.registration-container');
+        if (appScreen) {
+            appScreen.classList.add('page-enter');
+            requestAnimationFrame(() => {
+                appScreen.classList.remove('page-enter');
+                appScreen.classList.add('page-enter-active');
+            });
+        }
+    </script>
+</body>
+
+</html>
