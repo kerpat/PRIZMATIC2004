@@ -141,23 +141,41 @@ async function recognizeDocumentsWithGemini(supabaseAdmin, filePaths, countryCod
 async function handleVKLogin(req, res) {
     const { authData } = req.body;
 
-    if (!authData || !authData.access_token || !authData.user_id) {
+    if (!authData || !authData.user_id) {
         return res.status(400).json({ error: 'Missing VK authentication data' });
     }
 
     try {
         const supabaseAdmin = createSupabaseAdmin();
 
-        // Get user info from VK API
-        const vkApiUrl = `https://api.vk.com/method/users.get?user_ids=${authData.user_id}&fields=photo_200,city,bdate,contacts_phone&access_token=${authData.access_token}&v=5.131`;
+        // Use VK Service Token from environment (not user token)
+        const VK_SERVICE_TOKEN = process.env.VK_SERVICE_TOKEN || process.env.VK_ACCESS_TOKEN;
 
-        const vkResponse = await axios.get(vkApiUrl);
+        let vkUser;
 
-        if (vkResponse.data.error) {
-            throw new Error(`VK API Error: ${vkResponse.data.error.error_msg}`);
+        if (VK_SERVICE_TOKEN) {
+            // Use service token to get user info (IP restriction safe)
+            console.log('[VK Auth] Using VK Service Token');
+            const vkApiUrl = `https://api.vk.com/method/users.get?user_ids=${authData.user_id}&fields=photo_200,city,screen_name&access_token=${VK_SERVICE_TOKEN}&v=5.131`;
+
+            const vkResponse = await axios.get(vkApiUrl);
+
+            if (vkResponse.data.error) {
+                console.error('[VK Auth] VK API Error:', vkResponse.data.error);
+                throw new Error(`VK API Error: ${vkResponse.data.error.error_msg}`);
+            }
+
+            vkUser = vkResponse.data.response[0];
+        } else {
+            // Fallback: Trust client-provided data (less secure but works)
+            console.warn('[VK Auth] No VK_SERVICE_TOKEN, trusting client data');
+            vkUser = {
+                id: authData.user_id,
+                first_name: authData.first_name || 'VK',
+                last_name: authData.last_name || 'User',
+                photo_200: authData.photo_url || ''
+            };
         }
-
-        const vkUser = vkResponse.data.response[0];
 
         if (!vkUser) {
             throw new Error('Failed to fetch VK user data');

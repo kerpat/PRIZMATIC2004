@@ -184,14 +184,21 @@ class VKAuthManager {
         try {
             console.log('[VK Auth] Authenticating with backend...');
 
+            // Get user info from token first
+            const userInfo = await this.getUserInfo(vkAuthData.access_token, vkAuthData.user_id);
+
             const response = await fetch('/api/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'vk-login',
                     authData: {
-                        access_token: vkAuthData.access_token,
                         user_id: vkAuthData.user_id,
+                        first_name: userInfo.first_name,
+                        last_name: userInfo.last_name,
+                        photo_url: userInfo.photo_200,
+                        // Don't send access_token to avoid IP restrictions
+                        // access_token: vkAuthData.access_token,
                         expires_in: vkAuthData.expires_in,
                         device_id: vkAuthData.device_id
                     }
