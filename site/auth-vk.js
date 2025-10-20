@@ -10,6 +10,8 @@ class VKAuthManager {
         this.scope = config.scope || 'phone email';
         this.vkidInstance = null;
         this.initialized = false;
+        this.onSuccessCallback = null;
+        this.onErrorCallback = null;
     }
 
     /**
@@ -80,31 +82,54 @@ class VKAuthManager {
 
         const renderOptions = { ...defaultOptions, ...options, container };
 
-        return new Promise((resolve, reject) => {
-            try {
-                const oneTap = new this.vkidInstance.OneTap();
+        try {
+            const oneTap = new this.vkidInstance.OneTap();
 
-                oneTap.render(renderOptions)
-                    .on(this.vkidInstance.WidgetEvents.ERROR, (error) => {
+            // Сохраняем ссылку на виджет
+            this.oneTapWidget = oneTap;
+
+            oneTap.render(renderOptions)
+                .on(this.vkidInstance.WidgetEvents.ERROR, (error) => {
+                    console.warn('[VK Auth] Widget event:', error);
+                    // Игнорируем timeout - это нормальное поведение виджета
+                    // Он ждет пока пользователь нажмет кнопку
+                    if (error.text !== 'timeout') {
                         console.error('[VK Auth] Widget error:', error);
-                        reject(error);
-                    })
-                    .on(this.vkidInstance.OneTapInternalEvents.LOGIN_SUCCESS, async (payload) => {
-                        console.log('[VK Auth] Login success, exchanging code...');
-                        try {
-                            const authData = await this.exchangeCode(payload.code, payload.device_id);
-                            resolve(authData);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    });
+                    }
+                })
+                .on(this.vkidInstance.OneTapInternalEvents.LOGIN_SUCCESS, async (payload) => {
+                    console.log('[VK Auth] Login success, exchanging code...');
+                    try {
+                        const authData = await this.exchangeCode(payload.code, payload.device_id);
 
-                console.log('[VK Auth] One Tap button rendered');
-            } catch (error) {
-                console.error('[VK Auth] Render error:', error);
-                reject(error);
-            }
-        });
+                        // Аутентификация с backend
+                        const backendResponse = await this.authenticateWithBackend(authData);
+
+                        // Сохраняем данные
+                        if (backendResponse.success && backendResponse.user) {
+                            localStorage.setItem('userId', backendResponse.user.id);
+                            localStorage.setItem('userName', backendResponse.user.name);
+                            localStorage.setItem('isRegistered', 'true');
+                            localStorage.setItem('authProvider', 'vk');
+                        }
+
+                        // Вызываем колбэк успеха
+                        if (this.onSuccessCallback) {
+                            this.onSuccessCallback(backendResponse);
+                        }
+                    } catch (error) {
+                        console.error('[VK Auth] Exchange error:', error);
+                        if (this.onErrorCallback) {
+                            this.onErrorCallback(error);
+                        }
+                    }
+                });
+
+            console.log('[VK Auth] One Tap button rendered successfully');
+        } catch (error) {
+            console.error('[VK Auth] Render error:', error);
+            throw error;
+        }
     }
 
     /**
@@ -188,34 +213,24 @@ class VKAuthManager {
     }
 
     /**
-     * Complete login flow: render button -> exchange code -> authenticate
+     * Complete login flow: render button -> wait for user click -> authenticate
      * @param {string} containerId - Container element ID
      * @param {function} onSuccess - Success callback
      * @param {function} onError - Error callback
      */
     async login(containerId, onSuccess, onError) {
         try {
-            // Render One Tap and wait for user action
-            const vkAuthData = await this.renderOneTap(containerId);
+            // Сохраняем колбэки
+            this.onSuccessCallback = onSuccess;
+            this.onErrorCallback = onError;
 
-            // Authenticate with backend
-            const backendResponse = await this.authenticateWithBackend(vkAuthData);
+            // Рендерим кнопку - она будет ждать клика пользователя
+            await this.renderOneTap(containerId);
 
-            // Save user data to localStorage
-            if (backendResponse.success && backendResponse.user) {
-                localStorage.setItem('userId', backendResponse.user.id);
-                localStorage.setItem('userName', backendResponse.user.name);
-                localStorage.setItem('isRegistered', 'true');
-                localStorage.setItem('authProvider', 'vk');
-            }
+            console.log('[VK Auth] Waiting for user to click VK ID button...');
 
-            if (onSuccess) {
-                onSuccess(backendResponse);
-            }
-
-            return backendResponse;
         } catch (error) {
-            console.error('[VK Auth] Login flow error:', error);
+            console.error('[VK Auth] Login initialization error:', error);
             if (onError) {
                 onError(error);
             }
