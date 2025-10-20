@@ -40,18 +40,18 @@
 <body>
 <div class="loading-screen" id="loading-screen">
 <div class="loading-spinner"></div>
-<h2>Wait...</h2>
-<p>Loading</p>
+<h2>Авторизация...</h2>
+<p>Проверяем данные</p>
 </div>
 <div class="registration-screen">
 <div class="registration-content">
 <div class="logo-section">
 <h1>PRIZMATIC</h1>
-<p>E-bike rental</p>
+<p>Аренда электровелосипедов</p>
 </div>
 <div id="platform-badge"></div>
 <div class="auth-card">
-<h2>Login</h2>
+<h2>Войти в приложение</h2>
 <div id="vk-auth-section">
 <div id="vk-auth-container"></div>
 </div>
@@ -67,8 +67,8 @@ Telegram
 <div class="error-message" id="error-message"></div>
 <div class="success-message" id="success-message"></div>
 <div class="info-text">
-By logging in, you accept<br>
-<a href="/privacy" target="_blank">privacy policy</a>
+Входя в приложение, вы принимаете<br>
+<a href="/privacy" target="_blank">политику конфиденциальности</a>
 </div>
 </div>
 </div>
@@ -83,20 +83,20 @@ const successMessage=document.getElementById('success-message');
 const vkAuthSection=document.getElementById('vk-auth-section');
 const telegramSection=document.getElementById('telegram-section');
 const platformBadge=document.getElementById('platform-badge');
-if(isAndroidApp){platformBadge.innerHTML='<span class="platform-badge">Android</span>'}
-else if(isTelegramMiniApp){platformBadge.innerHTML='<span class="platform-badge">Telegram</span>'}
-else{platformBadge.innerHTML='<span class="platform-badge">Web</span>'}
+if(isAndroidApp){platformBadge.innerHTML='<span class="platform-badge">📱 Android</span>'}
+else if(isTelegramMiniApp){platformBadge.innerHTML='<span class="platform-badge">✈️ Telegram</span>'}
+else{platformBadge.innerHTML='<span class="platform-badge">🌐 Браузер</span>'}
 function showLoading(show){loadingScreen.classList.toggle('active',show)}
 function showError(msg){errorMessage.textContent=msg;errorMessage.classList.add('active');setTimeout(()=>errorMessage.classList.remove('active'),5000)}
 function showSuccess(msg){successMessage.textContent=msg;successMessage.classList.add('active');setTimeout(()=>successMessage.classList.remove('active'),3000)}
 function checkExistingAuth(){const userId=localStorage.getItem('userId');const isRegistered=localStorage.getItem('isRegistered');if(userId&&isRegistered==='true'){console.log('[Auth] Logged in');window.location.href='index.html';return true}return false}
 async function initVKAuth(){try{console.log('[VK] Init');if(typeof VKAuthManager==='undefined'){await new Promise((resolve)=>{const check=setInterval(()=>{if(typeof VKAuthManager!=='undefined'){clearInterval(check);resolve()}},100)})}
 const vkAuth=new VKAuthManager({appId:54250661,redirectUrl:'https://prizmatic-2004.vercel.app/',scope:'phone email'});
-await vkAuth.login('vk-auth-container',(response)=>{console.log('[VK] Success');showSuccess('Success!');setTimeout(()=>window.location.href='index.html',1000)},(error)=>{console.error('[VK] Error:',error);if(error.text!=='timeout'){showError('Error')}});
-console.log('[VK] Ready')}catch(error){console.error('[VK] Init error:',error);if(!error.message?.includes('timeout')){showError('VK ID load failed')}}}
+await vkAuth.login('vk-auth-container',(response)=>{console.log('[VK] Success');showSuccess('Успешный вход!');setTimeout(()=>window.location.href='index.html',1000)},(error)=>{console.error('[VK] Error:',error);if(error.text!=='timeout'){showError('Ошибка входа')}});
+console.log('[VK] Ready')}catch(error){console.error('[VK] Init error:',error);if(!error.message?.includes('timeout')){showError('Не удалось загрузить VK ID')}}}
 async function initAuth(){if(checkExistingAuth()){showLoading(true);return}
 if(isTelegramMiniApp){vkAuthSection.style.display='none';telegramSection.style.display='block';document.getElementById('telegram-btn').addEventListener('click',()=>{window.location.href='index.html'})}else{vkAuthSection.style.display='block';telegramSection.style.display='none';await initVKAuth()}}
-document.addEventListener('DOMContentLoaded',()=>{initAuth().catch(error=>{console.error('[Auth] Failed:',error);showError('Init error')})});
+document.addEventListener('DOMContentLoaded',()=>{initAuth().catch(error=>{console.error('[Auth] Failed:',error);showError('Ошибка инициализации')})});
 </script>
 </body>
 </html>

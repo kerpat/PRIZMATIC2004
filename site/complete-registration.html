@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Complete Registration - PRIZMATIC</title>
+<title>Завершение регистрации - PRIZMATIC</title>
 <link rel="stylesheet" href="style.css?v=11.3">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -37,65 +37,159 @@
 <body>
 <div class="loading-overlay" id="loading">
 <div class="loading-spinner"></div>
-<p>Saving...</p>
+<p>Сохранение...</p>
 </div>
 <div class="complete-reg-screen">
 <div class="complete-reg-content">
 <div class="logo-section">
 <h1>PRIZMATIC</h1>
-<p>Complete your registration</p>
+<p>Завершение регистрации</p>
 </div>
 <div class="reg-card">
-<h2>Additional Information</h2>
+<h2>Дополнительная информация</h2>
 <div class="user-preview" id="user-preview">
-<img src="" alt="Your photo" id="user-photo">
+<img src="" alt="Ваше фото" id="user-photo">
 <div class="user-preview-info">
-<h3 id="user-name">Loading...</h3>
-<p>from VK</p>
+<h3 id="user-name">Загрузка...</h3>
+<p>из ВКонтакте</p>
 </div>
 </div>
 <form id="complete-reg-form">
 <div class="form-group">
-<label for="phone">Phone Number (optional)</label>
-<input type="tel" id="phone" name="phone" placeholder="+7 900 123 45 67">
-<div class="hint">You can add it later in profile settings</div>
+<label for="phone">Номер телефона (необязательно)</label>
+<input type="tel" id="phone" name="phone" placeholder="+7 (900) 123-45-67">
+<div class="hint">Можно добавить позже в настройках профиля</div>
 </div>
 <div class="form-group">
-<label for="city">City *</label>
+<label for="city">Город *</label>
 <select id="city" name="city" required>
-<option value="">Select city</option>
-<option value="Moscow">Moscow</option>
-<option value="Saint Petersburg">Saint Petersburg</option>
-<option value="Kazan">Kazan</option>
-<option value="Sochi">Sochi</option>
-<option value="Yekaterinburg">Yekaterinburg</option>
+<option value="">Выберите город</option>
+<option value="Москва">Москва</option>
+<option value="Санкт-Петербург">Санкт-Петербург</option>
+<option value="Казань">Казань</option>
+<option value="Сочи">Сочи</option>
+<option value="Екатеринбург">Екатеринбург</option>
+<option value="Новосибирск">Новосибирск</option>
+<option value="Нижний Новгород">Нижний Новгород</option>
+<option value="Краснодар">Краснодар</option>
 </select>
-<div class="hint">Where do you plan to rent bikes?</div>
+<div class="hint">В каком городе планируете арендовать велосипеды?</div>
 </div>
-<button type="submit" class="btn-submit" id="submit-btn">Complete Registration</button>
+<button type="submit" class="btn-submit" id="submit-btn">Завершить регистрацию</button>
 </form>
 <div class="error-message" id="error-message"></div>
 </div>
 </div>
 </div>
 <script>
+// Phone mask function
+function formatPhone(value){
+const cleaned=value.replace(/\D/g,'');
+let formatted='';
+if(cleaned.length>0){
+formatted='+7';
+if(cleaned.length>1){
+formatted+=' ('+cleaned.substring(1,4);
+if(cleaned.length>=5){
+formatted+=') '+cleaned.substring(4,7);
+if(cleaned.length>=8){
+formatted+='-'+cleaned.substring(7,9);
+if(cleaned.length>=10){
+formatted+='-'+cleaned.substring(9,11);
+}
+}
+}
+}
+}
+return formatted;
+}
+
+const phoneInput=document.getElementById('phone');
+phoneInput.addEventListener('input',(e)=>{
+const cursorPos=e.target.selectionStart;
+const oldValue=e.target.value;
+const newValue=formatPhone(oldValue);
+e.target.value=newValue;
+if(newValue.length<oldValue.length){
+e.target.setSelectionRange(cursorPos,cursorPos);
+}
+});
+
+phoneInput.addEventListener('keydown',(e)=>{
+if(e.key==='Backspace'&&phoneInput.value==='+7'){
+e.preventDefault();
+phoneInput.value='';
+}
+});
+
+phoneInput.addEventListener('focus',()=>{
+if(!phoneInput.value){
+phoneInput.value='+7 ';
+}
+});
+
 const vkUserData=JSON.parse(localStorage.getItem('vk_temp_user')||'{}');
-if(!vkUserData.user_id){window.location.href='registration.html'}
+if(!vkUserData.user_id){
+window.location.href='registration.html';
+}
+
 document.getElementById('user-photo').src=vkUserData.photo_url||'';
 document.getElementById('user-name').textContent=`${vkUserData.first_name} ${vkUserData.last_name}`;
-if(vkUserData.city){document.getElementById('city').value=vkUserData.city}
+
+// Auto-select city from VK if available
+const cityMapping={
+'Москва':'Москва',
+'Санкт-Петербург':'Санкт-Петербург',
+'Moscow':'Москва',
+'Saint Petersburg':'Санкт-Петербург',
+'Kazan':'Казань',
+'Sochi':'Сочи'
+};
+
+if(vkUserData.city){
+const mappedCity=cityMapping[vkUserData.city]||vkUserData.city;
+const citySelect=document.getElementById('city');
+for(let i=0;i<citySelect.options.length;i++){
+if(citySelect.options[i].value===mappedCity){
+citySelect.value=mappedCity;
+break;
+}
+}
+}
+
 const form=document.getElementById('complete-reg-form');
 const submitBtn=document.getElementById('submit-btn');
 const errorMsg=document.getElementById('error-message');
 const loading=document.getElementById('loading');
-function showError(msg){errorMsg.textContent=msg;errorMsg.classList.add('active');setTimeout(()=>errorMsg.classList.remove('active'),5000)}
+
+function showError(msg){
+errorMsg.textContent=msg;
+errorMsg.classList.add('active');
+setTimeout(()=>errorMsg.classList.remove('active'),5000);
+}
+
 form.addEventListener('submit',async(e)=>{
 e.preventDefault();
 const phone=document.getElementById('phone').value.trim();
 const city=document.getElementById('city').value;
-if(!city){showError('Please select city');return}
+
+if(!city){
+showError('Пожалуйста, выберите город');
+return;
+}
+
+// Validate phone if provided
+if(phone&&phone!=='+7'&&phone!=='+7 '){
+const cleaned=phone.replace(/\D/g,'');
+if(cleaned.length!==11){
+showError('Неверный формат номера телефона');
+return;
+}
+}
+
 loading.classList.add('active');
 submitBtn.disabled=true;
+
 try{
 const response=await fetch('/api/auth',{
 method:'POST',
@@ -108,21 +202,27 @@ first_name:vkUserData.first_name,
 last_name:vkUserData.last_name,
 photo_url:vkUserData.photo_url
 },
-phone:phone||null,
+phone:(phone&&phone!=='+7'&&phone!=='+7 ')?phone:null,
 city:city
 })
 });
+
 const data=await response.json();
-if(!response.ok){throw new Error(data.error||'Registration failed')}
+
+if(!response.ok){
+throw new Error(data.error||'Ошибка регистрации');
+}
+
 localStorage.setItem('userId',data.user.id);
 localStorage.setItem('userName',data.user.name);
 localStorage.setItem('isRegistered','true');
 localStorage.setItem('authProvider','vk');
 localStorage.removeItem('vk_temp_user');
+
 window.location.href='index.html';
 }catch(error){
 console.error('Registration error:',error);
-showError(error.message||'Registration failed');
+showError(error.message||'Ошибка регистрации. Попробуйте еще раз.');
 loading.classList.remove('active');
 submitBtn.disabled=false;
 }
