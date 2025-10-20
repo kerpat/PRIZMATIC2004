@@ -155,27 +155,54 @@ class VKAuthManager {
     }
 
     /**
-     * Get user info from VK API
+     * Get user info from VK API using JSONP (CORS-safe)
      * @param {string} accessToken - VK access token
      * @param {string} userId - VK user ID
      */
     async getUserInfo(accessToken, userId) {
-        try {
-            const response = await fetch(
-                `https://api.vk.com/method/users.get?user_ids=${userId}&fields=photo_200,city,bdate,contacts_phone&access_token=${accessToken}&v=5.131`
-            );
+        return new Promise((resolve, reject) => {
+            const callbackName = 'vkCallback' + Date.now();
 
-            const data = await response.json();
+            // Create script tag for JSONP
+            const script = document.createElement('script');
+            const url = `https://api.vk.com/method/users.get?user_ids=${userId}&fields=photo_200,city,screen_name&access_token=${accessToken}&v=5.131&callback=${callbackName}`;
 
-            if (data.error) {
-                throw new Error(data.error.error_msg);
-            }
+            // Set up callback
+            window[callbackName] = function(data) {
+                // Clean up
+                delete window[callbackName];
+                document.body.removeChild(script);
 
-            return data.response[0];
-        } catch (error) {
-            console.error('[VK Auth] Failed to get user info:', error);
-            throw error;
-        }
+                if (data.error) {
+                    reject(new Error(data.error.error_msg));
+                } else if (data.response && data.response[0]) {
+                    resolve(data.response[0]);
+                } else {
+                    reject(new Error('Failed to fetch VK user data'));
+                }
+            };
+
+            // Handle errors
+            script.onerror = function() {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Failed to load VK API'));
+            };
+
+            script.src = url;
+            document.body.appendChild(script);
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error('VK API request timeout'));
+                }
+            }, 10000);
+        });
     }
 
     /**
