@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css?v=11.8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.registration-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;overflow:hidden;text-align:center}
+.registration-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;overflow:auto;text-align:center}
 .registration-content{width:100%;max-width:420px;position:relative;margin:0 auto;text-align:center}
 .logo-section{text-align:center;margin-bottom:32px}
 .logo-section h1{font-size:2rem;font-weight:800;color:var(--dark-green);margin-bottom:8px;letter-spacing:-0.5px}
@@ -80,8 +80,8 @@
 .citizenship-option .text{flex:1}
 .citizenship-option .text .name{font-size:15px;font-weight:600;color:var(--dark-green);display:block;margin-bottom:2px}
 .citizenship-option .text .desc{font-size:12px;color:#999}
-.terms-link{text-align:center;margin-top:24px;padding:20px;font-size:12px;color:#999;line-height:1.8;margin-left:auto;margin-right:auto;max-width:100%;word-wrap:break-word;overflow-wrap:break-word}
-.terms-link a{color:var(--dark-green);text-decoration:none;font-weight:500;white-space:nowrap}
+.terms-link{text-align:center;margin-top:24px;padding:20px;font-size:12px;color:#999;line-height:2;margin-left:auto;margin-right:auto;max-width:420px;width:100%;word-wrap:break-word;overflow-wrap:break-word;box-sizing:border-box}
+.terms-link a{color:var(--dark-green);text-decoration:none;font-weight:500;display:inline}
 .terms-link a:hover{text-decoration:underline}
 </style>
 </head>
@@ -329,10 +329,11 @@
 </div>
 
 </div>
-</div>
 
 <div class="terms-link">
 Продолжая, вы соглашаетесь с <a href="terms.html" target="_blank">Пользовательским соглашением</a> и <a href="terms.html" target="_blank">Политикой конфиденциальности</a>
+</div>
+
 </div>
 
 <script src="registration.js"></script>
