@@ -132,6 +132,14 @@ document.getElementById('btn-register').addEventListener('click', () => {
 // Back buttons
 document.getElementById('back-to-choice-1').addEventListener('click', () => showStep('step-0'));
 document.getElementById('back-to-choice-2').addEventListener('click', () => showStep('step-0'));
+document.getElementById('back-to-reg-2').addEventListener('click', () => {
+    showStep('step-reg-2');
+    updateProgressDots(2);
+});
+document.getElementById('back-to-reg-3').addEventListener('click', () => {
+    showStep('step-reg-3');
+    updateProgressDots(3);
+});
 
 // LOGIN FLOW
 // Step 1: Login phone form
