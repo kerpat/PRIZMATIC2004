@@ -515,6 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'number': 'Номер',
         'series': 'Серия',
         'full_name': 'ФИО',
+        'name': 'ФИО',
         'last_name': 'Фамилия',
         'birth_date': 'Дата рождения',
         'first_name': 'Имя',
@@ -522,7 +523,11 @@ document.addEventListener('DOMContentLoaded', () => {
         'birth_place': 'Место рождения',
         'middle_name': 'Отчество',
         'issuing_authority': 'Кем выдан',
-        'registration_address': 'Адрес регистрации'
+        'registration_address': 'Адрес регистрации',
+        // Дополнительные поля
+        'passport_series': 'Серия и номер паспорта',
+        'passport_issued_by': 'Кем выдан',
+        'passport_issue_date': 'Дата выдачи'
     };
 
     // Helper: render client info modal (view + edit + photos + lightbox)
@@ -534,9 +539,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const rec = client?.recognized_passport_data || client?.extra?.recognized_data || {};
             if (recognizedDisplay) {
                 recognizedDisplay.innerHTML = '';
+                
+                // Сначала показываем ФИО и телефон клиента
+                const headerInfo = document.createElement('div');
+                headerInfo.style.cssText = 'background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid var(--accent);';
+                headerInfo.innerHTML = `
+                    <div style="display: grid; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <strong style="min-width: 120px; color: var(--accent);">ФИО:</strong>
+                            <span style="font-size: 16px; font-weight: 600;">${client.name || 'Не указано'}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <strong style="min-width: 120px; color: var(--accent);">Телефон:</strong>
+                            <span style="font-size: 16px; font-weight: 600;">${formatPhoneDisplay(client.phone) || 'Не указано'}</span>
+                        </div>
+                    </div>
+                `;
+                recognizedDisplay.appendChild(headerInfo);
+                
+                // Потом паспортные данные
                 const keys = Object.keys(rec);
                 if (keys.length === 0) {
-                    recognizedDisplay.innerHTML = '<p>Данных распознавания нет.</p>';
+                    const noDataMsg = document.createElement('p');
+                    noDataMsg.textContent = 'Паспортных данных нет.';
+                    noDataMsg.style.color = '#666';
+                    recognizedDisplay.appendChild(noDataMsg);
                 } else {
                     keys.forEach(k => {
                         const row = document.createElement('div');
