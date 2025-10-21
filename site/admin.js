@@ -2182,16 +2182,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const plan = [];
         const today = new Date();
 
-        // Получаем ВСЕ платежи по этой аренде из таблицы payments
+        // Получаем ВСЕ платежи по этой аренде
+        // Ищем по user_id + описанию, так как rental_id может не быть в payments
         const { data: payments, error } = await supabase
             .from('payments')
             .select('*')
-            .eq('rental_id', rental.id)
+            .eq('user_id', rental.user_id)
             .in('type', ['rental', 'rental_extension'])
             .order('created_at', { ascending: true });
 
         if (error) {
             console.error('Ошибка загрузки платежей:', error);
+            console.error('Детали ошибки:', error.message, error.details, error.hint);
             return [];
         }
 
