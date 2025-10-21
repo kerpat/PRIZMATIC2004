@@ -1697,6 +1697,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${createStatusBadge(r.status, 'rental')}</td>
                     <td class="table-actions">${actionsCell}</td>
                 `;
+                
+                // Добавляем обработчик клика на строку (но не на кнопку)
+                tr.addEventListener('click', async (e) => {
+                    // Игнорируем клик по кнопке "Действия"
+                    if (e.target.closest('.rental-actions-btn')) return;
+                    
+                    // Открываем план платежей
+                    try {
+                        const { data: rental, error } = await supabase
+                            .from('rentals')
+                            .select('*, clients(name, phone), tariffs(duration_days, price_rub)')
+                            .eq('id', r.id)
+                            .single();
+
+                        if (error) throw error;
+
+                        const paymentPlan = await generatePaymentPlan(rental);
+                        
+                        const paymentPlanContent = document.getElementById('payment-plan-content');
+                        paymentPlanContent.innerHTML = paymentPlan.map((payment) => {
+                            let statusText = '';
+                            let statusIcon = '';
+
+                            if (payment.status === 'paid') {
+                                statusText = 'Оплачено';
+                                statusIcon = '✓';
+                            } else if (payment.status === 'overdue') {
+                                statusText = 'Просрочено';
+                                statusIcon = '✕';
+                            } else {
+                                statusText = 'Ожидается';
+                                statusIcon = '⏳';
+                            }
+
+                            return `
+                                <div style="padding: 16px; background: ${payment.status === 'paid' ? '#f0f9ff' : payment.status === 'overdue' ? '#fee' : '#fafafa'}; border-radius: 12px; border-left: 4px solid ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#ccc'};">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <div style="font-weight: 700; font-size: 14px; color: var(--dark-green);">
+                                            ${payment.period}
+                                        </div>
+                                        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: white; border-radius: 999px; font-size: 12px; font-weight: 600; color: ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#666'};">
+                                            <span>${statusIcon}</span>
+                                            <span>${statusText}</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666;">
+                                        <span>${payment.date}</span>
+                                        <span style="font-weight: 600; color: var(--dark-green);">${payment.amount} ₽</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        const paymentPlanModal = document.getElementById('payment-plan-modal');
+                        paymentPlanModal.classList.remove('hidden');
+                    } catch (err) {
+                        alert('Ошибка загрузки плана платежей: ' + err.message);
+                    }
+                });
+                
                 tbody.appendChild(tr);
             });
 
@@ -2097,11 +2157,9 @@ document.addEventListener('DOMContentLoaded', () => {
         rentalEditCancelBtn.addEventListener('click', () => rentalEditModal.classList.add('hidden'));
     }
 
-    // Обработчик кнопки "План платежей"
+    // Обработчик закрытия модального окна плана платежей
     const paymentPlanModal = document.getElementById('payment-plan-modal');
     const paymentPlanCloseBtn = document.getElementById('payment-plan-close-btn');
-    const paymentPlanBtn = document.getElementById('rental-payment-plan-btn');
-    const paymentPlanContent = document.getElementById('payment-plan-content');
 
     if (paymentPlanCloseBtn) {
         paymentPlanCloseBtn.addEventListener('click', () => paymentPlanModal.classList.add('hidden'));
@@ -2110,70 +2168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paymentPlanModal) {
         paymentPlanModal.addEventListener('click', (e) => {
             if (e.target === paymentPlanModal) paymentPlanModal.classList.add('hidden');
-        });
-    }
-
-    if (paymentPlanBtn) {
-        paymentPlanBtn.addEventListener('click', async () => {
-            const rentalId = rentalIdInput.value;
-            if (!rentalId) return;
-
-            try {
-                // Получаем данные аренды
-                const { data: rental, error } = await supabase
-                    .from('rentals')
-                    .select('*, clients(name, phone), tariffs(duration_days, price_rub)')
-                    .eq('id', rentalId)
-                    .single();
-
-                if (error) throw error;
-
-                // Генерируем план платежей (теперь async!)
-                const paymentPlan = await generatePaymentPlan(rental);
-                
-                // Отображаем план
-                paymentPlanContent.innerHTML = paymentPlan.map((payment, index) => {
-                    let statusClass = '';
-                    let statusText = '';
-                    let statusIcon = '';
-
-                    if (payment.status === 'paid') {
-                        statusClass = 'success';
-                        statusText = 'Оплачено';
-                        statusIcon = '✓';
-                    } else if (payment.status === 'overdue') {
-                        statusClass = 'danger';
-                        statusText = 'Просрочено';
-                        statusIcon = '✕';
-                    } else {
-                        statusClass = 'pending';
-                        statusText = 'Ожидается';
-                        statusIcon = '⏳';
-                    }
-
-                    return `
-                        <div style="padding: 16px; background: ${payment.status === 'paid' ? '#f0f9ff' : payment.status === 'overdue' ? '#fee' : '#fafafa'}; border-radius: 12px; border-left: 4px solid ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#ccc'};">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <div style="font-weight: 700; font-size: 14px; color: var(--dark-green);">
-                                    ${payment.period}
-                                </div>
-                                <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: white; border-radius: 999px; font-size: 12px; font-weight: 600; color: ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#666'};">
-                                    <span>${statusIcon}</span>
-                                    <span>${statusText}</span>
-                                </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666;">
-                                <span>${payment.date}</span>
-                                <span style="font-weight: 600; color: var(--dark-green);">${payment.amount} ₽</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                paymentPlanModal.classList.remove('hidden');
-            } catch (err) {
-                alert('Ошибка загрузки плана платежей: ' + err.message);
-            }
         });
     }
 
@@ -2510,7 +2504,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const total = (weekPayments || []).reduce((sum, p) => sum + (p.amount_rub || 0), 0);
             const avgPayment = weekPayments.length > 0 ? Math.round(total / weekPayments.length) : 0;
             const rentalPayments = weekPayments.filter(p => p.payment_type === 'rental').length;
-            const depositPayments = weekPayments.filter(p => p.payment_type === 'deposit').length;
+            
+            // Рассчитываем платежи ожидаемые сегодня
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            const { data: todayRentals } = await supabase
+                .from('rentals')
+                .select('current_period_ends_at, tariffs(price_rub)')
+                .eq('status', 'active')
+                .gte('current_period_ends_at', today.toISOString())
+                .lt('current_period_ends_at', tomorrow.toISOString());
+            
+            const expectedToday = todayRentals ? todayRentals.reduce((sum, r) => sum + (r.tariffs?.price_rub || 0), 0) : 0;
 
             if (weeklyIncomeDiv) {
                 weeklyIncomeDiv.textContent = `${total.toLocaleString('ru-RU')} ₽`;
@@ -2531,8 +2539,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="revenue-stat-value">${rentalPayments}</div>
                     </div>
                     <div class="revenue-stat-item">
-                        <div class="revenue-stat-label">Депозиты</div>
-                        <div class="revenue-stat-value">${depositPayments}</div>
+                        <div class="revenue-stat-label">Ожидается сегодня</div>
+                        <div class="revenue-stat-value">${expectedToday.toLocaleString('ru-RU')} ₽</div>
                     </div>
                 `;
             }
