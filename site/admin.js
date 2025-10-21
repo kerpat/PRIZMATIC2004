@@ -604,13 +604,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(folderId));
                     if (fErr) throw fErr;
 
-                    if (!files || files.length === 0) {
+                    // Фильтруем системные файлы
+                    const realFiles = files ? files.filter(f => 
+                        f.name && 
+                        !f.name.startsWith('.') && 
+                        f.name !== '.emptyFolderPlaceholder'
+                    ) : [];
+
+                    console.log(`[Load Photos] Found ${realFiles.length} files:`, realFiles.map(f => f.name));
+
+                    if (realFiles.length === 0) {
                         photosDiv.innerHTML = '<p style="color: #666;">Фото не найдены.</p>';
                         viewerImages = [];
                     } else {
                         photosDiv.innerHTML = '';
                         // 3. Строим публичные URL
-                        viewerImages = files.map(f => supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`).data.publicUrl);
+                        viewerImages = realFiles.map(f => supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`).data.publicUrl);
 
                         viewerIndex = 0;
                         viewerImages.forEach(u => {

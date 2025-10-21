@@ -243,10 +243,16 @@ async function handler(req, res) {
             
             // Upload files to Storage under user_id folder
             const uploadedPaths = [];
-            for (const [fieldname, fileData] of Object.entries(files)) {
+            const fileEntries = Object.entries(files);
+            
+            console.log(`[Web Registration] Attempting to upload ${fileEntries.length} files for user ${userId}`);
+            
+            for (const [fieldname, fileData] of fileEntries) {
                 const filePath = `${userId}/${fieldname}_${Date.now()}.jpg`;
                 
-                const { error: uploadError } = await supabaseAdmin.storage
+                console.log(`[Web Registration] Uploading ${fieldname}: ${fileData.buffer.length} bytes`);
+                
+                const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                     .from('passports')
                     .upload(filePath, fileData.buffer, {
                         contentType: fileData.mimeType,
@@ -254,12 +260,14 @@ async function handler(req, res) {
                     });
                 
                 if (uploadError) {
-                    console.error(`Failed to upload ${fieldname}:`, uploadError);
+                    console.error(`[Web Registration] Failed to upload ${fieldname}:`, uploadError.message);
                 } else {
                     uploadedPaths.push(filePath);
-                    console.log(`[Web Registration] Uploaded ${filePath}`);
+                    console.log(`[Web Registration] ✓ Uploaded ${filePath}`);
                 }
             }
+            
+            console.log(`[Web Registration] Successfully uploaded ${uploadedPaths.length}/${fileEntries.length} files`);
             
             // Run OCR with Gemini
             let recognized_data = {};
