@@ -281,24 +281,14 @@ async function handler(req, res) {
                     );
                     console.log(`[Web Registration] OCR result:`, recognized_data);
                     
-                    // Собираем ФИО из распознанных данных
-                    const fullName = recognized_data.full_name || 
-                                   [recognized_data.last_name, recognized_data.first_name, recognized_data.middle_name]
-                                       .filter(Boolean)
-                                       .join(' ') || 
-                                   'Пользователь';
-                    
-                    // Update client with recognized data AND name
+                    // Update client with recognized data
                     await supabaseAdmin
                         .from('clients')
                         .update({
-                            name: fullName, // Обновляем имя из OCR
                             recognized_passport_data: recognized_data,
                             verification_status: 'needs_confirmation'
                         })
                         .eq('id', userId);
-                    
-                    console.log(`[Web Registration] Updated client name to: ${fullName}`);
                 } catch (e) {
                     console.error('[Web Registration] OCR failed:', e);
                     recognized_data = { error: `Recognition failed: ${e.message}` };
@@ -309,11 +299,19 @@ async function handler(req, res) {
                 success: true,
                 user: {
                     id: userId,
-                    name: fullName || clientData.name, // Используем обновленное имя
+                    name: clientData.name,
                     phone: clientData.phone,
                     city: clientData.city
                 },
-                message: 'Регистрация завершена. Ваши данные отправлены на проверку.'
+                message: 'Регистрация завершена. Ваши данные отправлены на проверку.',
+                // Отладочная информация (уберите в продакшене)
+                debug: {
+                    filesReceived: fileEntries.length,
+                    filesUploaded: uploadedPaths.length,
+                    uploadedPaths: uploadedPaths,
+                    ocrAttempted: uploadedPaths.length > 0,
+                    recognizedFields: Object.keys(recognized_data).length
+                }
             });
         }
         
@@ -321,7 +319,50 @@ async function handler(req, res) {
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         const { action } = body;
 
-        if (action === 'login') {
+        if (action === 'check-user-exists') {
+            // Проверка существует ли пользователь с таким номером
+            const { phone } = body;
+            console.log('[check-user-exists] Searching for phone:', phone);
+            const supabaseAdmin = createSupabaseAdmin();
+            
+            const { data: client, error } = await supabaseAdmin
+                .from('clients')
+                .select('id')
+                .eq('phone', phone)
+                .single();
+            
+            console.log('[check-user-exists] Result:', { found: !!client, error: error?.message });
+            
+            return res.status(200).json({
+                exists: !!client
+            });
+        } else if (action === 'login-by-phone') {
+            // Вход по номеру телефона (после звонка)
+            const { phone } = body;
+            const supabaseAdmin = createSupabaseAdmin();
+            
+            const { data: client, error } = await supabaseAdmin
+                .from('clients')
+                .select('*')
+                .eq('phone', phone)
+                .single();
+            
+            if (error || !client) {
+                return res.status(404).json({ error: 'Пользователь не найден' });
+            }
+            
+            return res.status(200).json({
+                success: true,
+                user: {
+                    id: client.id,
+                    name: client.name,
+                    phone: client.phone,
+                    city: client.city,
+                    balance_rub: client.balance_rub,
+                    verification_status: client.extra?.verification_status || client.verification_status
+                }
+            });
+        } else if (action === 'login') {
             const { initData } = body;
             if (!validateTelegramData(initData, botToken)) {
                 return res.status(401).json({ error: 'Invalid Telegram data' });
