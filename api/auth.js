@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const axios = require('axios');
+const busboy = require('busboy');
 // +++ ДОБАВЛЯЕМ НОВЫЙ ИМПОРТ +++
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
@@ -133,6 +134,41 @@ async function recognizeDocumentsWithGemini(supabaseAdmin, filePaths, countryCod
         console.error("Failed to parse JSON from Gemini:", text);
         return { error: "Failed to parse recognition result." };
     }
+    return result;
+}
+
+/**
+ * Parse multipart/form-data with busboy
+ */
+function parseMultipartForm(req) {
+    return new Promise((resolve, reject) => {
+        const bb = busboy({ headers: req.headers });
+        const fields = {};
+        const files = {};
+        
+        bb.on('field', (fieldname, value) => {
+            fields[fieldname] = value;
+        });
+        
+        bb.on('file', (fieldname, file, info) => {
+            const { filename, mimeType } = info;
+            const chunks = [];
+            
+            file.on('data', (chunk) => chunks.push(chunk));
+            file.on('end', () => {
+                files[fieldname] = {
+                    filename: filename || `${fieldname}.jpg`,
+                    buffer: Buffer.concat(chunks),
+                    mimeType: mimeType || 'image/jpeg'
+                };
+            });
+        });
+        
+        bb.on('finish', () => resolve({ fields, files }));
+        bb.on('error', reject);
+        
+        req.pipe(bb);
+    });
 }
 
 async function handler(req, res) {
@@ -154,6 +190,116 @@ async function handler(req, res) {
             throw new Error('TELEGRAM_BOT_TOKEN is not configured');
         }
 
+        // Check if this is multipart/form-data (web registration with files)
+        const contentType = req.headers['content-type'] || '';
+        const isMultipart = contentType.includes('multipart/form-data');
+        
+        if (isMultipart) {
+            // Handle web registration with file uploads
+            const { fields, files } = await parseMultipartForm(req);
+            const supabaseAdmin = createSupabaseAdmin();
+            
+            const { phone, city, citizenship, country } = fields;
+            
+            if (!phone || !city || !citizenship) {
+                return res.status(400).json({ error: 'Phone, city, and citizenship are required.' });
+            }
+            
+            // Extract name from phone verification data
+            const { data: existingClient } = await supabaseAdmin
+                .from('clients')
+                .select('name')
+                .eq('phone', phone)
+                .single();
+            
+            const name = existingClient?.name || 'Пользователь';
+            
+            // Create client first to get user_id
+            const { data: clientData, error: clientError } = await supabaseAdmin
+                .from('clients')
+                .upsert([{
+                    phone,
+                    name,
+                    city,
+                    verification_status: 'pending',
+                    extra: {
+                        citizenship,
+                        country: country || null
+                    }
+                }], {
+                    onConflict: 'phone',
+                    ignoreDuplicates: false
+                })
+                .select()
+                .single();
+            
+            if (clientError) {
+                console.error('Error creating/updating client:', clientError);
+                return res.status(500).json({ error: 'Failed to create client record.' });
+            }
+            
+            const userId = clientData.id;
+            console.log(`[Web Registration] Created/updated client ${userId}`);
+            
+            // Upload files to Storage under user_id folder
+            const uploadedPaths = [];
+            for (const [fieldname, fileData] of Object.entries(files)) {
+                const filePath = `${userId}/${fieldname}_${Date.now()}.jpg`;
+                
+                const { error: uploadError } = await supabaseAdmin.storage
+                    .from('passports')
+                    .upload(filePath, fileData.buffer, {
+                        contentType: fileData.mimeType,
+                        upsert: false
+                    });
+                
+                if (uploadError) {
+                    console.error(`Failed to upload ${fieldname}:`, uploadError);
+                } else {
+                    uploadedPaths.push(filePath);
+                    console.log(`[Web Registration] Uploaded ${filePath}`);
+                }
+            }
+            
+            // Run OCR with Gemini
+            let recognized_data = {};
+            if (uploadedPaths.length > 0) {
+                try {
+                    console.log(`[Web Registration] Starting OCR for user ${userId}...`);
+                    recognized_data = await recognizeDocumentsWithGemini(
+                        supabaseAdmin,
+                        uploadedPaths,
+                        citizenship
+                    );
+                    console.log(`[Web Registration] OCR result:`, recognized_data);
+                    
+                    // Update client with recognized data
+                    await supabaseAdmin
+                        .from('clients')
+                        .update({
+                            recognized_passport_data: recognized_data,
+                            verification_status: 'needs_confirmation'
+                        })
+                        .eq('id', userId);
+                } catch (e) {
+                    console.error('[Web Registration] OCR failed:', e);
+                    recognized_data = { error: `Recognition failed: ${e.message}` };
+                }
+            }
+            
+            return res.status(200).json({
+                success: true,
+                user: {
+                    id: userId,
+                    name: clientData.name,
+                    phone: clientData.phone,
+                    city: clientData.city
+                },
+                message: 'Регистрация завершена. Ваши данные отправлены на проверку.'
+            });
+        }
+        
+        // Handle JSON requests (Telegram-based auth)
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
         const { action } = body;
 

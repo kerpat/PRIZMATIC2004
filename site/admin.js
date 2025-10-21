@@ -562,29 +562,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
             }
 
-            // ---> ИСПРАВЛЕНИЕ №2: Используем Telegram ID для поиска фото <---
+            // ---> Загрузка фото клиента <---
             const photosDiv = document.getElementById('photo-links');
             if (photosDiv) {
                 photosDiv.innerHTML = 'Загрузка...';
                 try {
-                    // 1. Извлекаем Telegram ID из колонки extra
+                    // 1. Проверяем Telegram ID в extra, иначе используем user_id
                     const telegramId = client?.extra?.telegram_user_id;
+                    const folderId = telegramId || client.id; // Fallback to user_id
 
-                    if (!telegramId) {
-                        throw new Error('Telegram ID не найден в данных клиента.');
-                    }
+                    console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
-                    // 2. Ищем папку в Storage по Telegram ID
-                    const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(telegramId));
+                    // 2. Ищем папку в Storage
+                    const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(folderId));
                     if (fErr) throw fErr;
 
                     if (!files || files.length === 0) {
-                        photosDiv.innerHTML = '<p>Фото не найдены.</p>';
+                        photosDiv.innerHTML = '<p style="color: #666;">Фото не найдены.</p>';
                         viewerImages = [];
                     } else {
                         photosDiv.innerHTML = '';
-                        // 3. Строим публичные URL, используя Telegram ID
-                        viewerImages = files.map(f => supabase.storage.from('passports').getPublicUrl(`${telegramId}/${f.name}`).data.publicUrl);
+                        // 3. Строим публичные URL
+                        viewerImages = files.map(f => supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`).data.publicUrl);
 
                         viewerIndex = 0;
                         viewerImages.forEach(u => {
