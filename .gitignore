@@ -18,3 +18,13 @@ uploads/
 .DS_Store
 Thumbs.db
 .vercel
+
+# Android / Capacitor
+# android/
+# ios/
+*.keystore
+# key.properties
+local.properties
+.gradle/
+.idea/
+*.iml
