@@ -1025,11 +1025,9 @@
             }
 
             if (!userId) {
-                console.warn('[loadUserData] No userId found in localStorage');
-                isLoadingUserData = false;
-                if (mainContent) {
-                    mainContent.innerHTML = '<h2 style="text-align: center; padding-top: 40px;">Пожалуйста, войдите через Telegram бота</h2>';
-                }
+                console.warn('[loadUserData] No userId found - redirecting to registration');
+                localStorage.clear();
+                window.location.replace('registration.html');
                 return;
             }
 
