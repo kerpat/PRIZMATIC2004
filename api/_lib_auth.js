@@ -309,19 +309,11 @@ async function handler(req, res) {
                 success: true,
                 user: {
                     id: userId,
-                    name: clientData.name,
+                    name: fullName || clientData.name, // Используем обновленное имя
                     phone: clientData.phone,
                     city: clientData.city
                 },
-                message: 'Регистрация завершена. Ваши данные отправлены на проверку.',
-                // Отладочная информация (уберите в продакшене)
-                debug: {
-                    filesReceived: fileEntries.length,
-                    filesUploaded: uploadedPaths.length,
-                    uploadedPaths: uploadedPaths,
-                    ocrAttempted: uploadedPaths.length > 0,
-                    recognizedFields: Object.keys(recognized_data).length
-                }
+                message: 'Регистрация завершена. Ваши данные отправлены на проверку.'
             });
         }
         

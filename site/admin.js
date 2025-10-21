@@ -2097,6 +2097,126 @@ document.addEventListener('DOMContentLoaded', () => {
         rentalEditCancelBtn.addEventListener('click', () => rentalEditModal.classList.add('hidden'));
     }
 
+    // Обработчик кнопки "План платежей"
+    const paymentPlanModal = document.getElementById('payment-plan-modal');
+    const paymentPlanCloseBtn = document.getElementById('payment-plan-close-btn');
+    const paymentPlanBtn = document.getElementById('rental-payment-plan-btn');
+    const paymentPlanContent = document.getElementById('payment-plan-content');
+
+    if (paymentPlanCloseBtn) {
+        paymentPlanCloseBtn.addEventListener('click', () => paymentPlanModal.classList.add('hidden'));
+    }
+
+    if (paymentPlanModal) {
+        paymentPlanModal.addEventListener('click', (e) => {
+            if (e.target === paymentPlanModal) paymentPlanModal.classList.add('hidden');
+        });
+    }
+
+    if (paymentPlanBtn) {
+        paymentPlanBtn.addEventListener('click', async () => {
+            const rentalId = rentalIdInput.value;
+            if (!rentalId) return;
+
+            try {
+                // Получаем данные аренды
+                const { data: rental, error } = await supabase
+                    .from('rentals')
+                    .select('*, clients(name, phone), tariffs(duration_days, price_rub)')
+                    .eq('id', rentalId)
+                    .single();
+
+                if (error) throw error;
+
+                // Генерируем план платежей
+                const paymentPlan = generatePaymentPlan(rental);
+                
+                // Отображаем план
+                paymentPlanContent.innerHTML = paymentPlan.map((payment, index) => {
+                    let statusClass = '';
+                    let statusText = '';
+                    let statusIcon = '';
+
+                    if (payment.status === 'paid') {
+                        statusClass = 'success';
+                        statusText = 'Оплачено';
+                        statusIcon = '✓';
+                    } else if (payment.status === 'overdue') {
+                        statusClass = 'danger';
+                        statusText = 'Просрочено';
+                        statusIcon = '✕';
+                    } else {
+                        statusClass = 'pending';
+                        statusText = 'Ожидается';
+                        statusIcon = '⏳';
+                    }
+
+                    return `
+                        <div style="padding: 16px; background: ${payment.status === 'paid' ? '#f0f9ff' : payment.status === 'overdue' ? '#fee' : '#fafafa'}; border-radius: 12px; border-left: 4px solid ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#ccc'};">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-weight: 700; font-size: 14px; color: var(--dark-green);">
+                                    ${payment.period}
+                                </div>
+                                <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: white; border-radius: 999px; font-size: 12px; font-weight: 600; color: ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#666'};">
+                                    <span>${statusIcon}</span>
+                                    <span>${statusText}</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666;">
+                                <span>${payment.date}</span>
+                                <span style="font-weight: 600; color: var(--dark-green);">${payment.amount} ₽</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                paymentPlanModal.classList.remove('hidden');
+            } catch (err) {
+                alert('Ошибка загрузки плана платежей: ' + err.message);
+            }
+        });
+    }
+
+    // Функция генерации плана платежей
+    function generatePaymentPlan(rental) {
+        const plan = [];
+        const startDate = new Date(rental.created_at);
+        const durationDays = rental.tariffs?.duration_days || 7;
+        const pricePerPeriod = rental.tariffs?.price_rub || 0;
+        const today = new Date();
+
+        // Определяем сколько периодов прошло
+        const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        const periodsElapsed = Math.floor(daysSinceStart / durationDays);
+
+        // Генерируем историю платежей + будущие
+        for (let i = 0; i <= periodsElapsed + 2; i++) {
+            const periodStart = new Date(startDate);
+            periodStart.setDate(periodStart.getDate() + (i * durationDays));
+            
+            const periodEnd = new Date(periodStart);
+            periodEnd.setDate(periodEnd.getDate() + durationDays);
+
+            let status = 'pending';
+            if (periodEnd < today) {
+                // Период прошел - нужно проверить оплату
+                status = 'paid'; // TODO: проверить в таблице payments
+            } else if (periodStart < today && periodEnd > today) {
+                // Текущий период
+                status = 'pending';
+            }
+
+            plan.push({
+                period: i === 0 ? 'Первый платеж' : `${i + 1}-й платеж`,
+                date: periodStart.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                amount: pricePerPeriod,
+                status: status
+            });
+        }
+
+        return plan;
+    }
+
     if (rentalEditSaveBtn) {
         rentalEditSaveBtn.addEventListener('click', async () => {
             const id = rentalIdInput.value;

@@ -512,56 +512,15 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             formData.append('passport_visa', passportVisa);
         }
 
-        // ОТЛАДКА: проверяем что отправляется
-        console.log('📤 ОТПРАВКА:');
-        console.log('- FormData entries:', Array.from(formData.entries()).map(([k, v]) => 
-            v instanceof File ? `${k}: FILE ${v.name} (${v.size} bytes)` : `${k}: ${v}`
-        ));
-        
         const response = await fetch('/api/auth', {
             method: 'POST',
             body: formData
-            // НЕ указываем Content-Type! Браузер сам добавит с boundary
         });
 
-        console.log('📥 RESPONSE Headers:', Object.fromEntries(response.headers.entries()));
-        
         const data = await response.json();
 
         if (!response.ok) {
             throw new Error(data.error || 'Ошибка регистрации');
-        }
-
-        // ПРОВЕРКА: Выводим весь ответ СРАЗУ
-        console.log('═══════════════════════════════════════');
-        console.log('🔍 ПОЛНЫЙ ОТВЕТ API:');
-        console.log(JSON.stringify(data, null, 2));
-        console.log('═══════════════════════════════════════');
-        
-        // ALERT ВСЕГДА показываем что пришло
-        alert('ОТВЕТ: ' + JSON.stringify(data.debug || 'НЕТ DEBUG'));
-
-        // Выводим отладочную информацию
-        if (data.debug) {
-            console.log('═══════════════════════════════════════');
-            console.log('📊 ОТЛАДКА ЗАГРУЗКИ ФОТО:');
-            console.log('═══════════════════════════════════════');
-            console.log('✓ Файлов получено:', data.debug.filesReceived);
-            console.log('✓ Файлов загружено:', data.debug.filesUploaded);
-            console.log('✓ Пути загруженных файлов:');
-            data.debug.uploadedPaths.forEach(path => console.log('  →', path));
-            console.log('✓ OCR запущен:', data.debug.ocrAttempted ? 'Да' : 'Нет');
-            console.log('✓ Распознано полей:', data.debug.recognizedFields);
-            console.log('═══════════════════════════════════════');
-            
-            // Сохраняем в localStorage для просмотра позже
-            localStorage.setItem('lastRegistrationDebug', JSON.stringify(data.debug));
-            
-            // ALERT для теста
-            alert(`ОТЛАДКА: Загружено ${data.debug.filesUploaded} из ${data.debug.filesReceived} файлов`);
-        } else {
-            console.warn('⚠️ API не вернул debug информацию! Проверьте что код на Vercel обновился.');
-            alert('⚠️ DEBUG НЕТ - код на Vercel старый!');
         }
 
         // Save to localStorage
