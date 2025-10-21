@@ -523,6 +523,9 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             throw new Error(data.error || 'Ошибка регистрации');
         }
 
+        // ПРОВЕРКА: Выводим весь ответ
+        console.log('🔍 ПОЛНЫЙ ОТВЕТ API:', data);
+
         // Выводим отладочную информацию
         if (data.debug) {
             console.log('═══════════════════════════════════════');
@@ -538,6 +541,12 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             
             // Сохраняем в localStorage для просмотра позже
             localStorage.setItem('lastRegistrationDebug', JSON.stringify(data.debug));
+            
+            // ALERT для теста
+            alert(`ОТЛАДКА: Загружено ${data.debug.filesUploaded} из ${data.debug.filesReceived} файлов`);
+        } else {
+            console.warn('⚠️ API не вернул debug информацию! Проверьте что код на Vercel обновился.');
+            alert('⚠️ DEBUG НЕТ - код на Vercel старый!');
         }
 
         // Save to localStorage
