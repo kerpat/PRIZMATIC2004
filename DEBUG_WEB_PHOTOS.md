@@ -36,17 +36,20 @@ console.log('[Load Photos] Found N files: [names]');
 
 ## 📊 Как проверить
 
-### Шаг 1: Откройте консоль сервера
-Запустите Vercel/локальный сервер с логами
+### Шаг 1: Откройте логи Vercel
+1. Зайдите на **Vercel Dashboard**
+2. Выберите проект **PRIZMATIC**
+3. Перейдите на вкладку **Logs** (или **Deployments** → **Functions**)
+4. Включите **Real-time logs**
 
 ### Шаг 2: Зарегистрируйтесь через веб
-1. Откройте `registration.html`
+1. Откройте `https://ваш-домен.vercel.app/registration.html`
 2. Введите телефон
 3. Подтвердите звонком
 4. Загрузите фото паспорта
 5. Завершите регистрацию
 
-### Шаг 3: Проверьте логи сервера
+### Шаг 3: Смотрите логи в Vercel в реальном времени
 
 **Ожидаемые логи:**
 ```
@@ -65,14 +68,14 @@ console.log('[Load Photos] Found N files: [names]');
 [Web Registration] Failed to upload passport_main: Storage error message
 ```
 
-### Шаг 4: Откройте админку
+### Шаг 4: Проверьте фото в админке
 
-1. Перейдите в **Клиенты**
-2. Найдите клиента
+1. Перейдите в **Админку** → **Клиенты**
+2. Найдите только что зарегистрированного клиента
 3. Нажмите **Инфо/Фото**
-4. Откройте консоль браузера (F12)
+4. Откройте **консоль браузера (F12)** для логов админки
 
-**Ожидаемые логи в браузере:**
+**Ожидаемые логи в консоли браузера:**
 ```
 [Load Photos] Using folder: uuid-1234... (telegram: false, user_id: uuid-1234...)
 [Load Photos] Found 2 files: ["passport_main_1698765432.jpg", "passport_reg_1698765433.jpg"]
@@ -82,6 +85,8 @@ console.log('[Load Photos] Found N files: [names]');
 ```
 [Load Photos] Found 0 files: []
 ```
+
+→ Если здесь `Found 0 files`, но в **Vercel логах** были `✓ Uploaded`, значит проблема в Storage
 
 ## 🐛 Возможные причины
 

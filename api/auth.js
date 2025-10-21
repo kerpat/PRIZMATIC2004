@@ -303,7 +303,15 @@ async function handler(req, res) {
                     phone: clientData.phone,
                     city: clientData.city
                 },
-                message: 'Регистрация завершена. Ваши данные отправлены на проверку.'
+                message: 'Регистрация завершена. Ваши данные отправлены на проверку.',
+                // Отладочная информация (уберите в продакшене)
+                debug: {
+                    filesReceived: fileEntries.length,
+                    filesUploaded: uploadedPaths.length,
+                    uploadedPaths: uploadedPaths,
+                    ocrAttempted: uploadedPaths.length > 0,
+                    recognizedFields: Object.keys(recognized_data).length
+                }
             });
         }
         

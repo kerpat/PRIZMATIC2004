@@ -523,6 +523,23 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             throw new Error(data.error || 'Ошибка регистрации');
         }
 
+        // Выводим отладочную информацию
+        if (data.debug) {
+            console.log('═══════════════════════════════════════');
+            console.log('📊 ОТЛАДКА ЗАГРУЗКИ ФОТО:');
+            console.log('═══════════════════════════════════════');
+            console.log('✓ Файлов получено:', data.debug.filesReceived);
+            console.log('✓ Файлов загружено:', data.debug.filesUploaded);
+            console.log('✓ Пути загруженных файлов:');
+            data.debug.uploadedPaths.forEach(path => console.log('  →', path));
+            console.log('✓ OCR запущен:', data.debug.ocrAttempted ? 'Да' : 'Нет');
+            console.log('✓ Распознано полей:', data.debug.recognizedFields);
+            console.log('═══════════════════════════════════════');
+            
+            // Сохраняем в localStorage для просмотра позже
+            localStorage.setItem('lastRegistrationDebug', JSON.stringify(data.debug));
+        }
+
         // Save to localStorage
         localStorage.setItem('userId', data.user.id);
         localStorage.setItem('userName', data.user.name || 'Пользователь');
