@@ -2424,14 +2424,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatedRec[inp.name] = inp.value.trim();
             });
 
-            // Создаем новый объект `extra` на основе старого, но с обновленными данными
-            const extraObj = JSON.parse(JSON.stringify(currentEditingExtra || {}));
-            extraObj.recognized_data = updatedRec;
-
             try {
+                // Сохраняем в recognized_passport_data вместо extra.recognized_data
                 const { error } = await supabase
                     .from('clients')
-                    .update({ extra: extraObj })
+                    .update({ recognized_passport_data: updatedRec })
                     .eq('id', currentEditingId);
                 if (error) throw error;
 
@@ -3764,7 +3761,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     verification_status: document.getElementById('new-client-status').value || 'pending',
                 };
 
-                // Собираем паспортные данные в recognized_data
+                // Собираем паспортные данные в recognized_passport_data
                 const passportData = {};
                 const passportSeries = document.getElementById('new-client-passport-series').value.trim();
                 const passportIssued = document.getElementById('new-client-passport-issued').value.trim();
@@ -3780,8 +3777,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (birthPlace) passportData.birth_place = birthPlace;
                 if (registration) passportData.registration_address = registration;
 
+                // Сохраняем в правильное поле
                 if (Object.keys(passportData).length > 0) {
-                    clientData.recognized_data = passportData;
+                    clientData.recognized_passport_data = passportData; // Правильное поле!
                 }
 
                 // Дополнительные данные в extra
