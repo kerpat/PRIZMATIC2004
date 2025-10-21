@@ -281,14 +281,24 @@ async function handler(req, res) {
                     );
                     console.log(`[Web Registration] OCR result:`, recognized_data);
                     
-                    // Update client with recognized data
+                    // Собираем ФИО из распознанных данных
+                    const fullName = recognized_data.full_name || 
+                                   [recognized_data.last_name, recognized_data.first_name, recognized_data.middle_name]
+                                       .filter(Boolean)
+                                       .join(' ') || 
+                                   'Пользователь';
+                    
+                    // Update client with recognized data AND name
                     await supabaseAdmin
                         .from('clients')
                         .update({
+                            name: fullName, // Обновляем имя из OCR
                             recognized_passport_data: recognized_data,
                             verification_status: 'needs_confirmation'
                         })
                         .eq('id', userId);
+                    
+                    console.log(`[Web Registration] Updated client name to: ${fullName}`);
                 } catch (e) {
                     console.error('[Web Registration] OCR failed:', e);
                     recognized_data = { error: `Recognition failed: ${e.message}` };
