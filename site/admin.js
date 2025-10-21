@@ -2128,8 +2128,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (error) throw error;
 
-                // Генерируем план платежей
-                const paymentPlan = generatePaymentPlan(rental);
+                // Генерируем план платежей (теперь async!)
+                const paymentPlan = await generatePaymentPlan(rental);
                 
                 // Отображаем план
                 paymentPlanContent.innerHTML = paymentPlan.map((payment, index) => {
@@ -2177,41 +2177,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Функция генерации плана платежей
-    function generatePaymentPlan(rental) {
+    // Функция генерации плана платежей на основе РЕАЛЬНОЙ истории
+    async function generatePaymentPlan(rental) {
         const plan = [];
-        const startDate = new Date(rental.created_at);
-        const durationDays = rental.tariffs?.duration_days || 7;
-        const pricePerPeriod = rental.tariffs?.price_rub || 0;
         const today = new Date();
 
-        // Определяем сколько периодов прошло
-        const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-        const periodsElapsed = Math.floor(daysSinceStart / durationDays);
+        // Получаем ВСЕ платежи по этой аренде из таблицы payments
+        const { data: payments, error } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('rental_id', rental.id)
+            .in('type', ['rental', 'rental_extension'])
+            .order('created_at', { ascending: true });
 
-        // Генерируем историю платежей + будущие
-        for (let i = 0; i <= periodsElapsed + 2; i++) {
-            const periodStart = new Date(startDate);
-            periodStart.setDate(periodStart.getDate() + (i * durationDays));
+        if (error) {
+            console.error('Ошибка загрузки платежей:', error);
+            return [];
+        }
+
+        // Обрабатываем каждый платеж
+        payments.forEach((payment, index) => {
+            const paymentDate = new Date(payment.created_at);
+            const isPaid = payment.status === 'succeeded';
             
-            const periodEnd = new Date(periodStart);
-            periodEnd.setDate(periodEnd.getDate() + durationDays);
-
-            let status = 'pending';
-            if (periodEnd < today) {
-                // Период прошел - нужно проверить оплату
-                status = 'paid'; // TODO: проверить в таблице payments
-            } else if (periodStart < today && periodEnd > today) {
-                // Текущий период
-                status = 'pending';
-            }
+            // Определяем статус
+            let status = isPaid ? 'paid' : 'overdue';
 
             plan.push({
-                period: i === 0 ? 'Первый платеж' : `${i + 1}-й платеж`,
-                date: periodStart.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                amount: pricePerPeriod,
-                status: status
+                period: index === 0 ? 'Первый платеж' : `${index + 1}-й платеж`,
+                date: paymentDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                amount: Math.abs(payment.amount_rub),
+                status: status,
+                description: payment.description || ''
             });
+        });
+
+        // Добавляем СЛЕДУЮЩИЙ ожидаемый платеж
+        if (rental.current_period_ends_at) {
+            const nextPaymentDate = new Date(rental.current_period_ends_at);
+            
+            // Только если дата в будущем
+            if (nextPaymentDate > today) {
+                plan.push({
+                    period: `${plan.length + 1}-й платеж`,
+                    date: nextPaymentDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+                    amount: rental.tariffs?.price_rub || 0,
+                    status: 'pending',
+                    description: 'Ожидается автоплатеж'
+                });
+            }
         }
 
         return plan;
