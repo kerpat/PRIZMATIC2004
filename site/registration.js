@@ -174,6 +174,14 @@ document.getElementById('login-phone-form').addEventListener('submit', async (e)
         }
 
         registrationData.phone = cleaned;
+        
+        // Тестовый номер - сразу логиним без звонка
+        if (cleaned === '79129850281') {
+            console.log('[Login] Test phone detected, skipping call verification');
+            await completeLogin();
+            return;
+        }
+        
         showStep('step-login-2');
         await initiateCall(cleaned, 'login');
 
