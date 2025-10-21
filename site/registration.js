@@ -523,8 +523,14 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             throw new Error(data.error || 'Ошибка регистрации');
         }
 
-        // ПРОВЕРКА: Выводим весь ответ
-        console.log('🔍 ПОЛНЫЙ ОТВЕТ API:', data);
+        // ПРОВЕРКА: Выводим весь ответ СРАЗУ
+        console.log('═══════════════════════════════════════');
+        console.log('🔍 ПОЛНЫЙ ОТВЕТ API:');
+        console.log(JSON.stringify(data, null, 2));
+        console.log('═══════════════════════════════════════');
+        
+        // ALERT ВСЕГДА показываем что пришло
+        alert('ОТВЕТ: ' + JSON.stringify(data.debug || 'НЕТ DEBUG'));
 
         // Выводим отладочную информацию
         if (data.debug) {
