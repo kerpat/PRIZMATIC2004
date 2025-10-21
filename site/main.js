@@ -67,7 +67,7 @@ function initializeMainScreenEventListeners(currentUser) {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('isRegistered') !== 'true') {
-        window.location.replace('start.html');
+        window.location.replace('registration.html');
         return;
     }
 
@@ -78,14 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!userId) {
             localStorage.clear();
-            window.location.replace('start.html');
+            window.location.replace('registration.html');
             return;
         }
 
         const currentUser = await getClient(userId);
         if (!currentUser) {
             localStorage.clear();
-            window.location.replace('start.html');
+            window.location.replace('registration.html');
             return;
         }
 
