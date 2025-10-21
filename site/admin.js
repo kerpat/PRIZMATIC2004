@@ -2183,12 +2183,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
 
         // Получаем ВСЕ платежи по этой аренде
-        // Ищем по user_id + описанию, так как rental_id может не быть в payments
         const { data: payments, error } = await supabase
             .from('payments')
             .select('*')
-            .eq('user_id', rental.user_id)
-            .in('type', ['rental', 'rental_extension'])
+            .eq('rental_id', rental.id)
+            .in('payment_type', ['rental', 'renewal'])
             .order('created_at', { ascending: true });
 
         if (error) {
