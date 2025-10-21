@@ -512,11 +512,20 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             formData.append('passport_visa', passportVisa);
         }
 
+        // ОТЛАДКА: проверяем что отправляется
+        console.log('📤 ОТПРАВКА:');
+        console.log('- FormData entries:', Array.from(formData.entries()).map(([k, v]) => 
+            v instanceof File ? `${k}: FILE ${v.name} (${v.size} bytes)` : `${k}: ${v}`
+        ));
+        
         const response = await fetch('/api/auth', {
             method: 'POST',
             body: formData
+            // НЕ указываем Content-Type! Браузер сам добавит с boundary
         });
 
+        console.log('📥 RESPONSE Headers:', Object.fromEntries(response.headers.entries()));
+        
         const data = await response.json();
 
         if (!response.ok) {
