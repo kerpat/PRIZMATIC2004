@@ -2213,10 +2213,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Только если дата в будущем
             if (nextPaymentDate > today) {
+                // Берем сумму последнего успешного платежа, иначе базовую цену тарифа
+                const lastSuccessfulPayment = payments.filter(p => p.status === 'succeeded').pop();
+                const expectedAmount = lastSuccessfulPayment ? Math.abs(lastSuccessfulPayment.amount_rub) : (rental.tariffs?.price_rub || 0);
+                
                 plan.push({
                     period: `${plan.length + 1}-й платеж`,
                     date: nextPaymentDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    amount: rental.tariffs?.price_rub || 0,
+                    amount: expectedAmount,
                     status: 'pending',
                     description: 'Ожидается автоплатеж'
                 });
@@ -2513,12 +2517,29 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const { data: todayRentals } = await supabase
                 .from('rentals')
-                .select('current_period_ends_at, tariffs(price_rub)')
+                .select('id, current_period_ends_at')
                 .eq('status', 'active')
                 .gte('current_period_ends_at', today.toISOString())
                 .lt('current_period_ends_at', tomorrow.toISOString());
             
-            const expectedToday = todayRentals ? todayRentals.reduce((sum, r) => sum + (r.tariffs?.price_rub || 0), 0) : 0;
+            // Для каждой аренды находим последний успешный платеж
+            let expectedToday = 0;
+            if (todayRentals && todayRentals.length > 0) {
+                for (const rental of todayRentals) {
+                    const { data: lastPayment } = await supabase
+                        .from('payments')
+                        .select('amount_rub')
+                        .eq('rental_id', rental.id)
+                        .eq('status', 'succeeded')
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    if (lastPayment) {
+                        expectedToday += Math.abs(lastPayment.amount_rub);
+                    }
+                }
+            }
 
             if (weeklyIncomeDiv) {
                 weeklyIncomeDiv.textContent = `${total.toLocaleString('ru-RU')} ₽`;
