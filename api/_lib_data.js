@@ -6,7 +6,6 @@
 const { getSupabaseServiceRoleClient } = require('../supabase');
 
 
-const supabaseAdmin = getSupabaseServiceRoleClient();
 
 module.exports = async (req, res) => {
     // CORS headers
@@ -24,6 +23,8 @@ module.exports = async (req, res) => {
     }
 
     const { action, ...params } = req.body;
+
+    const supabaseAdmin = getSupabaseServiceRoleClient();
 
     try {
         let result;

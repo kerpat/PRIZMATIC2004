@@ -91,8 +91,8 @@ module.exports = async (req, res) => {
                     return res.status(400).json({ error: 'bikeCode is required' });
                 }
 
-                const supabaseClient = ensureSupabaseAdmin();
-                const { data: bike, error: bikeError } = await supabaseClient
+                const supabaseTariffClient = ensureSupabaseAdmin();
+                const { data: bike, error: bikeError } = await supabaseTariffClient
                     .from('bikes')
                     .select('*, tariffs(*)')
                     .eq('code', bikeCode)
@@ -211,8 +211,8 @@ module.exports = async (req, res) => {
                 }
 
                 const buffer = Buffer.from(fileData, 'base64');
-                const supabaseClient = ensureSupabaseAdmin();
-                const { error: uploadError } = await supabaseClient.storage
+                const supabaseStorageClient = ensureSupabaseAdmin();
+                const { error: uploadError } = await supabaseStorageClient.storage
                     .from(bucket)
                     .upload(filePath, buffer, { contentType: 'application/octet-stream' });
 
@@ -220,7 +220,7 @@ module.exports = async (req, res) => {
                     return res.status(500).json({ error: uploadError.message });
                 }
 
-                const { data: urlData } = supabaseClient.storage
+                const { data: urlData } = supabaseStorageClient.storage
                     .from(bucket)
                     .getPublicUrl(filePath);
 
