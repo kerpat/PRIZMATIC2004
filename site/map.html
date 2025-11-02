@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="config.js"></script>
+    <script src="/api/config?v=11.3"></script>
     <title>Карта - Bike App</title>
     <!-- Шрифты Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +17,7 @@
 
     <!-- Supabase for user data -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+  <script src="/supabase/index.js"></script>
 
 
 
@@ -162,14 +163,14 @@
         });
 
         // --- Supabase initialization ---
-        const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+        const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+        const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
         let supabase = null;
 
         // Wait for Supabase to load
         function initSupabase() {
-            if (window.supabase && window.supabase.createClient) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            if (window.SupabaseBridge && typeof window.SupabaseBridge.getSupabaseAnonClient === "function") {
+                supabase = window.SupabaseBridge.getSupabaseAnonClient();
             } else {
                 // Retry after a short delay
                 setTimeout(initSupabase, 100);

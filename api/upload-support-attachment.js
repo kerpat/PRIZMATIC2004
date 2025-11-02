@@ -1,16 +1,8 @@
-
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient } = require('../supabase');
 const Busboy = require('busboy');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-
-function createSupabaseAdmin() {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('Supabase service credentials are not configured.');
-    }
-    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
 
 function parseMultipartForm(req) {
     return new Promise((resolve, reject) => {
@@ -80,7 +72,7 @@ async function handler(req, res) {
             return;
         }
 
-        const supabaseAdmin = createSupabaseAdmin();
+        const supabaseAdmin = getSupabaseServiceRoleClient();
         const bucketName = 'support_attachments';
         const destinationPath = `${clientId || anonymousChatId}/${Date.now()}-${file.filename}`;
         const fileBuffer = fs.readFileSync(file.filepath);

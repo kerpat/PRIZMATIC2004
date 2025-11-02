@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js" defer></script>
+  <script src="/supabase/index.js"></script>
   <link rel="stylesheet" href="style.css?v=9.0">
     <link rel="stylesheet" href="blend.css?v=9.0">
   <script src="transitions.js" defer></script>
@@ -199,7 +200,7 @@
             return;
         }
 
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabase = window.SupabaseBridge.getSupabaseAnonClient();
 
         recoverViaSupportBtn = document.getElementById('recover-via-support');
         supportModal = document.getElementById('support-modal');

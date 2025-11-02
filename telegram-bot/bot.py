@@ -8,6 +8,9 @@ import base64
 from pathlib import Path
 from PIL import Image
 import io
+import sys
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.fsm.context import FSMContext
@@ -19,7 +22,8 @@ from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, WebAppInfo,
     FSInputFile
 )
-from supabase import create_client, Client
+from supabase import Client
+from supabase_client import get_supabase_service_role_client
 from ocr import configure_gemini, recognize_document, recognize_document_from_images
 
 # --- Конфигурация ---
@@ -43,20 +47,18 @@ ADMIN_IDS = [752012766]  # <--- ЗАМЕНИ НА РЕАЛЬНЫЕ ID АДМИН
 # --- КОНЕЦ НОВОГО БЛОКА ---
 
 # Supabase settings
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 GEMINI_API_KEY = os.getenv('GOOGLE_API_KEY')
 if not GEMINI_API_KEY:
-    logger.critical("!!! Ключ GOOGLE_API_KEY не найден. Проверьте ваш .env файл и его расположение.")
+    logger.critical("!!! ���� GOOGLE_API_KEY �� ������. �஢���� ��� .env 䠩� � ��� �ᯮ�������.")
 else:
-    logger.info("Ключ Gemini API успешно загружен из переменных окружения.")
+    logger.info("���� Gemini API �ᯥ譮 ����㦥� �� ��६����� ���㦥���.")
 
-if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
-    logger.critical("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set!")
-    # In production, exit here
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-logger.info("Supabase client initialized.")
+try:
+    supabase: Client = get_supabase_service_role_client()
+    logger.info("Supabase client initialized.")
+except RuntimeError as exc:
+    logger.critical("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set! %s", exc)
+    supabase = None  # type: ignore[assignment]
 
 # --- Инициализация Aiogram ---
 bot = Bot(token=TOKEN)
@@ -671,6 +673,7 @@ async def process_video_note(message: Message, state: FSMContext):
             "userId": user_id,
             "formData": user_data # Отправляем все, что собрали
         }
+        logger.info(f"ОТЛАДКА: Отправляю на Vercel API следующие данные: {json.dumps(api_data, indent=2, ensure_ascii=False)}")
 
         async with aiohttp.ClientSession() as session:
             async with session.post(BOT_REGISTER_API, json=api_data) as response:

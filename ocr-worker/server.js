@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient } = require('../supabase');
 require('dotenv').config();
 
 const app = express();
@@ -8,10 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50mb' }));
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = getSupabaseServiceRoleClient();
 
 const checkInternalSecret = (req, res, next) => {
   const secret = req.headers['x-internal-secret'];
