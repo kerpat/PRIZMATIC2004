@@ -22,6 +22,7 @@
 
     <!-- ⚡ SUPABASE SDK - Загружается ЛОКАЛЬНО для быстрой работы в России -->
     <script src="supabase.min.js" async></script>
+  <script src="/supabase/index.js"></script>
 
     <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
     <script src="/api/config?v=11.3"></script>
@@ -545,7 +546,7 @@
 
             console.log('[Init] Creating Supabase client...');
             try {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                supabase = window.SupabaseBridge.getSupabaseAnonClient({
                     realtime: {
                         params: {
                             eventsPerSecond: 10,

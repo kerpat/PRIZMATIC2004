@@ -79,6 +79,7 @@
     <div class="log" id="log"></div>
 
     <script src="supabase.min.js"></script>
+    <script src="/supabase/index.js"></script>
     <script src="/api/config"></script>
 
     <script>
@@ -117,10 +118,7 @@
                 // Шаг 3: Создание клиента
                 log('Создание Supabase клиента...', 'info');
                 const startCreateClient = Date.now();
-                const supabase = window.supabase.createClient(
-                    window.CONFIG.SUPABASE_URL,
-                    window.CONFIG.SUPABASE_ANON_KEY
-                );
+                const supabase = window.SupabaseBridge.getSupabaseAnonClient();
                 log(`✓ Клиент создан за ${Date.now() - startCreateClient}ms`, 'success');
 
                 // Шаг 4: Тестовый запрос

@@ -1,13 +1,5 @@
-
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient } = require('../supabase');
 const crypto = require('crypto');
-
-function createSupabaseAdmin() {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('Supabase service credentials are not configured.');
-    }
-    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
 
 function parseRequestBody(body) {
     if (!body) return {};
@@ -48,7 +40,7 @@ async function processSucceededPayment(notification) {
     const { userId, tariffId, payment_type, debit_from_balance, days } = metadata;
     const cardPaymentAmount = Number.parseFloat(payment.amount?.value ?? '0');
     const yookassaPaymentId = payment.id;
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     
     console.log(`[WEBHOOK] payment_id: ${yookassaPaymentId}, payment_type: ${payment_type}, userId: ${userId}, tariffId: ${tariffId}`);
 

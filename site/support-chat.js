@@ -28,6 +28,13 @@
         if (options && options.supabaseClient) {
             state.supabase = options.supabaseClient;
         }
+        if (!state.supabase && global.SupabaseBridge && typeof global.SupabaseBridge.getSupabaseAnonClient === 'function') {
+            try {
+                state.supabase = global.SupabaseBridge.getSupabaseAnonClient();
+            } catch (err) {
+                console.warn('SupportChat: failed to initialize SupabaseBridge client', err);
+            }
+        }
         if (!state.supabase && global.supabase && typeof global.supabase.createClient === 'function') {
             const url = global.SUPABASE_URL || global.localStorage?.getItem('supabaseUrl');
             const anonKey = global.SUPABASE_ANON_KEY || global.localStorage?.getItem('supabaseAnonKey');

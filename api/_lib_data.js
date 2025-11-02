@@ -3,12 +3,9 @@
  * Обрабатывает все read-операции через единый интерфейс
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient } = require('../supabase');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 module.exports = async (req, res) => {
     // CORS headers
@@ -26,6 +23,8 @@ module.exports = async (req, res) => {
     }
 
     const { action, ...params } = req.body;
+
+    const supabaseAdmin = getSupabaseServiceRoleClient();
 
     try {
         let result;

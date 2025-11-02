@@ -4,13 +4,19 @@
  * Решает проблему лимита Vercel (12 функций на Hobby плане)
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient, getSupabaseConfig } = require('../supabase');
 const crypto = require('crypto');
 
 // Инициализация Supabase
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+let cachedSupabaseAdmin = null;
+const supabaseConfig = getSupabaseConfig();
+
+function ensureSupabaseAdmin() {
+    if (!cachedSupabaseAdmin) {
+        cachedSupabaseAdmin = getSupabaseServiceRoleClient();
+    }
+    return cachedSupabaseAdmin;
+}
 
 // Импортируем обработчики из отдельных модулей
 const handleAuth = require('./handlers/auth');
@@ -44,35 +50,35 @@ module.exports = async (req, res) => {
             case 'config':
                 return res.status(200).send(`
                     window.CONFIG = {
-                        SUPABASE_URL: "${process.env.SUPABASE_URL}",
-                        SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY}",
+                        SUPABASE_URL: "${supabaseConfig.url}",
+                        SUPABASE_ANON_KEY: "${supabaseConfig.anonKey}",
                         CONTRACTS_API_URL: "${process.env.CONTRACTS_API_URL || process.env.VERCEL_URL || 'http://localhost:3000'}"
                     };
                 `);
 
             // ===== AUTH =====
             case 'auth':
-                return handleAuth(req, res, supabaseAdmin);
+                return handleAuth(req, res, ensureSupabaseAdmin());
 
             // ===== PAYMENTS =====
             case 'payments':
-                return handlePayments(req, res, supabaseAdmin);
+                return handlePayments(req, res, ensureSupabaseAdmin());
 
             // ===== PAYMENT WEBHOOK =====
             case 'payment-webhook':
-                return handleWebhook(req, res, supabaseAdmin);
+                return handleWebhook(req, res, ensureSupabaseAdmin());
 
             // ===== USER =====
             case 'user':
-                return handleUser(req, res, supabaseAdmin);
+                return handleUser(req, res, ensureSupabaseAdmin());
 
             // ===== ADMIN =====
             case 'admin':
-                return handleAdmin(req, res, supabaseAdmin);
+                return handleAdmin(req, res, ensureSupabaseAdmin());
 
             // ===== DATA (оптимизированный прокси) =====
             case 'data':
-                return handleData(req, res, supabaseAdmin);
+                return handleData(req, res, ensureSupabaseAdmin());
 
             // ===== GET TARIFF BY BIKE =====
             case 'getTariffByBike':
@@ -85,7 +91,8 @@ module.exports = async (req, res) => {
                     return res.status(400).json({ error: 'bikeCode is required' });
                 }
 
-                const { data: bike, error: bikeError } = await supabaseAdmin
+                const supabaseTariffClient = ensureSupabaseAdmin();
+                const { data: bike, error: bikeError } = await supabaseTariffClient
                     .from('bikes')
                     .select('*, tariffs(*)')
                     .eq('code', bikeCode)
@@ -204,7 +211,8 @@ module.exports = async (req, res) => {
                 }
 
                 const buffer = Buffer.from(fileData, 'base64');
-                const { error: uploadError } = await supabaseAdmin.storage
+                const supabaseStorageClient = ensureSupabaseAdmin();
+                const { error: uploadError } = await supabaseStorageClient.storage
                     .from(bucket)
                     .upload(filePath, buffer, { contentType: 'application/octet-stream' });
 
@@ -212,7 +220,7 @@ module.exports = async (req, res) => {
                     return res.status(500).json({ error: uploadError.message });
                 }
 
-                const { data: urlData } = supabaseAdmin.storage
+                const { data: urlData } = supabaseStorageClient.storage
                     .from(bucket)
                     .getPublicUrl(filePath);
 
