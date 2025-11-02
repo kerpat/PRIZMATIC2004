@@ -8,8 +8,15 @@ const { getSupabaseServiceRoleClient, getSupabaseConfig } = require('../supabase
 const crypto = require('crypto');
 
 // Инициализация Supabase
-const supabaseAdmin = getSupabaseServiceRoleClient();
+let cachedSupabaseAdmin = null;
 const supabaseConfig = getSupabaseConfig();
+
+function ensureSupabaseAdmin() {
+    if (!cachedSupabaseAdmin) {
+        cachedSupabaseAdmin = getSupabaseServiceRoleClient();
+    }
+    return cachedSupabaseAdmin;
+}
 
 // Импортируем обработчики из отдельных модулей
 const handleAuth = require('./handlers/auth');
@@ -51,27 +58,27 @@ module.exports = async (req, res) => {
 
             // ===== AUTH =====
             case 'auth':
-                return handleAuth(req, res, supabaseAdmin);
+                return handleAuth(req, res, ensureSupabaseAdmin());
 
             // ===== PAYMENTS =====
             case 'payments':
-                return handlePayments(req, res, supabaseAdmin);
+                return handlePayments(req, res, ensureSupabaseAdmin());
 
             // ===== PAYMENT WEBHOOK =====
             case 'payment-webhook':
-                return handleWebhook(req, res, supabaseAdmin);
+                return handleWebhook(req, res, ensureSupabaseAdmin());
 
             // ===== USER =====
             case 'user':
-                return handleUser(req, res, supabaseAdmin);
+                return handleUser(req, res, ensureSupabaseAdmin());
 
             // ===== ADMIN =====
             case 'admin':
-                return handleAdmin(req, res, supabaseAdmin);
+                return handleAdmin(req, res, ensureSupabaseAdmin());
 
             // ===== DATA (оптимизированный прокси) =====
             case 'data':
-                return handleData(req, res, supabaseAdmin);
+                return handleData(req, res, ensureSupabaseAdmin());
 
             // ===== GET TARIFF BY BIKE =====
             case 'getTariffByBike':
@@ -84,7 +91,8 @@ module.exports = async (req, res) => {
                     return res.status(400).json({ error: 'bikeCode is required' });
                 }
 
-                const { data: bike, error: bikeError } = await supabaseAdmin
+                const supabaseClient = ensureSupabaseAdmin();
+                const { data: bike, error: bikeError } = await supabaseClient
                     .from('bikes')
                     .select('*, tariffs(*)')
                     .eq('code', bikeCode)
@@ -203,7 +211,8 @@ module.exports = async (req, res) => {
                 }
 
                 const buffer = Buffer.from(fileData, 'base64');
-                const { error: uploadError } = await supabaseAdmin.storage
+                const supabaseClient = ensureSupabaseAdmin();
+                const { error: uploadError } = await supabaseClient.storage
                     .from(bucket)
                     .upload(filePath, buffer, { contentType: 'application/octet-stream' });
 
@@ -211,7 +220,7 @@ module.exports = async (req, res) => {
                     return res.status(500).json({ error: uploadError.message });
                 }
 
-                const { data: urlData } = supabaseAdmin.storage
+                const { data: urlData } = supabaseClient.storage
                     .from(bucket)
                     .getPublicUrl(filePath);
 
