@@ -4,13 +4,12 @@
  * Решает проблему лимита Vercel (12 функций на Hobby плане)
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient, getSupabaseConfig } = require('../supabase');
 const crypto = require('crypto');
 
 // Инициализация Supabase
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabaseAdmin = getSupabaseServiceRoleClient();
+const supabaseConfig = getSupabaseConfig();
 
 // Импортируем обработчики из отдельных модулей
 const handleAuth = require('./handlers/auth');
@@ -44,8 +43,8 @@ module.exports = async (req, res) => {
             case 'config':
                 return res.status(200).send(`
                     window.CONFIG = {
-                        SUPABASE_URL: "${process.env.SUPABASE_URL}",
-                        SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY}",
+                        SUPABASE_URL: "${supabaseConfig.url}",
+                        SUPABASE_ANON_KEY: "${supabaseConfig.anonKey}",
                         CONTRACTS_API_URL: "${process.env.CONTRACTS_API_URL || process.env.VERCEL_URL || 'http://localhost:3000'}"
                     };
                 `);

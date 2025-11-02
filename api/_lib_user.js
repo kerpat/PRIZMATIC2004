@@ -1,23 +1,6 @@
-
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceRoleClient } = require('../supabase');
 const fetch = require('node-fetch');
 const playwright = require('playwright-aws-lambda');
-
-function createSupabaseAdmin() {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    console.log('[createSupabaseAdmin] ENV check:', {
-        hasUrl: !!url,
-        hasKey: !!key,
-        urlPrefix: url ? url.substring(0, 20) + '...' : 'MISSING'
-    });
-
-    if (!url || !key) {
-        throw new Error('Supabase service credentials are not configured. URL: ' + (url ? 'OK' : 'MISSING') + ', KEY: ' + (key ? 'OK' : 'MISSING'));
-    }
-    return createClient(url, key);
-}
 
 function parseRequestBody(body) {
     if (!body) return {};
@@ -36,7 +19,7 @@ async function handleUpdateLocation({ userId, latitude, longitude }) {
     if (!userId || typeof latitude !== 'number' || typeof longitude !== 'number') {
         return { status: 400, body: { error: 'userId, latitude, and longitude are required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const locationString = `POINT(${longitude} ${latitude})`;
     const { error } = await supabaseAdmin
         .from('clients')
@@ -54,7 +37,7 @@ async function handleVerifyToken({ token }) {
     if (!token) {
         return { status: 400, body: { error: 'token is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const { data: client, error } = await supabaseAdmin
         .from('clients')
         .select('id, name, auth_token')
@@ -72,7 +55,7 @@ async function handleGetPendingContracts({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select('id, status, bike_id, tariffs(title), bikes(*)')
@@ -90,7 +73,7 @@ async function handleGetContractDetails({ userId, rentalId }) {
     if (!userId || !rentalId) {
         return { status: 400, body: { error: 'userId and rentalId are required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select(`
@@ -114,7 +97,7 @@ async function handleGetActiveRental({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select('*, tariffs(*)')
@@ -137,7 +120,7 @@ async function handleGetActiveRental({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select('*, tariffs(*)')
@@ -207,7 +190,7 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         return { status: 400, body: { error: 'userId, rentalId, and signatureData are required.' } };
     }
 
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     let browser = null;
 
     try {
@@ -293,7 +276,7 @@ async function handleGetPaymentMethod({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
     const { data: client, error: clientError } = await supabaseAdmin
         .from('clients')
         .select('extra')
@@ -316,7 +299,7 @@ async function handleUnbindPaymentMethod({ userId }) {
         return { status: 400, body: { error: 'User ID is required' } };
     }
 
-    const supabaseAdmin = createSupabaseAdmin();
+    const supabaseAdmin = getSupabaseServiceRoleClient();
 
     // Просто зачищаем поля, связанные с YooKassa, у клиента
     const { error } = await supabaseAdmin
