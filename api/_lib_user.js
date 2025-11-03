@@ -1,22 +1,29 @@
-
-const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 const fetch = require('node-fetch');
 const playwright = require('playwright-aws-lambda');
+const htmlToDocx = require('html-to-docx');
 
-function createSupabaseAdmin() {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Создаем connection pool для PostgreSQL
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+});
 
-    console.log('[createSupabaseAdmin] ENV check:', {
-        hasUrl: !!url,
-        hasKey: !!key,
-        urlPrefix: url ? url.substring(0, 20) + '...' : 'MISSING'
-    });
-
-    if (!url || !key) {
-        throw new Error('Supabase service credentials are not configured. URL: ' + (url ? 'OK' : 'MISSING') + ', KEY: ' + (key ? 'OK' : 'MISSING'));
+// Вспомогательная функция для выполнения запросов
+async function query(text, params) {
+    const client = await pool.connect();
+    try {
+        const result = await client.query(text, params);
+        return { rows: result.rows, rowCount: result.rowCount };
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    } finally {
+        client.release();
     }
-    return createClient(url, key);
 }
 
 function parseRequestBody(body) {
@@ -36,16 +43,14 @@ async function handleUpdateLocation({ userId, latitude, longitude }) {
     if (!userId || typeof latitude !== 'number' || typeof longitude !== 'number') {
         return { status: 400, body: { error: 'userId, latitude, and longitude are required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const locationString = `POINT(${longitude} ${latitude})`;
-    const { error } = await supabaseAdmin
-        .from('clients')
-        .update({ last_location: locationString })
-        .eq('id', userId);
-
-    if (error) {
-        throw new Error('Failed to update location: ' + error.message);
-    }
+    
+    // PostGIS использует ST_SetSRID(ST_MakePoint(lon, lat), 4326)
+    await query(
+        `UPDATE clients 
+         SET last_location = ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography 
+         WHERE id = $3`,
+        [longitude, latitude, userId]
+    );
 
     return { status: 200, body: { message: 'Location updated successfully.' } };
 }
@@ -54,17 +59,17 @@ async function handleVerifyToken({ token }) {
     if (!token) {
         return { status: 400, body: { error: 'token is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data: client, error } = await supabaseAdmin
-        .from('clients')
-        .select('id, name, auth_token')
-        .eq('auth_token', token)
-        .single();
+    
+    const result = await query(
+        'SELECT id, name, auth_token FROM clients WHERE auth_token = $1',
+        [token]
+    );
 
-    if (error || !client) {
+    if (result.rowCount === 0) {
         return { status: 401, body: { error: 'Invalid or expired token.' } };
     }
 
+    const client = result.rows[0];
     return { status: 200, body: { userId: client.id, userName: client.name } };
 }
 
@@ -72,86 +77,88 @@ async function handleGetPendingContracts({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data, error } = await supabaseAdmin
-        .from('rentals')
-        .select('id, status, bike_id, tariffs(title), bikes(*)')
-        .eq('user_id', userId)
-        .eq('status', 'awaiting_contract_signing');
+    
+    const result = await query(
+        `SELECT r.id, r.status, r.bike_id,
+            jsonb_build_object('title', t.title) as tariffs,
+            jsonb_build_object(
+                'id', b.id,
+                'bike_code', b.bike_code,
+                'model_name', b.model_name,
+                'frame_number', b.frame_number,
+                'battery_numbers', b.battery_numbers,
+                'registration_number', b.registration_number,
+                'iot_device_id', b.iot_device_id,
+                'additional_equipment', b.additional_equipment
+            ) as bikes
+         FROM rentals r
+         LEFT JOIN tariffs t ON r.tariff_id = t.id
+         LEFT JOIN bikes b ON r.bike_id = b.id
+         WHERE r.user_id = $1 AND r.status = 'awaiting_contract_signing'`,
+        [userId]
+    );
 
-    if (error) {
-        throw new Error('Failed to fetch pending contracts: ' + error.message);
-    }
-
-    return { status: 200, body: { rentals: data } };
+    return { status: 200, body: { rentals: result.rows } };
 }
 
 async function handleGetContractDetails({ userId, rentalId }) {
     if (!userId || !rentalId) {
         return { status: 400, body: { error: 'userId and rentalId are required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data, error } = await supabaseAdmin
-        .from('rentals')
-        .select(`
-            id,
-            clients ( name, city, recognized_passport_data ),
-            tariffs ( title ),
-            bikes ( model_name, frame_number, battery_numbers, registration_number, iot_device_id, additional_equipment )
-        `)
-        .eq('id', rentalId)
-        .eq('user_id', userId) // Security check
-        .single();
+    
+    const result = await query(
+        `SELECT r.id,
+            jsonb_build_object(
+                'name', c.name,
+                'city', c.city,
+                'recognized_passport_data', c.recognized_passport_data
+            ) as clients,
+            jsonb_build_object('title', t.title) as tariffs,
+            jsonb_build_object(
+                'model_name', b.model_name,
+                'frame_number', b.frame_number,
+                'battery_numbers', b.battery_numbers,
+                'registration_number', b.registration_number,
+                'iot_device_id', b.iot_device_id,
+                'additional_equipment', b.additional_equipment
+            ) as bikes
+         FROM rentals r
+         LEFT JOIN clients c ON r.user_id = c.id
+         LEFT JOIN tariffs t ON r.tariff_id = t.id
+         LEFT JOIN bikes b ON r.bike_id = b.id
+         WHERE r.id = $1 AND r.user_id = $2`,
+        [rentalId, userId]
+    );
 
-    if (error) {
-        throw new Error('Failed to fetch contract details: ' + error.message);
+    if (result.rowCount === 0) {
+        return { status: 404, body: { error: 'Rental not found' } };
     }
 
-    return { status: 200, body: { rental: data } };
+    return { status: 200, body: { rental: result.rows[0] } };
 }
 
 async function handleGetActiveRental({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data, error } = await supabaseAdmin
-        .from('rentals')
-        .select('*, tariffs(*)')
-        .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    
+    const result = await query(
+        `SELECT r.*,
+            jsonb_build_object(
+                'title', t.title,
+                'price_rub', t.price_rub,
+                'duration_days', t.duration_days
+            ) as tariffs
+         FROM rentals r
+         LEFT JOIN tariffs t ON r.tariff_id = t.id
+         WHERE r.user_id = $1 
+         AND r.status IN ('active', 'overdue', 'pending_return')
+         ORDER BY r.created_at DESC
+         LIMIT 1`,
+        [userId]
+    );
 
-    if (error) {
-        throw new Error('Failed to fetch active rental: ' + error.message);
-    }
-
-    return { status: 200, body: { rental: data } };
-}
-
-const htmlToDocx = require('html-to-docx');
-
-async function handleGetActiveRental({ userId }) {
-    if (!userId) {
-        return { status: 400, body: { error: 'userId is required.' } };
-    }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data, error } = await supabaseAdmin
-        .from('rentals')
-        .select('*, tariffs(*)')
-        .eq('user_id', userId)
-        .in('status', ['active', 'overdue', 'pending_return'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    if (error) {
-        throw new Error('Failed to fetch active rental: ' + error.message);
-    }
-
-    return { status: 200, body: { rental: data } };
+    return { status: 200, body: { rental: result.rowCount > 0 ? result.rows[0] : null } };
 }
 
 function generateContractHTML(rentalData) {
@@ -207,25 +214,40 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         return { status: 400, body: { error: 'userId, rentalId, and signatureData are required.' } };
     }
 
-    const supabaseAdmin = createSupabaseAdmin();
     let browser = null;
 
     try {
         // ШАГ 1: Получаем все данные для договора
-        const { data: rentalData, error: rentalError } = await supabaseAdmin
-            .from('rentals')
-            .select(`
-                clients ( name, city, recognized_passport_data ),
-                bikes ( model_name, frame_number, battery_numbers, registration_number, iot_device_id, additional_equipment )
-            `)
-            .eq('id', rentalId)
-            .eq('user_id', userId)
-            .single();
+        const result = await query(
+            `SELECT 
+                jsonb_build_object(
+                    'name', c.name,
+                    'city', c.city,
+                    'recognized_passport_data', c.recognized_passport_data
+                ) as clients,
+                jsonb_build_object(
+                    'model_name', b.model_name,
+                    'frame_number', b.frame_number,
+                    'battery_numbers', b.battery_numbers,
+                    'registration_number', b.registration_number,
+                    'iot_device_id', b.iot_device_id,
+                    'additional_equipment', b.additional_equipment
+                ) as bikes
+             FROM rentals r
+             LEFT JOIN clients c ON r.user_id = c.id
+             LEFT JOIN bikes b ON r.bike_id = b.id
+             WHERE r.id = $1 AND r.user_id = $2`,
+            [rentalId, userId]
+        );
 
-        if (rentalError) throw new Error('Failed to fetch rental data: ' + rentalError.message);
+        if (result.rowCount === 0) {
+            throw new Error('Rental not found or access denied');
+        }
+
+        const rentalData = result.rows[0];
 
         // ШАГ 2: Собираем полный HTML для PDF-документа
-        const contractBodyHTML = generateContractHTML(rentalData); // Эта функция уже должна быть в твоем файле
+        const contractBodyHTML = generateContractHTML(rentalData);
         const fullHTML = `
             <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><style>
             body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; line-height: 1.4; color: #333; }
@@ -249,37 +271,24 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         await page.setContent(fullHTML, { waitUntil: 'load' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
 
-        // ШАГ 4: Загружаем готовый PDF в хранилище Supabase
-        const filePath = `signed/${userId}/rental_${rentalId}_signed.pdf`;
-        const { error: uploadError } = await supabaseAdmin.storage
-            .from('contracts') // <--- Наше новое хранилище
-            .upload(filePath, pdfBuffer, {
-                contentType: 'application/pdf',
-                upsert: true
-            });
-
-        if (uploadError) throw new Error('Failed to save PDF: ' + uploadError.message);
-
-        const { data: { publicUrl } } = supabaseAdmin.storage.from('contracts').getPublicUrl(filePath);
+        // ШАГ 4: Загружаем готовый PDF в Minio (TODO: нужно будет реализовать)
+        // Пока сохраним как base64 в extra_data
+        const pdfBase64 = pdfBuffer.toString('base64');
+        const publicUrl = `data:application/pdf;base64,${pdfBase64}`;
 
         // ШАГ 5: Активируем аренду и сохраняем ссылку на документ
-        const { error: updateError } = await supabaseAdmin
-            .from('rentals')
-            .update({
-                status: 'active',
-                // Убедись, что в таблице rentals есть колонка `extra_data` типа jsonb
-                extra_data: { contract_document_url: publicUrl }
-            })
-            .eq('id', rentalId)
-            .eq('user_id', userId);
-
-        if (updateError) throw new Error('Failed to activate rental: ' + updateError.message);
+        await query(
+            `UPDATE rentals 
+             SET status = 'active',
+                 extra_data = jsonb_set(COALESCE(extra_data, '{}'::jsonb), '{contract_document_url}', $1::jsonb)
+             WHERE id = $2 AND user_id = $3`,
+            [JSON.stringify(publicUrl), rentalId, userId]
+        );
 
         return { status: 200, body: { message: 'Contract signed and rental activated' } };
 
     } catch (error) {
         console.error('Contract confirmation error:', error);
-        // Возвращаем ошибку, чтобы фронтенд мог ее показать
         return { status: 500, body: { error: 'Не удалось сгенерировать договор: ' + error.message } };
     } finally {
         if (browser !== null) {
@@ -288,20 +297,21 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
     }
 }
 
-
 async function handleGetPaymentMethod({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data: client, error: clientError } = await supabaseAdmin
-        .from('clients')
-        .select('extra')
-        .eq('id', userId)
-        .single();
+    
+    const result = await query(
+        'SELECT extra FROM clients WHERE id = $1',
+        [userId]
+    );
 
-    if (clientError) throw new Error('Failed to get client data: ' + clientError.message);
+    if (result.rowCount === 0) {
+        return { status: 404, body: { error: 'User not found' } };
+    }
 
+    const client = result.rows[0];
     const paymentMethodDetails = client?.extra?.payment_method_details;
 
     if (!paymentMethodDetails) {
@@ -316,26 +326,17 @@ async function handleUnbindPaymentMethod({ userId }) {
         return { status: 400, body: { error: 'User ID is required' } };
     }
 
-    const supabaseAdmin = createSupabaseAdmin();
-
-    // Просто зачищаем поля, связанные с YooKassa, у клиента
-    const { error } = await supabaseAdmin
-        .from('clients')
-        .update({
-            yookassa_payment_method_id: null,
-            autopay_enabled: false,
-            extra: {} // Очищаем поле extra, чтобы удалить детали карты
-        })
-        .eq('id', userId);
-
-    if (error) {
-        console.error('Error unbinding payment method:', error);
-        return { status: 500, body: { error: 'Failed to unbind payment method in database.' } };
-    }
+    await query(
+        `UPDATE clients 
+         SET yookassa_payment_method_id = NULL,
+             autopay_enabled = false,
+             extra = '{}'::jsonb
+         WHERE id = $1`,
+        [userId]
+    );
 
     return { status: 200, body: { success: true, message: 'Payment method successfully unbound.' } };
 }
-
 
 async function handler(req, res) {
     if (req.method !== 'POST') {
