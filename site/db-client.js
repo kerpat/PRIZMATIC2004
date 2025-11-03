@@ -298,6 +298,24 @@
                 return { data: adminResponse.body?.data ?? null, error: null, count: null };
             }
 
+            const needsPaymentRelations = this.table === 'payments' && /clients\s*\(/.test(selectFields);
+            if (needsPaymentRelations) {
+                const adminResponse = await this.client._adminRequest({
+                    action: 'select-payments-with-client',
+                    filters: this.filters,
+                    order: this.orderBy,
+                    limit: this.limitValue,
+                    offset: this.offsetValue,
+                });
+
+                if (adminResponse.status !== 200) {
+                    const message = adminResponse.body?.error || 'Request failed';
+                    return { data: null, error: { message } };
+                }
+
+                return { data: adminResponse.body?.data ?? null, error: null, count: null };
+            }
+
             const response = await this.client._dataRequest('select', {
                 table: this.table,
                 select: this.selectFields,

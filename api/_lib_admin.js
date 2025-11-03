@@ -545,6 +545,32 @@ async function selectBookingsWithClient({ filters = [], order = null, limit = nu
     return result.rows ?? [];
 }
 
+async function selectPaymentsWithClient({ filters = [], order = null, limit = null, offset = null }) {
+    const values = [];
+    const whereClause = buildWhereClause(filters, values);
+
+    const sqlParts = [
+        `SELECT 
+            p.*,
+            jsonb_build_object(
+                'id', c.id,
+                'name', c.name,
+                'phone', c.phone
+            ) AS clients
+        FROM payments p
+        LEFT JOIN clients c ON c.id = p.client_id`
+    ];
+
+    if (whereClause) {
+        sqlParts.push(`WHERE ${whereClause}`);
+    }
+
+    appendOrderLimit(sqlParts, order, limit, offset, values);
+
+    const result = await query(sqlParts.join('\n'), values);
+    return result.rows ?? [];
+}
+
 async function handleAssignBike({ rental_id, bike_id }) {
     const rentalId = parseInt(rental_id, 10);
     const bikeId = parseInt(bike_id, 10);
@@ -1202,6 +1228,16 @@ async function handler(req, res) {
             }
             case 'select-bookings-with-client': {
                 const rows = await selectBookingsWithClient({
+                    filters: Array.isArray(body.filters) ? body.filters : [],
+                    order: body.order || null,
+                    limit: body.limit != null ? Number(body.limit) : null,
+                    offset: body.offset != null ? Number(body.offset) : null,
+                });
+                result = { status: 200, body: { data: rows } };
+                break;
+            }
+            case 'select-payments-with-client': {
+                const rows = await selectPaymentsWithClient({
                     filters: Array.isArray(body.filters) ? body.filters : [],
                     order: body.order || null,
                     limit: body.limit != null ? Number(body.limit) : null,
