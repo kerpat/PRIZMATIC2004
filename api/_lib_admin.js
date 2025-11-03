@@ -197,6 +197,37 @@ async function handleMarkSupportUserRead({ clientId, anonymousChatId }) {
     return { status: 200, body: { success: true } };
 }
 
+async function handleGetSupportHistory({ clientId, anonymousChatId }) {
+    if (!clientId && !anonymousChatId) {
+        return { status: 400, body: { error: 'clientId или anonymousChatId обязательны.' } };
+    }
+
+    const values = [];
+    const conditions = [];
+
+    if (clientId) {
+        conditions.push(`client_id = $${values.length + 1}`);
+        values.push(clientId);
+    }
+
+    if (anonymousChatId) {
+        conditions.push(`anonymous_chat_id = $${values.length + 1}`);
+        values.push(anonymousChatId);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await query(
+        `SELECT id, created_at, sender, message_text, file_url, file_type, is_read
+         FROM support_messages
+         ${whereClause}
+         ORDER BY created_at ASC`,
+        values
+    );
+
+    return { status: 200, body: { messages: result.rows } };
+}
+
 async function handleListStorageFiles({ bucket, prefix }) {
     if (!bucket) {
         return { status: 400, body: { error: 'bucket is required.' } };
