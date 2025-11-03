@@ -1,0 +1,17 @@
+{
+  "appId": "ru.prizmatic.app",
+  "appName": "PRIZMATIC",
+  "webDir": "site",
+  "server": {
+    "url": "https://prizmatic-2004.vercel.app",
+    "cleartext": true
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "prizmatic-key.keystore",
+      "keystorePassword": "",
+      "keystoreAlias": "prizmatic",
+      "keystoreAliasPassword": ""
+    }
+  }
+}

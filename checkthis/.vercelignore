@@ -1,0 +1,13 @@
+# ⚡ ВАЖНО: Игнорируем старые API файлы
+# Vercel считает каждый .js файл в /api отдельной функцией
+# Мы оставляем только router.js и библиотеки _lib_*.js
+
+# Игнорируем все файлы в api/ кроме router.js и _lib_*.js
+api/*.js
+!api/router.js
+!api/_lib_*.js
+
+# Также игнорируем вспомогательные файлы
+api/handlers/
+api/index.js
+api/data.js

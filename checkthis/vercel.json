@@ -1,0 +1,93 @@
+{
+  "regions": ["iad1"],
+  "functions": {
+    "api/router.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://telegram.org https://api-maps.yandex.ru https://yastatic.net https://unpkg.com https://api.vk.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; object-src 'none'; base-uri 'self';"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:png|jpg|jpeg|gif|webp|avif|svg))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:css|js))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/config",
+      "destination": "/api/router?endpoint=config"
+    },
+    {
+      "source": "/api/auth",
+      "destination": "/api/router?endpoint=auth"
+    },
+    {
+      "source": "/api/user",
+      "destination": "/api/router?endpoint=user"
+    },
+    {
+      "source": "/api/admin",
+      "destination": "/api/router?endpoint=admin"
+    },
+    {
+      "source": "/api/payments",
+      "destination": "/api/router?endpoint=payments"
+    },
+    {
+      "source": "/api/payment-webhook",
+      "destination": "/api/router?endpoint=payment-webhook"
+    },
+    {
+      "source": "/api/getTariffByBike",
+      "destination": "/api/router?endpoint=getTariffByBike"
+    },
+    {
+      "source": "/api/gemini-ocr",
+      "destination": "/api/router?endpoint=gemini-ocr"
+    },
+    {
+      "source": "/api/storage",
+      "destination": "/api/router?endpoint=storage"
+    },
+    {
+      "source": "/api/notify",
+      "destination": "/api/router?endpoint=notify"
+    },
+    {
+      "source": "/api/data",
+      "destination": "/api/router?endpoint=data"
+    },
+    {
+      "source": "/api/call-verify",
+      "destination": "/api/router?endpoint=call-verify"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/site/$1"
+    }
+  ],
+  "installCommand": "npm i && npx playwright-aws-lambda install-chromium"
+}

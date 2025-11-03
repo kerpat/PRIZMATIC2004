@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIZMATIC</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #0d7377 0%, #14FFEC 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .loader {
+            text-align: center;
+            color: white;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <h2>PRIZMATIC</h2>
+        <p>Загрузка...</p>
+    </div>
+    
+    <script>
+        // Проверка авторизации при запуске приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            const isRegistered = localStorage.getItem('isRegistered');
+            const userId = localStorage.getItem('userId');
+            
+            console.log('Проверка авторизации:', { isRegistered, userId });
+            
+            setTimeout(() => {
+                if (isRegistered === 'true' && userId) {
+                    // Пользователь зарегистрирован - переход в приложение
+                    console.log('Переход в приложение');
+                    window.location.replace('index.html');
+                } else {
+                    // Пользователь не зарегистрирован - переход на регистрацию
+                    console.log('Переход на регистрацию');
+                    localStorage.clear();
+                    window.location.replace('start.html');
+                }
+            }, 500); // Небольшая задержка для показа экрана загрузки
+        });
+    </script>
+</body>
+</html>

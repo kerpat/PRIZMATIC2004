@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Завершение регистрации - PRIZMATIC</title>
+<link rel="stylesheet" href="style.css?v=11.3">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+.complete-reg-screen{width:100%;min-height:100vh;background-color:var(--white);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.complete-reg-content{width:100%;max-width:400px}
+.logo-section{text-align:center;margin-bottom:30px}
+.logo-section h1{font-size:2rem;font-weight:800;color:var(--dark-green);margin-bottom:8px}
+.logo-section p{font-size:0.9rem;color:#666}
+.reg-card{background:var(--card-bg);border-radius:24px;padding:32px 24px;box-shadow:0 4px 20px rgba(13,115,119,0.08)}
+.reg-card h2{font-size:1.2rem;font-weight:600;color:var(--dark-green);margin-bottom:20px;text-align:center}
+.user-preview{display:flex;align-items:center;gap:12px;padding:12px;background:white;border-radius:12px;margin-bottom:20px}
+.user-preview img{width:48px;height:48px;border-radius:50%;object-fit:cover}
+.user-preview-info h3{font-size:14px;font-weight:600;color:var(--dark-green);margin-bottom:2px}
+.user-preview-info p{font-size:12px;color:#999}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:14px;font-weight:600;color:var(--dark-green);margin-bottom:8px}
+.form-group input,.form-group select{width:100%;padding:12px 16px;border:2px solid #e0e0e0;border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;transition:border-color 0.2s}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--dark-green)}
+.form-group .hint{font-size:12px;color:#999;margin-top:4px}
+.btn-submit{width:100%;padding:16px;background:linear-gradient(135deg,var(--dark-green) 0%,var(--primary-blue) 100%);color:white;border:none;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 12px rgba(13,115,119,0.3)}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(13,115,119,0.4)}
+.btn-submit:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+.error-message{display:none;padding:12px;background:#ffebee;color:#c62828;border-radius:8px;margin-top:16px;font-size:14px}
+.error-message.active{display:block}
+.loading-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.9);z-index:1000;flex-direction:column;align-items:center;justify-content:center}
+.loading-overlay.active{display:flex}
+.loading-spinner{border:4px solid var(--card-bg);border-top:4px solid var(--dark-green);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin-bottom:16px}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loading">
+<div class="loading-spinner"></div>
+<p>Сохранение...</p>
+</div>
+<div class="complete-reg-screen">
+<div class="complete-reg-content">
+<div class="logo-section">
+<h1>PRIZMATIC</h1>
+<p>Завершение регистрации</p>
+</div>
+<div class="reg-card">
+<h2>Дополнительная информация</h2>
+<div class="user-preview" id="user-preview">
+<img src="" alt="Ваше фото" id="user-photo">
+<div class="user-preview-info">
+<h3 id="user-name">Загрузка...</h3>
+<p>из ВКонтакте</p>
+</div>
+</div>
+<form id="complete-reg-form">
+<div class="form-group">
+<label for="phone">Номер телефона (необязательно)</label>
+<input type="tel" id="phone" name="phone" placeholder="+7 (900) 123-45-67">
+<div class="hint">Можно добавить позже в настройках профиля</div>
+</div>
+<div class="form-group">
+<label for="city">Город *</label>
+<select id="city" name="city" required>
+<option value="">Выберите город</option>
+<option value="Москва">Москва</option>
+<option value="Санкт-Петербург">Санкт-Петербург</option>
+<option value="Казань">Казань</option>
+<option value="Сочи">Сочи</option>
+<option value="Екатеринбург">Екатеринбург</option>
+<option value="Новосибирск">Новосибирск</option>
+<option value="Нижний Новгород">Нижний Новгород</option>
+<option value="Краснодар">Краснодар</option>
+</select>
+<div class="hint">В каком городе планируете арендовать велосипеды?</div>
+</div>
+<button type="submit" class="btn-submit" id="submit-btn">Завершить регистрацию</button>
+</form>
+<div class="error-message" id="error-message"></div>
+</div>
+</div>
+</div>
+<script>
+// Phone mask function
+function formatPhone(value){
+const cleaned=value.replace(/\D/g,'');
+let formatted='';
+if(cleaned.length>0){
+formatted='+7';
+if(cleaned.length>1){
+formatted+=' ('+cleaned.substring(1,4);
+if(cleaned.length>=5){
+formatted+=') '+cleaned.substring(4,7);
+if(cleaned.length>=8){
+formatted+='-'+cleaned.substring(7,9);
+if(cleaned.length>=10){
+formatted+='-'+cleaned.substring(9,11);
+}
+}
+}
+}
+}
+return formatted;
+}
+
+const phoneInput=document.getElementById('phone');
+phoneInput.addEventListener('input',(e)=>{
+const cursorPos=e.target.selectionStart;
+const oldValue=e.target.value;
+const newValue=formatPhone(oldValue);
+e.target.value=newValue;
+if(newValue.length<oldValue.length){
+e.target.setSelectionRange(cursorPos,cursorPos);
+}
+});
+
+phoneInput.addEventListener('keydown',(e)=>{
+if(e.key==='Backspace'&&phoneInput.value==='+7'){
+e.preventDefault();
+phoneInput.value='';
+}
+});
+
+phoneInput.addEventListener('focus',()=>{
+if(!phoneInput.value){
+phoneInput.value='+7 ';
+}
+});
+
+const vkUserData=JSON.parse(localStorage.getItem('vk_temp_user')||'{}');
+if(!vkUserData.user_id){
+window.location.href='registration.html';
+}
+
+document.getElementById('user-photo').src=vkUserData.photo_url||'';
+document.getElementById('user-name').textContent=`${vkUserData.first_name} ${vkUserData.last_name}`;
+
+// Auto-select city from VK if available
+const cityMapping={
+'Москва':'Москва',
+'Санкт-Петербург':'Санкт-Петербург',
+'Moscow':'Москва',
+'Saint Petersburg':'Санкт-Петербург',
+'Kazan':'Казань',
+'Sochi':'Сочи'
+};
+
+if(vkUserData.city){
+const mappedCity=cityMapping[vkUserData.city]||vkUserData.city;
+const citySelect=document.getElementById('city');
+for(let i=0;i<citySelect.options.length;i++){
+if(citySelect.options[i].value===mappedCity){
+citySelect.value=mappedCity;
+break;
+}
+}
+}
+
+const form=document.getElementById('complete-reg-form');
+const submitBtn=document.getElementById('submit-btn');
+const errorMsg=document.getElementById('error-message');
+const loading=document.getElementById('loading');
+
+function showError(msg){
+errorMsg.textContent=msg;
+errorMsg.classList.add('active');
+setTimeout(()=>errorMsg.classList.remove('active'),5000);
+}
+
+form.addEventListener('submit',async(e)=>{
+e.preventDefault();
+const phone=document.getElementById('phone').value.trim();
+const city=document.getElementById('city').value;
+
+if(!city){
+showError('Пожалуйста, выберите город');
+return;
+}
+
+// Validate phone if provided
+if(phone&&phone!=='+7'&&phone!=='+7 '){
+const cleaned=phone.replace(/\D/g,'');
+if(cleaned.length!==11){
+showError('Неверный формат номера телефона');
+return;
+}
+}
+
+loading.classList.add('active');
+submitBtn.disabled=true;
+
+try{
+const response=await fetch('/api/auth',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+action:'vk-complete-registration',
+vkData:{
+user_id:vkUserData.user_id,
+first_name:vkUserData.first_name,
+last_name:vkUserData.last_name,
+photo_url:vkUserData.photo_url
+},
+phone:(phone&&phone!=='+7'&&phone!=='+7 ')?phone:null,
+city:city
+})
+});
+
+const data=await response.json();
+
+if(!response.ok){
+throw new Error(data.error||'Ошибка регистрации');
+}
+
+localStorage.setItem('userId',data.user.id);
+localStorage.setItem('userName',data.user.name);
+localStorage.setItem('isRegistered','true');
+localStorage.setItem('authProvider','vk');
+localStorage.removeItem('vk_temp_user');
+
+window.location.href='index.html';
+}catch(error){
+console.error('Registration error:',error);
+showError(error.message||'Ошибка регистрации. Попробуйте еще раз.');
+loading.classList.remove('active');
+submitBtn.disabled=false;
+}
+});
+</script>
+</body>
+</html>

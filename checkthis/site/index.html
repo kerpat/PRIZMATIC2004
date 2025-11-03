@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIZMATIC</title>
+
+    <!-- ⚡ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются СРАЗУ -->
+    <link rel="stylesheet" href="style.css?v=11.3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Шрифты загружаются асинхронно для ускорения -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
+    <!-- ⚡ ОПТИМИЗАЦИЯ: Заменили Supabase SDK (120KB) на легкий прокси (3KB) -->
+    <script src="local-cache.js?v=11.3"></script>
+    <script src="db-proxy.js?v=11.3"></script>
+    <script src="loading-skeletons.js?v=11.3"></script>
+
+    <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
+    <script src="/api/config?v=11.3"></script>
+
+    <!-- ⚡ НЕ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются АСИНХРОННО -->
+    <script src="https://telegram.org/js/telegram-web-app.js?59" defer></script>
+    <script src="transitions.js?v=11.3" defer></script>
+    <style>
+        /* Центрируем лейбл в модальном окне ввода ID */
+        #id-input-modal .modal-form-group {
+            text-align: center;
+        }
+
+        /* === СТИЛИ ДЛЯ ИНФОРМАЦИИ ОБ АКБ === */
+
+        .battery-info-container {
+            margin: 16px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .battery-info-chip {
+            display: inline-block;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            color: var(--dark-green);
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .battery-info-chip strong {
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+    </style>
+</head>
+
+<body>
+    
+
+    <div class="app-screen">
+        <div class="app-content">
+            <header class="app-header">
+                <h1></h1>
+            </header>
+            <main class="app-main">
+                <div class="bike-image-wrapper">
+                    <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image"
+                        width="1536" height="1024" decoding="async" fetchpriority="high">
+                    <div id="bike-label" class="bike-label"></div>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar-fill"></div>
+                    </div>
+                    <div class="progress-labels">
+                        <span id="progress-start-label"></span>
+                        <span id="progress-end-label"></span>
+                    </div>
+                </div>
+                <h2></h2>
+                <div class="info-cards">
+                    <div class="card">
+                        <div class="icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <div class="text-content">
+                            <span></span>
+                            <strong id="available-bikes-count"></strong>
+                        </div>
+                    </div>
+                    <div class="card" id="balance-card">
+                        <div class="icon-wrapper dollar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="12" y1="1" x2="12" y2="23" />
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                        </div>
+                        <div class="text-content">
+                            <span></span>
+                            <strong id="balance-amount"></strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="scan-qr-btn"></button>
+                    <div class="secondary-actions">
+                        <button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg"
+                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                            </svg></button>
+                        <button class="btn btn-secondary text-btn" id="id-input-btn"></button>
+                        <button class="btn btn-secondary text-btn" id="extend-row-btn"></button>
+                        <button class="btn btn-secondary text-btn" id="booking-btn"></button>
+                    </div>
+                </div>
+                <div id="extend-container" class="hidden extend-container">
+                    <button id="extend-rental-btn" class="btn btn-primary"></button>
+                </div>
+            </main>
+        </div>
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg></a>
+            <a href="stats.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10" />
+                    <line x1="18" y1="20" x2="18" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="16" />
+                </svg></a>
+            <a href="map.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg></a>
+            <a href="profile.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg></a>
+        </nav>
+    </div>
+    <div id="qr-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="qr-modal-close-btn">&times;</button>
+            <h2>Вы арендуете<br>Электровелосипед #00001</h2>
+            <div class="bike-specs">
+                <div class="spec-item"><span class="spec-label">Максималка:</span><span class="spec-value">25
+                        км/ч</span></div>
+                <div class="spec-item"><span class="spec-label">Пробег:</span><span class="spec-value">до 40 км</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Мощность:</span><span class="spec-value">240 Вт</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Батарея:</span><span class="spec-value">60В/20Ah</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Зарядка:</span><span class="spec-value">6 ч</span></div>
+                <div class="spec-item"><span class="spec-label">Привод:</span><span class="spec-value">задний</span>
+                </div>
+                <div class="spec-item"><span class="spec-label">Тормоза:</span><span
+                        class="spec-value">гидравлика</span></div>
+            </div>
+            <div class="modal-info">
+                <span>Цена: <strong id="tariff-price">3750 ₽</strong></span>
+                <span>Срок: <strong id="tariff-duration">7 дней</strong></span>
+            </div>
+            <p id="tariff-description" style="margin: 10px 0; font-size: 0.9rem; color: var(--text-secondary);"></p>
+            <p class="disclaimer-text">Оплачивая, вы соглашаетесь с условиями сервиса и автоплатежами.</p>
+            <button class="btn btn-primary" id="rent-btn" data-action="rent">Арендовать</button>
+        </div>
+    </div>
+    <div id="id-input-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="id-input-modal-close-btn">&times;</button>
+            <h2>Ввести ID велосипеда</h2>
+            <div class="modal-form-group">
+                <label for="bike-id-input">ID велосипеда</label>
+                <input type="text" id="bike-id-input" placeholder="Например: 00001">
+            </div>
+            <button class="btn btn-primary" id="confirm-id-btn">Найти и арендовать</button>
+        </div>ф
+    </div>
+    <div id="booking-list-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="booking-list-modal-close-btn">&times;</button>
+            <h2>Выберите велосипед для брони</h2>
+            <div class="bike-list">
+                <div class="bike-list-item" data-bike-id="00001"><strong>Электровелосипед #00001</strong><span>300
+                        м</span></div>
+                <div class="bike-list-item" data-bike-id="00002"><strong>Электровелосипед #00002</strong><span>850
+                        м</span></div>
+                <div class="bike-list-item" data-bike-id="00003"><strong>Электровелосипед #00003</strong><span>1.1
+                        км</span></div>
+                <div class="bike-list-item" data-bike-id="00004"><strong>Электровелосипед #00004</strong><span>2.4
+                        км</span></div>
+                <div class="bike-list-item" data-bike-id="00005"><strong>Электровелосипед #00005</strong><span>4.0
+                        км</span></div>
+            </div>
+        </div>
+    </div>
+    <!-- +++ НОВОЕ МОДАЛЬНОЕ ОКНО ДЛЯ ПОДТВЕРЖДЕНИЯ БРОНИ +++ -->
+    <div id="confirm-booking-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="confirm-booking-close-btn">&times;</button>
+            <h2>Бронирование велосипеда</h2>
+            <p id="booking-main-text" style="color: var(--text-secondary); margin: 20px 0; line-height: 1.5;">
+                Вы забронируете электровелосипед на <strong>2 часа</strong>. Пожалуйста, подъедьте к точке выдачи до
+                истечения этого времени.
+            </p>
+            <div id="booking-cost-info"
+                style="display: none; background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin: 15px 0;">
+                <p style="margin: 0; font-weight: 500;">Стоимость бронирования: <span id="booking-cost-amount"
+                        style="font-weight: 600;"></span></p>
+                <p id="booking-payment-method-text"
+                    style="margin: 5px 0 0 0; font-size: 0.9rem; color: var(--text-secondary);"></p>
+            </div>
+            <p class="disclaimer-text">Если вы не заберете велосипед, бронь отменится, а деньги останутся на вашем
+                балансе.</p>
+            <button class="btn btn-primary" id="confirm-booking-btn">Забронировать и оплатить</button>
+        </div>
+    </div>
+    <div id="tariff-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="tariff-modal-close-btn">&times;</button>
+            <h2>Тарифы</h2>
+            <div class="bike-list">
+                <div class="bike-list-item tariff-option" data-tariff="bronze"><strong>Бронза</strong><span>1000 ₽ / 3
+                        дня</span></div>
+                <div class="bike-list-item tariff-option" data-tariff="silver"><strong>Серебро</strong><span>2000 ₽ / 5
+                        дней</span></div>
+                <div class="bike-list-item tariff-option" data-tariff="gold"><strong>Золото</strong><span>3750 ₽ / 7
+                        дней</span></div>
+            </div>
+            <p class="disclaimer-text">Оплачивая, вы соглашаетесь с условиями сервиса и автоплатежами.</p>
+        </div>
+    </div>
+    <div id="tariff-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="tariff-detail-close-btn">&times;</button>
+            <h2 id="tariff-detail-title"></h2>
+            <p id="tariff-detail-description" class="tariff-description"></p>
+
+            <!-- Новый блок для выбора вариантов -->
+            <div class="tariff-options-list" id="tariff-options-list">
+                <!-- Сюда JavaScript будет вставлять варианты -->
+            </div>
+
+            <button class="btn btn-primary" id="select-tariff-btn">Выбрать тариф</button>
+        </div>
+    </div>
+    <div id="topup-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="topup-modal-close-btn">&times;</button>
+            <h2>Пополнение баланса</h2>
+            <div class="modal-form-group">
+                <label for="amount-input" style="text-align: center;">Сумма пополнения</label>
+                <input type="number" id="amount-input" placeholder="Введите сумму в ₽">
+            </div>
+            <button class="btn btn-primary" id="pay-sbp-btn">Пополнить</button>
+        </div>
+    </div>
+    <div id="extend-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="extend-close-btn">&times;</button>
+            <h2>Продлить аренду</h2>
+            <ul id="extend-options" class="extend-options-list"></ul>
+            <div class="modal-actions" style="display:flex;gap:10px;margin-top:20px;">
+                <button type="button" id="extend-cancel-btn" class="btn btn-secondary" style="flex:1;">Отмена</button>
+                <button type="button" id="extend-select-btn" class="btn btn-primary" style="flex:1;">Продлить</button>
+            </div>
+        </div>
+    </div>
+    <div id="notification-toast" class="toast-container hidden">
+        <p class="toast-message">На вашем счету недостаточно средств.</p>
+    </div>
+    <div id="success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Баланс пополнен на <strong id="success-amount"></strong>!</p>
+    </div>
+    <div id="rent-success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Успешно! Перейдите в уведомления в профиле, чтобы подписать договор.</p>
+    </div>
+    <div id="booking-success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Велосипед забронирован на 2 часа!</p>
+    </div>
+    <div id="renewal-success-toast" class="toast-container toast-success hidden">
+        <p class="toast-message">Аренда успешно продлена!</p>
+    </div>
+
+
+    <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true" style="display:none;">
+        <div class="menu-container">
+        </div>
+    </div>
+
+
+
+    
+    <!-- Общий скрипт меню PRIZMATIC, подключается после основного скрипта -->
+    <script src="menu.js" defer></script>
+
+    <!-- НОВЫЙ HTML И СТИЛИ ДЛЯ УВЕДОМЛЕНИЯ О ПОДПИСАНИИ -->
+    <style>
+        .prompt-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0s 0.3s;
+        }
+
+        .prompt-modal.visible {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease, visibility 0s;
+        }
+
+        .prompt-modal .modal-content {
+            position: relative;
+            text-align: center;
+        }
+
+        .prompt-modal .modal-content h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .prompt-modal .modal-content p {
+            color: #556f6b;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .nav-item.has-notification {
+            position: relative;
+        }
+
+        .nav-item.has-notification::after {
+            content: '!';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 18px;
+            height: 18px;
+            background-color: #e53e3e;
+            color: white;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            border: 2px solid var(--light-green-nav);
+        }
+
+        /* === СТИЛИ ДЛЯ РАЗДЕЛЕННЫХ КНОПОК === */
+        .secondary-actions-split {
+            display: flex;
+            gap: 15px;
+            /* Сохраняем тот же отступ, что и везде */
+            width: 100%;
+        }
+
+        .secondary-actions-split .btn {
+            flex: 1;
+            /* Этот трюк заставляет оба элемента занять равное пространство */
+        }
+
+        /* === СТИЛИ ДЛЯ НОВОГО МОДАЛЬНОГО ОКНА-УВЕДОМЛЕНИЯ === */
+        #post-rental-prompt-modal .modal-content {
+            text-align: center;
+        }
+
+        #post-rental-prompt-modal .modal-content h2 {
+            font-size: 1.5rem;
+            /* Увеличим заголовок */
+            margin-bottom: 15px;
+        }
+
+        #post-rental-prompt-modal .modal-content p {
+            color: #556f6b;
+            /* Используем фирменный цвет текста */
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-size: 1rem;
+        }
+    </style>
+
+    <div id="post-rental-prompt-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="prompt-modal-close-btn">&times;</button>
+            <h2>Почти готово!</h2>
+            <p>Дождитесь, пока администратор подберет для вас оборудование. После этого вы сможете подписать договор.
+            </p>
+            <button id="go-to-profile-btn" class="btn btn-primary">Понятно</button>
+        </div>
+    </div>
+
+    
+    
+    
+
+    <script type="module" src="auth-init.js"></script>
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PRIZMATIC</string>
+    <string name="title_activity_main">PRIZMATIC</string>
+    <string name="package_name">ru.prizmatic.app</string>
+    <string name="custom_url_scheme">ru.prizmatic.app</string>
+</resources>

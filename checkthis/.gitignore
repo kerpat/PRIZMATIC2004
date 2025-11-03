@@ -1,0 +1,30 @@
+# Node
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+site/config.js
+
+# Local data artifacts
+database.db
+*.db
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+.vercel
+
+# Android / Capacitor
+# android/
+# ios/
+*.keystore
+# key.properties
+local.properties
+.gradle/
+.idea/
+*.iml
