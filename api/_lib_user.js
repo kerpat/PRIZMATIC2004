@@ -14,11 +14,21 @@ function buildPoolConfig() {
         connectionTimeoutMillis: 2000,
     };
 
-    const rawUrl = process.env.DATABASE_URL;
+    const rawUrl =
+        process.env.DATABASE_URL ||
+        process.env.POSTGRES_URL ||
+        process.env.POSTGRES_CONNECTION ||
+        process.env.POSTGRES_URI ||
+        null;
     const dbUrl = typeof rawUrl === 'string' ? rawUrl.trim() : rawUrl;
 
     if (dbUrl) {
-        const normalizedUrl = dbUrl.includes('://') ? dbUrl : `postgresql://${dbUrl}`;
+        let normalizedUrl = dbUrl.includes('://') ? dbUrl : `postgresql://${dbUrl}`;
+        // Supabase и некоторые панели оборачивают пароль в [ ], что делает URL невалидным.
+        normalizedUrl = normalizedUrl.replace(
+            /(:\/\/[^:\/?#]+):\[([^\]]+)\]@/,
+            (_, prefix, password) => `${prefix}:${password}@`
+        );
         try {
             const parsed = new URL(normalizedUrl);
             const searchParams = Object.fromEntries(parsed.searchParams.entries());
