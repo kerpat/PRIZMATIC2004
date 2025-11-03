@@ -87,6 +87,10 @@ class DBProxy {
         return this.request('get-tariffs', { activeOnly });
     }
 
+    async getPaymentsRange(params = {}) {
+        return this.request('get-payments-range', params);
+    }
+
     /**
      * Обновить баланс клиента (только для админки)
      */

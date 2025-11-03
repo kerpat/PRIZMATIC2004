@@ -192,6 +192,20 @@
             white-space: nowrap;
         }
 
+        .period-picker {
+            margin: 12px 0 18px 0;
+        }
+
+        .period-picker input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: var(--card-bg);
+            font-size: 0.95rem;
+            color: var(--primary-color);
+        }
+
         .payment-details {
             padding: 10px 0;
         }
@@ -215,9 +229,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<<<<<<< HEAD
     <!-- Подключаем библиотеку Supabase до основного скрипта, чтобы window.supabase был доступен -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+=======
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="transitions.js" defer></script>
 </head>
 
@@ -252,6 +271,9 @@
                     </div>
                 </div>
 
+                <div class="period-picker">
+                    <input id="period-display" type="text" class="input" placeholder="Выберите период" readonly>
+                </div>
                 <div class="info-cards">
                     <div class="card">
                         <div class="icon-wrapper">
@@ -349,6 +371,7 @@
         </div>
     </div>
 
+<<<<<<< HEAD
     <script>
         // Проверяем загрузку CONFIG
         if (!window.CONFIG) {
@@ -659,15 +682,14 @@
             });
         });
     </script>
+=======
+    
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
     <script src="menu.js" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Проверяем, что API Telegram доступен
             if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-
-                // Эта команда говорит Telegram, что цвет шапки должен совпадать с фоном нашего приложения
-                tg.setHeaderColor('#ffffff');
+                window.Telegram.WebApp.setHeaderColor('#ffffff');
             }
         });
     </script>

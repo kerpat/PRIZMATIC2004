@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  * Data API - универсальный endpoint для замены прямых запросов Supabase
  * Обрабатывает все read-операции через единый интерфейс
@@ -183,3 +184,6 @@ module.exports = async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 };
+=======
+module.exports = require('./_lib_data');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

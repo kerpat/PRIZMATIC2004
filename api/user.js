@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
@@ -378,3 +379,6 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports.default = handler;
+=======
+module.exports = require('./_lib_user');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
