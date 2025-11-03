@@ -23,12 +23,7 @@ function buildPoolConfig() {
     const dbUrl = typeof rawUrl === 'string' ? rawUrl.trim() : rawUrl;
 
     if (dbUrl) {
-        let normalizedUrl = dbUrl.includes('://') ? dbUrl : `postgresql://${dbUrl}`;
-        // Supabase и некоторые панели оборачивают пароль в [ ], что делает URL невалидным.
-        normalizedUrl = normalizedUrl.replace(
-            /(:\/\/[^:\/?#]+):\[([^\]]+)\]@/,
-            (_, prefix, password) => `${prefix}:${password}@`
-        );
+        const normalizedUrl = normalizeConnectionString(dbUrl);
         try {
             const parsed = new URL(normalizedUrl);
             const searchParams = Object.fromEntries(parsed.searchParams.entries());
@@ -100,6 +95,67 @@ function sanitizeClientConfig(params) {
     }
 
     return config;
+}
+
+function normalizeConnectionString(connectionString) {
+    let normalized = connectionString.includes('://')
+        ? connectionString
+        : `postgresql://${connectionString}`;
+
+    normalized = normalized.trim();
+
+    // Удаляем квадратные скобки вокруг пароля (формат Supabase)
+    normalized = normalized.replace(
+        /(:\/\/[^@/]+):\[([^\]]+)\]@/,
+        (_, prefix, password) => `${prefix}:${password}@`
+    );
+
+    return encodeAuthCredentials(normalized);
+}
+
+function encodeAuthCredentials(url) {
+    const schemeIndex = url.indexOf('://');
+    if (schemeIndex === -1) {
+        return url;
+    }
+
+    const authStart = schemeIndex + 3;
+    const atIndex = url.indexOf('@', authStart);
+    if (atIndex === -1) {
+        return url;
+    }
+
+    const auth = url.slice(authStart, atIndex);
+    if (!auth) {
+        return url;
+    }
+
+    const colonIndex = auth.indexOf(':');
+    let username = auth;
+    let password = null;
+
+    if (colonIndex !== -1) {
+        username = auth.slice(0, colonIndex);
+        password = auth.slice(colonIndex + 1);
+    }
+
+    const encodedUser = encodeURIComponent(safeDecodeURIComponent(username));
+    let newAuth = encodedUser;
+
+    if (password !== null) {
+        const encodedPass = encodeURIComponent(safeDecodeURIComponent(password));
+        newAuth += `:${encodedPass}`;
+    }
+
+    return `${url.slice(0, authStart)}${newAuth}${url.slice(atIndex)}`;
+}
+
+function safeDecodeURIComponent(value) {
+    try {
+        return decodeURIComponent(value);
+    } catch (error) {
+        return value;
+    }
 }
 
 function getPool() {
