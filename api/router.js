@@ -64,7 +64,6 @@ module.exports = async (req, res) => {
 
                 // Fallback значения для локальной разработки (VPS mode)
                 const config = {
-<<<<<<< HEAD
                     DATABASE_URL: process.env.DATABASE_URL,
                     DB_HOST: process.env.DB_HOST || '51.250.17.150',
                     DB_PORT: process.env.DB_PORT || '5432',
@@ -74,11 +73,6 @@ module.exports = async (req, res) => {
                     CONTRACTS_API_URL: process.env.CONTRACTS_API_URL || 'https://gogovorprizmatic.onrender.com',
                     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
                     GEMINI_API_KEY: process.env.GEMINI_API_KEY
-=======
-                    SUPABASE_URL: process.env.SUPABASE_URL || 'https://avamqfmuhiwtlumjkzmv.supabase.co',
-                    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I',
-                    CONTRACTS_API_URL: process.env.CONTRACTS_API_URL || 'https://gogovorprizmatic.onrender.com'
->>>>>>> 20a65458d28573c238fa0148fea52f4cb6c2c355
                 };
 
                 console.log('[Config] Returning config with DB_HOST:', config.DB_HOST);

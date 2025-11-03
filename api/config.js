@@ -7,7 +7,6 @@ export default function handler(req, res) {
 
     // Build config from environment variables (VPS mode)
     const config = {
-<<<<<<< HEAD
         // Database (VPS PostgreSQL)
         DATABASE_URL: process.env.DATABASE_URL,
         DB_HOST: process.env.DB_HOST || '51.250.17.150',
@@ -19,10 +18,6 @@ export default function handler(req, res) {
         MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || '51.250.17.150',
         
         // API Keys
-=======
-        SUPABASE_URL: process.env.SUPABASE_URL || 'https://avamqfmuhiwtlumjkzmv.supabase.co',
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I',
->>>>>>> 20a65458d28573c238fa0148fea52f4cb6c2c355
         GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || 'AIzaSyCds0FmujbSW88GPJwXeyhIjD8JOdyx5uU',
         GEMINI_API_KEY: process.env.GEMINI_API_KEY || 'AIzaSyCds0FmujbSW88GPJwXeyhIjD8JOdyx5uU',
         TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '8126548981:AAGC86ZaJ0SYLICC0WbpS7aGOhU9t8iz_a4',
@@ -30,13 +25,9 @@ export default function handler(req, res) {
         // Payment
         YOOKASSA_SHOP_ID: process.env.YOOKASSA_SHOP_ID || '1107459',
         YOOKASSA_SECRET_KEY: process.env.YOOKASSA_SECRET_KEY || 'live_oTnWf7sfV0ePngXm7eGdeoXewCYCbW2RXfn0PacBlrE',
-<<<<<<< HEAD
         
         // URLs
         BOT_NOTIFY_URL: process.env.BOT_NOTIFY_URL || 'https://gemini-npxg.onrender.com/notify',
-=======
-        BOT_NOTIFY_URL: process.env.BOT_NOTIFY_URL || 'https://gogovorprizmatic.onrender.com/notify',
->>>>>>> 20a65458d28573c238fa0148fea52f4cb6c2c355
         OCR_WORKER_URL: process.env.OCR_WORKER_URL || 'https://832a1274ed7e.ngrok-free.app',
         CONTRACTS_API_URL: process.env.CONTRACTS_API_URL || 'https://gogovorprizmatic.onrender.com',
         
