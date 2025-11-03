@@ -217,7 +217,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Подключаем библиотеку Supabase до основного скрипта, чтобы window.supabase был доступен -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
-  <script src="/supabase/index.js"></script>
 
     <script src="transitions.js" defer></script>
 </head>
@@ -364,7 +363,7 @@
         // --- Подключение к Supabase ---
         const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || '';
         const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || '';
-        const supabase = window.CONFIG ? window.SupabaseBridge.getSupabaseAnonClient() : null;
+        const supabase = window.CONFIG ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
         document.addEventListener('DOMContentLoaded', () => {
             // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
