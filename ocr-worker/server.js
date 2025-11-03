@@ -1,17 +1,12 @@
 const express = require('express');
 const axios = require('axios');
-const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '50mb' }));
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const { query } = require('../api/_lib_db');
 
 const checkInternalSecret = (req, res, next) => {
   const secret = req.headers['x-internal-secret'];
@@ -85,7 +80,10 @@ app.post('/process-document', checkInternalSecret, async (req, res) => {
     }
 
     currentStep = 'Обновление статуса на processing_ocr';
-    await supabase.from('clients').update({ verification_status: 'processing_ocr', ocr_started_at: new Date().toISOString() }).eq('id', userId);
+    await query(
+      'UPDATE clients SET verification_status = $1, ocr_started_at = NOW() WHERE id = $2',
+      ['processing_ocr', userId]
+    );
     console.log(`✅ [${new Date().toISOString()}] Статус обновлен на processing_ocr`);
 
     let files = [];
@@ -119,7 +117,10 @@ app.post('/process-document', checkInternalSecret, async (req, res) => {
     console.log(`📋 [${new Date().toISOString()}] РЕЗУЛЬТАТЫ OCR:`, JSON.stringify(ocrResult, null, 2));
 
     currentStep = 'Сохранение результатов в базу данных';
-    await supabase.from('clients').update({ verification_status: 'ocr_complete', recognized_data: ocrResult, ocr_completed_at: new Date().toISOString() }).eq('id', userId);
+    await query(
+      'UPDATE clients SET verification_status = $1, recognized_data = $2::jsonb, ocr_completed_at = NOW() WHERE id = $3',
+      ['ocr_complete', JSON.stringify(ocrResult), userId]
+    );
 
     console.log(`🎉 [${new Date().toISOString()}] OCR ЗАВЕРШЕН УСПЕШНО для пользователя ${userId}`);
     res.json({ success: true, message: 'OCR processing completed' });
@@ -127,7 +128,10 @@ app.post('/process-document', checkInternalSecret, async (req, res) => {
   } catch (error) {
     console.error(`💥 [${new Date().toISOString()}] OCR ОБРАБОТКА ПРОВАЛИЛАСЬ НА ШАГЕ: ${currentStep}`, error);
     if (req.body.userId) {
-      await supabase.from('clients').update({ verification_status: 'ocr_failed', ocr_error: `${currentStep}: ${error.message}` }).eq('id', req.body.userId);
+      await query(
+        'UPDATE clients SET verification_status = $1, ocr_error = $2 WHERE id = $3',
+        ['ocr_failed', `${currentStep}: ${error.message}`, req.body.userId]
+      );
     }
     res.status(500).json({ error: 'OCR processing failed', step: currentStep, details: error.message });
   }

@@ -7,11 +7,11 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.5",
-    "@supabase/supabase-js": "^2.41.0",
     "axios": "^1.6.0",
     "busboy": "^1.6.0",
     "html-to-docx": "^1.8.0",
     "node-fetch": "^2.6.7",
+    "pg": "^8.11.3",
     "playwright-aws-lambda": "^0.11.0"
   }
 }

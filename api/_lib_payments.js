@@ -1,30 +1,16 @@
-const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 
-function normalizePhone(phone) {
-    if (!phone) return '';
-    let digits = phone.replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.startsWith('8')) {
-        digits = '7' + digits.slice(1);
-    }
-    if (digits.length === 10 && digits.startsWith('9')) {
-        digits = '7' + digits;
-    }
-    if (digits.length < 11 || digits.length > 15) {
-        return '';
-    }
-    return `+${digits}`;
-}
+const { query, transact } = require('./_lib_db');
+const { normalizePhone, addToBalance, logPayment } = require('./_lib_finance');
 
 function parseRequestBody(body) {
     if (!body) return {};
     if (typeof body === 'string') {
         try {
             return JSON.parse(body);
-        } catch (err) {
-            console.error('Failed to parse request body:', err);
+        } catch (error) {
+            console.error('[payments] Failed to parse body:', error);
             return {};
         }
     }
@@ -36,182 +22,211 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         return { status: 400, body: { error: 'userId and tariffId are required' } };
     }
 
-    const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const [tariffResult, clientResult] = await Promise.all([
-        supabaseAdmin.from('tariffs').select('price_rub, duration_days').eq('id', tariffId).single(),
-        supabaseAdmin.from('clients').select('balance_rub, city').eq('id', userId).single()
-    ]);
+    const tariffResult = await query(
+        'SELECT price_rub, duration_days FROM tariffs WHERE id = $1',
+        [tariffId]
+    );
+    const tariff = tariffResult.rows[0];
+    if (!tariff) {
+        throw new Error('Tariff not found.');
+    }
 
-    if (tariffResult.error || !tariffResult.data) throw new Error('Tariff not found.');
-    if (clientResult.error || !clientResult.data) throw new Error('Client not found.');
+    const clientResult = await query(
+        'SELECT balance_rub, city FROM clients WHERE id = $1',
+        [userId]
+    );
+    const client = clientResult.rows[0];
+    if (!client) {
+        throw new Error('Client not found.');
+    }
 
-    const rentalCost = amount || tariffResult.data.price_rub;
-    const duration = days || tariffResult.data.duration_days;
-    const userBalance = clientResult.data.balance_rub;
-    const userCity = clientResult.data.city;
+    const rentalCost = amount != null ? Number(amount) : Number(tariff.price_rub);
+    const duration = days || tariff.duration_days;
+    const userBalance = Number(client.balance_rub || 0);
+
+    if (!Number.isFinite(rentalCost) || rentalCost <= 0) {
+        throw new Error('Invalid rental cost.');
+    }
 
     if (userBalance < rentalCost) {
         return { status: 400, body: { error: 'Client has insufficient balance.' } };
     }
 
-    // --- НАЧАЛО НОВОЙ ЛОГИКИ ---
-
-    let bikeId;
+    let bikeId = null;
     if (bikeCode) {
-        // Если указан конкретный велосипед, проверяем его доступность
-        console.log(`[БАЛАНС] Проверка велосипеда #${bikeCode} для тарифа ${tariffId}...`);
-        const { data: bike, error: bikeError } = await supabaseAdmin
-            .from('bikes')
-            .select('id, status, tariff_id')
-            .eq('bike_code', bikeCode)
-            .single();
+        const bikeResult = await query(
+            'SELECT id, status, tariff_id FROM bikes WHERE bike_code = $1',
+            [bikeCode]
+        );
+        const bike = bikeResult.rows[0];
 
-        if (bikeError || !bike) {
+        if (!bike) {
             return { status: 400, body: { error: 'Велосипед не найден.' } };
         }
-
         if (bike.status !== 'available') {
             return { status: 400, body: { error: 'Велосипед недоступен для аренды.' } };
         }
-
-        if (bike.tariff_id !== tariffId) {
+        if (bike.tariff_id !== Number(tariffId)) {
             return { status: 400, body: { error: 'Велосипед не соответствует выбранному тарифу.' } };
         }
 
         bikeId = bike.id;
-        console.log(`[БАЛАНС] Выбран конкретный велосипед #${bikeId}`);
-    } else {
-        bikeId = null; // Создаем аренду без велосипеда
     }
 
-    // Теперь, когда мы знаем, что велосипед есть, можно безопасно списать деньги.
-    // Оборачиваем все в транзакцию (в Supabase это лучше делать через RPC-функцию).
-    // Для простоты, пока без транзакции:
-    
-    // 2. Списываем деньги с баланса
-    const newBalance = userBalance - rentalCost;
-    const { error: balanceError } = await supabaseAdmin.from('clients').update({ balance_rub: newBalance }).eq('id', userId);
-    if (balanceError) throw new Error('Не удалось обновить баланс клиента: ' + balanceError.message);
-
-    // 4. Создать запись об аренде со статусом 'awaiting_battery_assignment'
     const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + duration);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + Number(duration || 0));
 
-    const { data: newRental, error: rentalError } = await supabaseAdmin
-        .from('rentals')
-        .insert({
-            user_id: userId,
-            bike_id: bikeId, // <-- Теперь привязываем ID велосипеда
-            tariff_id: tariffId,
-            starts_at: startDate.toISOString(),
-            current_period_ends_at: endDate.toISOString(),
-            status: 'awaiting_battery_assignment', // Статус ожидания выбора АКБ
-            total_paid_rub: rentalCost
-        })
-        .select('id')
-        .single();
+    let rentalId;
+    await transact(async (dbClient) => {
+        await addToBalance(userId, -rentalCost, dbClient);
 
-    if (rentalError) {
-        // Откатываем списание баланса
-        await supabaseAdmin.from('clients').update({ balance_rub: userBalance }).eq('id', userId);
-        throw new Error(`Не удалось создать аренду: ${rentalError.message}`);
-    }
+        const rentalInsert = await dbClient.query(
+            `INSERT INTO rentals (
+                user_id,
+                bike_id,
+                tariff_id,
+                starts_at,
+                current_period_ends_at,
+                status,
+                total_paid_rub
+            )
+            VALUES ($1,$2,$3,$4,$5,$6,$7)
+            RETURNING id`,
+            [
+                userId,
+                bikeId,
+                tariffId,
+                startDate.toISOString(),
+                endDate.toISOString(),
+                'awaiting_battery_assignment',
+                rentalCost,
+            ]
+        );
 
-    // 5. Записать транзакцию в историю платежей
-    await supabaseAdmin.from('payments').insert({
-        client_id: userId,
-        rental_id: newRental.id,
-        amount_rub: rentalCost, // Положительное число для лога
-        status: 'succeeded',
-        payment_type: 'rental',
-        method: 'balance',
-        description: `Аренда велосипеда #${bikeId}`
+        rentalId = rentalInsert.rows[0].id;
+
+        await logPayment({
+            clientId: userId,
+            rentalId,
+            amountRub: rentalCost,
+            status: 'succeeded',
+            paymentType: 'rental',
+            method: 'balance',
+            description: bikeId ? `Аренда велосипеда #${bikeId}` : 'Аренда велосипеда',
+        }, dbClient);
     });
 
-    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
-
-    return { status: 200, body: { success: true, message: 'Аренда успешно оформлена с баланса.' } };
+    return { status: 200, body: { success: true, message: 'Аренда успешно оформлена с баланса.', rentalId } };
 }
 
 async function handleSaveCard({ userId }) {
     if (!userId) throw new Error('Client ID (userId) is required.');
 
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-    const { data: clientData, error: clientError } = await supabase.from('clients').select('phone').eq('id', userId).single();
-    if (clientError || !clientData) throw new Error(`Client with id ${userId} not found in Supabase.`);
+    const clientResult = await query(
+        'SELECT phone FROM clients WHERE id = $1',
+        [userId]
+    );
+    const client = clientResult.rows[0];
+    if (!client) {
+        throw new Error(`Client with id ${userId} not found.`);
+    }
 
-    const normalizedPhone = normalizePhone(clientData.phone);
-    if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
+    const normalizedPhone = normalizePhone(client.phone);
+    if (!normalizedPhone) {
+        throw new Error(`Client ${userId} has no phone number for YooKassa receipts.`);
+    }
 
-    const amount = 1.00; // Small amount for card verification
+    const amountToCharge = 1.0;
     const description = 'Привязка карты для PRIZMATIC';
     const idempotenceKey = crypto.randomUUID();
+    const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
 
     const paymentData = {
-        amount: { value: amount.toFixed(2), currency: 'RUB' },
+        amount: { value: amountToCharge.toFixed(2), currency: 'RUB' },
         capture: true,
         description,
-        metadata: { userId, payment_type: 'save_card' }, // Special metadata
+        metadata: { userId, payment_type: 'save_card' },
         save_payment_method: true,
-        confirmation: { type: 'redirect', return_url: 'https://prizmatic-2004.vercel.app/profile.html?card_saved=true' }, // Redirect back to profile
+        confirmation: {
+            type: 'redirect',
+            return_url: 'https://prizmatic-2004.vercel.app/profile.html?card_saved=true',
+        },
         receipt: {
             customer: { phone: normalizedPhone },
-            items: [{
-                description,
-                quantity: '1.00',
-                amount: { value: amount.toFixed(2), currency: 'RUB' },
-                vat_code: '1',
-                payment_mode: 'full_payment',
-                payment_subject: 'service'
-            }]
-        }
+            items: [
+                {
+                    description,
+                    quantity: '1.00',
+                    amount: { value: amountToCharge.toFixed(2), currency: 'RUB' },
+                    vat_code: '1',
+                    payment_mode: 'full_payment',
+                    payment_subject: 'service',
+                },
+            ],
+        },
     };
 
-    const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
     const response = await fetch('https://api.yookassa.ru/v3/payments', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Idempotence-Key': idempotenceKey,
-            'Authorization': `Basic ${authString}`
+            Authorization: `Basic ${authString}`,
         },
-        body: JSON.stringify(paymentData)
+        body: JSON.stringify(paymentData),
     });
 
     const paymentResult = await response.json();
     if (!response.ok) {
-        console.error('YooKassa API Error:', paymentResult);
+        console.error('[payments] YooKassa error:', paymentResult);
         throw new Error(`YooKassa error: ${paymentResult.description || 'Unknown error'}`);
     }
 
-    // We don't need to do anything else here, the webhook will handle saving the card.
-    // We just return the confirmation URL.
-    return { status: 200, body: { confirmation_url: paymentResult.confirmation?.confirmation_url } };
+    return {
+        status: 200,
+        body: { confirmation_url: paymentResult.confirmation?.confirmation_url },
+    };
 }
 
 async function handleCreatePayment(body) {
-    const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode, days } = body;
-    if (!userId) throw new Error('Client ID (userId) is required.');
+    const {
+        userId,
+        tariffId,
+        amount: amountFromClient,
+        type,
+        rentalId,
+        return_url,
+        bikeCode,
+        days,
+    } = body;
 
-    const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const { data: clientData, error: clientError } = await supabaseAdmin.from('clients').select('phone, balance_rub, yookassa_payment_method_id').eq('id', userId).single();
-    if (clientError || !clientData) throw new Error(`Client not found.`);
+    if (!userId) {
+        throw new Error('Client ID (userId) is required.');
+    }
+
+    const clientResult = await query(
+        'SELECT phone, balance_rub, yookassa_payment_method_id FROM clients WHERE id = $1',
+        [userId]
+    );
+    const client = clientResult.rows[0];
+    if (!client) {
+        throw new Error('Client not found.');
+    }
 
     let amount;
     let description;
     let amountToDebitFromBalance = 0;
     let successRedirectUrl;
-    let paymentType; // Simplified payment type without suffixes
+    let paymentType;
 
-    const userBalance = clientData.balance_rub || 0;
+    const userBalance = Number(client.balance_rub || 0);
 
-    // Determine payment type and calculate amounts
     if (type === 'renewal') {
         paymentType = 'renewal';
         successRedirectUrl = 'https://prizmatic-2004.vercel.app/?renewal_success=true';
-        description = `Продление аренды`;
-        const renewalCost = Number.parseFloat(amountFromClient);
+        description = 'Продление аренды';
+        const renewalCost = Number(amountFromClient);
 
         if (userBalance >= renewalCost) {
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
@@ -224,13 +239,13 @@ async function handleCreatePayment(body) {
     } else if (type === 'booking') {
         paymentType = 'booking';
         successRedirectUrl = 'https://prizmatic-2004.vercel.app/?booking_success=true';
-        description = `Бронирование велосипеда`;
-        amount = Number.parseFloat(amountFromClient);
+        description = 'Бронирование велосипеда';
+        amount = Number(amountFromClient);
     } else if (tariffId && amountFromClient) {
         paymentType = 'rental';
         successRedirectUrl = 'https://prizmatic-2004.vercel.app/?rental_success=true';
-        const tariffCost = Number.parseFloat(amountFromClient);
-        description = `Аренда велосипеда`;
+        description = 'Аренда велосипеда';
+        const tariffCost = Number(amountFromClient);
 
         if (userBalance >= tariffCost) {
             throw new Error('Balance is sufficient. Use charge-from-balance endpoint.');
@@ -244,20 +259,23 @@ async function handleCreatePayment(body) {
         paymentType = 'top-up';
         successRedirectUrl = 'https://prizmatic-2004.vercel.app/?topup_success=true';
         description = 'Пополнение баланса PRIZMATIC';
-        amount = Number.parseFloat(amountFromClient);
+        amount = Number(amountFromClient);
     } else {
         throw new Error('Invalid request: amount or tariffId is missing.');
     }
 
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Invalid final amount for payment.');
+    if (!Number.isFinite(amount) || amount <= 0) {
+        throw new Error('Invalid final amount for payment.');
+    }
 
-    const normalizedPhone = normalizePhone(clientData.phone);
-    if (!normalizedPhone) throw new Error(`Client ${userId} has no phone number for receipts.`);
+    const normalizedPhone = normalizePhone(client.phone);
+    if (!normalizedPhone) {
+        throw new Error(`Client ${userId} has no phone number for receipts.`);
+    }
 
     const idempotenceKey = crypto.randomUUID();
-    
-    // Simplified metadata: use payment_type without suffixes
-    // The 'method' field will be determined in the webhook based on YooKassa payment data
+    const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
+
     const paymentData = {
         amount: { value: amount.toFixed(2), currency: 'RUB' },
         capture: true,
@@ -266,42 +284,57 @@ async function handleCreatePayment(body) {
             userId,
             tariffId,
             bikeCode,
-            payment_type: paymentType, // Simplified: 'rental', 'renewal', 'top-up', 'booking'
+            payment_type: paymentType,
             rentalId,
             days,
-            debit_from_balance: amountToDebitFromBalance
+            debit_from_balance: amountToDebitFromBalance,
         },
         save_payment_method: true,
         receipt: {
             customer: { phone: normalizedPhone },
-            items: [{ description, quantity: '1.00', amount: { value: amount.toFixed(2), currency: 'RUB' }, vat_code: '1', payment_mode: 'full_payment', payment_subject: 'service' }]
+            items: [
+                {
+                    description,
+                    quantity: '1.00',
+                    amount: { value: amount.toFixed(2), currency: 'RUB' },
+                    vat_code: '1',
+                    payment_mode: 'full_payment',
+                    payment_subject: 'service',
+                },
+            ],
         },
     };
 
-    if (clientData.yookassa_payment_method_id) {
-        paymentData.payment_method_id = clientData.yookassa_payment_method_id;
+    if (client.yookassa_payment_method_id) {
+        paymentData.payment_method_id = client.yookassa_payment_method_id;
     } else {
-        paymentData.confirmation = { type: 'redirect', return_url: return_url || successRedirectUrl };
+        paymentData.confirmation = {
+            type: 'redirect',
+            return_url: return_url || successRedirectUrl,
+        };
     }
 
-    const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
     const response = await fetch('https://api.yookassa.ru/v3/payments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Idempotence-Key': idempotenceKey, 'Authorization': `Basic ${authString}` },
-        body: JSON.stringify(paymentData)
+        headers: {
+            'Content-Type': 'application/json',
+            'Idempotence-Key': idempotenceKey,
+            Authorization: `Basic ${authString}`,
+        },
+        body: JSON.stringify(paymentData),
     });
 
     const paymentResult = await response.json();
     if (!response.ok) {
-        console.error('YooKassa API Error:', paymentResult);
+        console.error('[payments] YooKassa API error:', paymentResult);
         throw new Error(paymentResult.description || 'Unknown YooKassa error');
     }
 
-    if (paymentResult.confirmation) {
+    if (paymentResult.confirmation?.confirmation_url) {
         return { status: 200, body: { confirmation_url: paymentResult.confirmation.confirmation_url } };
-    } else {
-        return { status: 200, body: { status: paymentResult.status } };
     }
+
+    return { status: 200, body: { status: paymentResult.status } };
 }
 
 async function handler(req, res) {
@@ -329,11 +362,11 @@ async function handler(req, res) {
             case 'charge-from-balance':
                 result = await handleChargeFromBalance(body);
                 break;
-            case 'create-payment':
-                result = await handleCreatePayment(body);
-                break;
             case 'save-card':
                 result = await handleSaveCard(body);
+                break;
+            case 'create-payment':
+                result = await handleCreatePayment(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };
@@ -341,7 +374,7 @@ async function handler(req, res) {
 
         res.status(result.status).json(result.body);
     } catch (error) {
-        console.error('Payments Handler Error:', error);
+        console.error('[payments] Handler error:', error);
         res.status(500).json({ error: error.message });
     }
 }

@@ -19,7 +19,6 @@ from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, WebAppInfo,
     FSInputFile
 )
-from supabase import create_client, Client
 from ocr import configure_gemini, recognize_document, recognize_document_from_images
 
 # --- Конфигурация ---
@@ -42,21 +41,13 @@ WEB_APP_URL = 'https://prizmatic-2004.vercel.app/' # URL вашего основ
 ADMIN_IDS = [752012766]  # <--- ЗАМЕНИ НА РЕАЛЬНЫЕ ID АДМИНОВ
 # --- КОНЕЦ НОВОГО БЛОКА ---
 
-# Supabase settings
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+STORAGE_UPLOAD_API = os.getenv('STORAGE_UPLOAD_API', f"{WEB_APP_URL.rstrip('/')}/api/storage-upload")
+STORAGE_BUCKET = os.getenv('STORAGE_BUCKET', 'passports')
 GEMINI_API_KEY = os.getenv('GOOGLE_API_KEY')
 if not GEMINI_API_KEY:
     logger.critical("!!! Ключ GOOGLE_API_KEY не найден. Проверьте ваш .env файл и его расположение.")
 else:
     logger.info("Ключ Gemini API успешно загружен из переменных окружения.")
-
-if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
-    logger.critical("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set!")
-    # In production, exit here
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-logger.info("Supabase client initialized.")
 
 # --- Инициализация Aiogram ---
 bot = Bot(token=TOKEN)
@@ -82,25 +73,28 @@ class Reg(StatesGroup):
     emergency_phone = State()
     video_note = State()
 
-async def upload_file_to_supabase(file_id: str, user_id: int, key: str) -> str:
-    """Download file from Telegram and upload to Supabase Storage"""
-    try:
-        # Get file info
-        file_info = await bot.get_file(file_id)
-        # Download file
-        file_bytes = await bot.download_file(file_info.file_path)
-        # Upload to Supabase
-        storage_path = f"{user_id}/{key}.jpg"
-        response = supabase.storage.from_("passports").upload(
-            path=storage_path,
-            file=file_bytes,
-            file_options={"content-type": "image/jpeg", "upsert": "true"}
-        )
-        logger.info(f"Uploaded {storage_path} to Supabase")
-        return storage_path
-    except Exception as e:
-        logger.error(f"Failed to upload {key} for user {user_id}: {e}")
-        return None
+async def upload_file_to_storage(session: aiohttp.ClientSession, file_bytes: bytes, storage_path: str, content_type: str, user_id: int) -> str:
+    """Upload raw bytes to the storage API and return relative storage path."""
+    form = aiohttp.FormData()
+    form.add_field('bucket', STORAGE_BUCKET)
+    form.add_field('path', storage_path)
+    if user_id:
+        form.add_field('userId', str(user_id))
+    form.add_field('file', file_bytes, filename=Path(storage_path).name, content_type=content_type)
+
+    async with session.post(STORAGE_UPLOAD_API, data=form) as response:
+        try:
+            payload = await response.json()
+        except Exception:
+            payload = {}
+
+        if response.status != 200 or not payload.get('success'):
+            raise RuntimeError(payload.get('error') or f'Storage upload failed with status {response.status}')
+        stored_path = payload.get('path') or f"{STORAGE_BUCKET}/{storage_path}"
+        if stored_path.startswith(f"{STORAGE_BUCKET}/"):
+            stored_path = stored_path[len(STORAGE_BUCKET) + 1 :]
+    logger.info("Uploaded %s to storage", stored_path)
+    return stored_path
 
 # --- Клавиатуры ---
 def get_phone_keyboard() -> ReplyKeyboardMarkup:
@@ -626,53 +620,50 @@ async def process_video_note(message: Message, state: FSMContext):
             for key in user_data if key.endswith('_file_id') and user_data[key]
         }
 
-        images_for_gemini = []
-
         # --- ШАГ 2: Скачиваем файлы ОДИН РАЗ и загружаем ВСЕ в Storage ---
-        for key, file_id in file_ids_to_upload.items():
-            try:
-                file_info = await bot.get_file(file_id)
-                file_bytes_io = await bot.download_file(file_info.file_path)
-                file_bytes = file_bytes_io.read() # Читаем байты в переменную
-
-                # Определяем тип контента
-                if key == 'video_note':
-                    content_type = 'video/mp4'
-                else:
-                    content_type = 'image/jpeg'
-
-                # Загружаем ЛЮБОЙ файл в Supabase Storage
-                storage_path = f"{user_id}/{key}.{content_type.split('/')[1]}" # e.g., .../passport_main.jpeg or .../video_note.mp4
-                supabase.storage.from_("passports").upload(
-                    path=storage_path,
-                    file=file_bytes,
-                    file_options={"content-type": content_type, "upsert": "true"}
-                )
-
-                # Заменяем file_id на путь в Storage прямо в user_data
-                user_data[key + '_storage_path'] = storage_path
-                del user_data[key + '_file_id'] # Удаляем старый ключ с file_id
-
-            except Exception as e:
-                logger.error(f"Ошибка при обработке файла {key}: {e}")
-                continue # Пропускаем битый файл и идем дальше
-
-        # --- ШАГ 3: Готовим данные для отправки на сервер ---
-        await message.answer("✅ Документы загружены! Отправляю анкету на сервер для обработки...")
-
-        # Удаляем временные флаги
-        user_data.pop('patent_required', None)
-        user_data.pop('back_optional', None)
-        # Удаляем ИНН, если он вдруг где-то сохранился
-        user_data.pop('inn', None)
-
-        api_data = {
-            "action": "bot-register",
-            "userId": user_id,
-            "formData": user_data # Отправляем все, что собрали
-        }
-
         async with aiohttp.ClientSession() as session:
+            for key, file_id in file_ids_to_upload.items():
+                try:
+                    file_info = await bot.get_file(file_id)
+                    file_bytes_io = await bot.download_file(file_info.file_path)
+                    file_bytes = file_bytes_io.read()
+
+                    content_type = 'video/mp4' if key == 'video_note' else 'image/jpeg'
+                    extension = content_type.split('/')[1]
+                    storage_path = f"{user_id}/{key}.{extension}"
+
+                    stored_path = await upload_file_to_storage(
+                        session=session,
+                        file_bytes=file_bytes,
+                        storage_path=storage_path,
+                        content_type=content_type,
+                        user_id=user_id,
+                    )
+
+                    user_data[f"{key}_storage_path"] = stored_path
+                    storage_key = f"{key}_file_id"
+                    if storage_key in user_data:
+                        del user_data[storage_key]
+
+                except Exception as e:
+                    logger.error(f"Ошибка при обработке файла {key}: {e}")
+                    continue
+
+            # --- ШАГ 3: Готовим данные для отправки на сервер ---
+            await message.answer("✅ Документы загружены! Отправляю анкету на сервер для обработки...")
+
+            # Удаляем временные флаги
+            user_data.pop('patent_required', None)
+            user_data.pop('back_optional', None)
+            # Удаляем ИНН, если он вдруг где-то сохранился
+            user_data.pop('inn', None)
+
+            api_data = {
+                "action": "bot-register",
+                "userId": user_id,
+                "formData": user_data # Отправляем все, что собрали
+            }
+
             async with session.post(BOT_REGISTER_API, json=api_data) as response:
                 if response.status != 200:
                     response_text = await response.text()

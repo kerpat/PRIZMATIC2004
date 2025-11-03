@@ -8,7 +8,7 @@ OCR Worker работает как отдельный микросервис, к
 - Получает запросы от основного API (Vercel)
 - Скачивает файлы из Telegram
 - Обрабатывает документы через Google Gemini
-- Сохраняет результаты в Supabase
+- Сохраняет результаты в PostgreSQL (через общий пул соединений)
 - Обновляет статусы верификации
 
 ## Развертывание на Render
@@ -38,8 +38,12 @@ cp .env.example .env
 Добавьте следующие переменные в настройках Render:
 
 ```
-SUPABASE_URL=https://briulxpnjxlsgfgkqvfh.supabase.co
-SUPABASE_ANON_KEY=ваш_ключ
+DB_HOST=ваш_host
+DB_PORT=5432
+DB_NAME=prizmatic
+DB_USER=prizmatic_user
+DB_PASSWORD=ваш_пароль
+DB_SSL=true
 TELEGRAM_BOT_TOKEN=ваш_токен_бота
 GEMINI_API_KEY=ваш_gemini_ключ
 INTERNAL_SECRET=секретный_ключ_для_защиты

@@ -369,31 +369,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- Конец блока для карты ---
 
-    // --- Supabase Initialization ---
-    // Check if CONFIG is loaded
     if (typeof window.CONFIG === 'undefined') {
         console.error('CONFIG is not loaded! Make sure config.js is loaded before admin.js');
         alert('Configuration error. Please check console.');
         return;
     }
 
-    const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase.createClient();
 
-    // Вспомогательная функция для выполнения fetch-запросов с аутентификацией
     async function authedFetch(url, options = {}) {
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session) {
+        if (!session || !session.access_token) {
             alert('Ваша сессия истекла. Пожалуйста, войдите заново.');
             throw new Error('Нет активной сессии для выполнения запроса.');
         }
 
         const headers = {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${session.access_token}`
+            'Authorization': `Bearer ${session.access_token}`,
         };
 
         const config = {
@@ -404,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
             },
         };
 
-        // For Vercel environment, use relative path.
         const baseUrl = window.location.origin;
         return fetch(new URL(url, baseUrl), config);
     }

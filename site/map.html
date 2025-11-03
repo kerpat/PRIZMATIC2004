@@ -14,11 +14,7 @@
     <!-- Подключаем общий файл стилей, чтобы использовать переменные и меню -->
     <link rel="stylesheet" href="style.css?v=9.0">
     <link rel="stylesheet" href="blend.css?v=9.0">
-
-    <!-- Supabase for user data -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
-
-
+    <script src="db-client.js"></script>
 
     <script src="transitions.js" defer></script>
 </head>
@@ -160,22 +156,6 @@
                 });
             });
         });
-
-        // --- Supabase initialization ---
-        const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
-        let supabase = null;
-
-        // Wait for Supabase to load
-        function initSupabase() {
-            if (window.supabase && window.supabase.createClient) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            } else {
-                // Retry after a short delay
-                setTimeout(initSupabase, 100);
-            }
-        }
-        initSupabase();
 
         // City data
         const cityData = {
@@ -338,14 +318,15 @@
                     const userId = localStorage.getItem('userId');
                     let userCity = 'Москва'; // default
 
-                    if (userId && supabase) {
+                    if (userId) {
                         try {
-                            const { data: client, error } = await supabase
-                                .from('clients')
-                                .select('city')
-                                .eq('id', userId)
-                                .single();
-                            if (!error && client && client.city) {
+                            const response = await fetch('/api/data', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'get-client', userId }),
+                            });
+                            const client = await response.json();
+                            if (response.ok && client && client.city) {
                                 userCity = client.city;
                             }
                         } catch (err) {

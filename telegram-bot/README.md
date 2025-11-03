@@ -1,13 +1,13 @@
 # 🤖 PRIZMATIC Telegram Bot
 
-Telegram-бот для регистрации курьеров в сервисе PRIZMATIC. Собирает документы, проверяет данные и загружает их в Supabase.
+Telegram-бот для регистрации курьеров в сервисе PRIZMATIC. Собирает документы, проверяет данные и отправляет их в собственное API.
 
 ## 📋 Функционал
 
 - ✅ Регистрация пользователей через Telegram
 - 📸 Сбор документов (паспорт, патент, водительские права)
 - 🔍 OCR распознавание документов через Google Gemini
-- 📤 Загрузка файлов в Supabase Storage
+- 📤 Загрузка файлов в self-hosted хранилище (через /api/storage-upload)
 - 🔔 Уведомления админам о новых заявках
 - 🌐 HTTP-сервер для уведомлений от админ-панели
 
@@ -31,8 +31,9 @@ nano .env
 
 Обязательные переменные:
 - `TELEGRAM_BOT_TOKEN` - токен вашего бота от @BotFather
-- `SUPABASE_URL` - URL вашего Supabase проекта
-- `SUPABASE_SERVICE_ROLE_KEY` - Service Role ключ из Supabase
+- `WEB_APP_URL` - URL веб-приложения (для кнопок и API)
+- `BOT_REGISTER_API` - endpoint авторизации/регистрации (`https://your-app/api/auth`)
+- `STORAGE_UPLOAD_API` - endpoint загрузки файлов (`https://your-app/api/storage-upload`)
 - `GOOGLE_API_KEY` - API ключ Google Gemini для OCR
 
 ### 3. Добавьте необходимые файлы
@@ -182,8 +183,8 @@ python bot.py >> bot.log 2>&1
 - Убедитесь, что бот запущен: `ps aux | grep bot.py`
 
 ### Ошибки загрузки файлов
-- Проверьте `SUPABASE_SERVICE_ROLE_KEY`
-- Убедитесь, что bucket `passports` существует в Supabase Storage
+- Проверьте URL `STORAGE_UPLOAD_API`
+- Убедитесь, что на сервере доступен bucket `passports`
 
 ### OCR не работает
 - Проверьте `GOOGLE_API_KEY`

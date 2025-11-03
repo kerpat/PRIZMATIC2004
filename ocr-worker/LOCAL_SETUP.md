@@ -28,9 +28,13 @@ cp .env.example .env
 Заполните `.env` файл:
 
 ```env
-# Supabase (используйте SERVICE_ROLE_KEY для записи)
-SUPABASE_URL=https://briulxpnjxlsgfgkqvfh.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=ваш_service_role_key_из_supabase
+# PostgreSQL (VPS)
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=prizmatic
+DB_USER=prizmatic_user
+DB_PASSWORD=ваш_пароль
+DB_SSL=true
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=ваш_токен_бота
@@ -61,8 +65,11 @@ chmod +x start-local.sh
 ✅ Node.js найден: v18.17.0
 ✅ npm найден: 9.6.7
 🔧 Проверка переменных окружения...
-✅ SUPABASE_URL
-✅ SUPABASE_SERVICE_ROLE_KEY
+✅ DB_HOST
+✅ DB_PORT
+✅ DB_NAME
+✅ DB_USER
+✅ DB_PASSWORD
 ✅ TELEGRAM_BOT_TOKEN
 ✅ GEMINI_API_KEY
 ✅ INTERNAL_SECRET
@@ -70,8 +77,11 @@ chmod +x start-local.sh
 🎯 Запуск сервера...
 OCR Worker running on port 3000
 Environment check:
-- SUPABASE_URL: ✓
-- SUPABASE_SERVICE_ROLE_KEY: ✓
+- DB_HOST: ✓
+- DB_PORT: ✓
+- DB_NAME: ✓
+- DB_USER: ✓
+- DB_PASSWORD: ✓
 - TELEGRAM_BOT_TOKEN: ✓
 - GEMINI_API_KEY: ✓
 - INTERNAL_SECRET: ✓
@@ -149,9 +159,9 @@ curl -X POST http://localhost:3000/process-document \
 
 ## 🐛 Возможные проблемы
 
-### ❌ "SUPABASE_SERVICE_ROLE_KEY: ✗"
-- Убедитесь что используете `service_role` ключ, а не `anon`
-- Найдите в Supabase Dashboard → Settings → API → Service Role Key
+### ❌ "DB_HOST: ✗" (или другие DB_* поля)
+- Проверьте корректность доступа к PostgreSQL (адрес, порт, пользователь, пароль)
+- Если база требует SSL, убедитесь, что `DB_SSL=true`
 
 ### ❌ "OCR Worker running on port 3000" но не отвечает
 - Проверьте firewall

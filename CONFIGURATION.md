@@ -10,7 +10,11 @@
 
 ```javascript
 const CONFIG = {
+<<<<<<< HEAD
+    SUPABASE_URL: 'https://gkxbcgugrorsqqxjhbtj.supabase.co',
+=======
     SUPABASE_URL: 'https://avamqfmuhiwtlumjkzmv.supabase.co',
+>>>>>>> 20a65458d28573c238fa0148fea52f4cb6c2c355
     SUPABASE_ANON_KEY: 'your-anon-key',
     SUPABASE_SERVICE_ROLE_KEY: 'your-service-role-key',
     GOOGLE_API_KEY: 'your-google-api-key',

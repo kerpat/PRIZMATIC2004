@@ -78,7 +78,7 @@
 
     <div class="log" id="log"></div>
 
-    <script src="supabase.min.js"></script>
+    <script src="db-client.js"></script>
     <script src="/api/config"></script>
 
     <script>
@@ -99,62 +99,48 @@
             statusEl.textContent = 'Тестирование...';
 
             try {
-                // Шаг 1: Проверка CONFIG
                 log('Проверка CONFIG...', 'info');
                 if (!window.CONFIG) {
                     throw new Error('CONFIG не загружен');
                 }
                 log('✓ CONFIG загружен', 'success');
-                log(`  URL: ${window.CONFIG.SUPABASE_URL?.substring(0, 30)}...`, 'info');
 
-                // Шаг 2: Проверка Supabase SDK
-                log('Проверка Supabase SDK...', 'info');
-                if (!window.supabase) {
-                    throw new Error('Supabase SDK не загружен');
+                log('Проверка клиента БД...', 'info');
+                if (!window.dbClient) {
+                    throw new Error('dbClient не загружен');
                 }
-                log('✓ Supabase SDK загружен', 'success');
+                log('✓ dbClient загружен', 'success');
 
-                // Шаг 3: Создание клиента
-                log('Создание Supabase клиента...', 'info');
-                const startCreateClient = Date.now();
-                const supabase = window.supabase.createClient(
-                    window.CONFIG.SUPABASE_URL,
-                    window.CONFIG.SUPABASE_ANON_KEY
-                );
-                log(`✓ Клиент создан за ${Date.now() - startCreateClient}ms`, 'success');
-
-                // Шаг 4: Тестовый запрос
                 const userId = localStorage.getItem('userId');
                 if (!userId) {
                     log('⚠ userId не найден в localStorage', 'error');
-                    log('Тест пропущен - войдите в приложение сначала', 'info');
                     statusEl.className = 'status error';
                     statusEl.textContent = 'Ошибка: нет userId';
                     return;
                 }
 
-                log(`Тестовый запрос для userId: ${userId}...`, 'info');
-                const startQuery = Date.now();
+                log(`Отправляем запрос get-client для userId: ${userId}`, 'info');
+                const start = Date.now();
+                const response = await fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get-client', userId }),
+                });
 
-                const { data, error } = await supabase
-                    .from('clients')
-                    .select('id, name, verification_status')
-                    .eq('id', userId)
-                    .single();
-
-                const queryTime = Date.now() - startQuery;
-
-                if (error) {
-                    throw new Error(`Ошибка запроса: ${error.message}`);
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload?.error || `HTTP ${response.status}`);
                 }
 
-                log(`✓ Запрос выполнен за ${queryTime}ms`, 'success');
-                log(`  Имя: ${data.name}`, 'info');
-                log(`  Статус: ${data.verification_status}`, 'info');
+                const duration = Date.now() - start;
+                log(`✓ Запрос выполнен за ${duration}ms`, 'success');
+                log(`  Имя: ${payload?.name || '—'}`, 'info');
+                log(`  Город: ${payload?.city || 'не указан'}`, 'info');
+                log(`  Баланс: ${payload?.balance_rub ?? '—'}₽`, 'info');
+                log(`  Статус верификации: ${payload?.verification_status || '—'}`, 'info');
 
-                // Итог
                 statusEl.className = 'status success';
-                statusEl.textContent = `✓ Все тесты пройдены! Общее время: ${queryTime}ms`;
+                statusEl.textContent = `✓ Все тесты пройдены! Общее время: ${duration}ms`;
                 log('=== ТЕСТ ЗАВЕРШЕН УСПЕШНО ===', 'success');
 
             } catch (err) {

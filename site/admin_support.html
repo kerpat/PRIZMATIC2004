@@ -219,6 +219,9 @@
                 <div id="link-chat-bar" class="hidden" style="padding: 10px; text-align: center; background-color: var(--light-green-bg); border-bottom: 1px solid var(--border);">
                     <button id="link-chat-btn" class="btn btn-secondary" style="height: auto; padding: 8px 12px;">Привязать чат к клиенту</button>
                 </div>
+                <div id="chat-empty-state" class="chat-placeholder hidden" style="padding: 24px; text-align: center; color: #666;">
+                    Выберите чат слева, чтобы просмотреть сообщения.
+                </div>
                 <div class="chat-history-admin" id="chat-history-container">
                     <!-- Сюда JS будет загружать историю сообщений -->
                 </div>
@@ -235,8 +238,7 @@
       </section>
     </div>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+  <script src="db-client.js"></script>
   <script src="admin_support.js"></script>
 
   <!-- Модальное окно для выбора клиента -->

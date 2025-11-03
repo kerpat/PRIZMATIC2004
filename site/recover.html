@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js" defer></script>
+  <script src="db-client.js" defer></script>
   <link rel="stylesheet" href="style.css?v=9.0">
     <link rel="stylesheet" href="blend.css?v=9.0">
   <script src="transitions.js" defer></script>
@@ -180,165 +180,15 @@
         }, 1000);
     }
 
-    const SUPABASE_URL = window.CONFIG?.SUPABASE_URL || '';
-    const SUPABASE_ANON_KEY = window.CONFIG?.SUPABASE_ANON_KEY || '';
-
-    let supabase = null;
-    let recoverViaSupportBtn = null;
-    let supportModal = null;
-    let chatHistory = null;
-    let chatInput = null;
-    let sendChatBtn = null;
-    let anonymousChatId = null;
-    let supportChatSubscription = null;
-
-    // Инициализация после загрузки DOM и Supabase
-    function initializeSupportChat() {
-        if (!window.supabase) {
-            console.error('Supabase not loaded');
-            return;
-        }
-
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        recoverViaSupportBtn = document.getElementById('recover-via-support');
-        supportModal = document.getElementById('support-modal');
-        chatHistory = document.getElementById('chat-history');
-        chatInput = document.getElementById('chat-input');
-        sendChatBtn = document.getElementById('send-chat-btn');
-
-        // Проверяем, что все элементы найдены
-        if (!recoverViaSupportBtn || !supportModal || !chatHistory || !chatInput || !sendChatBtn) {
-            console.error('Some DOM elements not found');
-            return;
-        }
-
-        // Добавляем обработчики событий
+    const recoverViaSupportBtn = document.getElementById('recover-via-support');
+    if (recoverViaSupportBtn) {
         recoverViaSupportBtn.addEventListener('click', () => {
-            supportModal.classList.remove('hidden');
-            if (!localStorage.getItem('anonymousChatId')) {
-                localStorage.setItem('anonymousChatId', `anon_${crypto.randomUUID()}`);
-            }
-            anonymousChatId = localStorage.getItem('anonymousChatId');
-            loadAnonymousChatHistory();
-        });
-
-        supportModal.querySelector('.modal-close').addEventListener('click', () => {
-            supportModal.classList.add('hidden');
-            if (supportChatSubscription) {
-                supabase.removeChannel(supportChatSubscription);
-                supportChatSubscription = null;
-            }
-        });
-
-        sendChatBtn.addEventListener('click', () => {
-            const text = chatInput.value.trim();
-            if (text) {
-                addChatMessage(text, 'user', new Date(), false);
-                chatInput.value = '';
-            }
-        });
-
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendChatBtn.click();
-            }
-        });
-    }
-
-    // Функции чата (должны быть определены до инициализации)
-    async function loadAnonymousChatHistory() {
-        if (!anonymousChatId || !supabase) return;
-        chatHistory.innerHTML = '<p style="text-align:center;">Загрузка истории...</p>';
-        const { data, error } = await supabase.from('support_messages').select('*').eq('anonymous_chat_id', anonymousChatId).order('created_at', { ascending: true });
-        chatHistory.innerHTML = '';
-        if (error) {
-            console.error('Error loading chat:', error);
-            chatHistory.innerHTML = '<p style="text-align:center; color:red;">Ошибка загрузки.</p>';
-            return;
-        }
-
-        let lastDate = null;
-        if (data.length > 0) {
-            data.forEach(msg => {
-                const messageDate = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-                if (messageDate !== lastDate) {
-                    addDateSeparator(messageDate);
-                    lastDate = messageDate;
-                }
-                addChatMessage(msg.message_text, msg.sender, new Date(msg.created_at), true);
-            });
-        } else {
-            addChatMessage('Здравствуйте! Я хочу восстановить доступ к своему аккаунту.', 'user', new Date(), false);
-            setTimeout(() => addChatMessage('Пожалуйста, введите номер телефона, который вы указывали при регистрации.', 'support', new Date(), true), 500);
-        }
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
-        if (supportChatSubscription) supabase.removeChannel(supportChatSubscription);
-        supportChatSubscription = supabase.channel(`support-anon-${anonymousChatId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `anonymous_chat_id=eq.${anonymousChatId}` }, payload => {
-                if (payload.new.sender !== 'user') {
-                    addChatMessage(payload.new.message_text, payload.new.sender, new Date(payload.new.created_at), true);
-                }
-            }).subscribe();
-    }
-
-    function addDateSeparator(dateText) {
-        const separatorEl = document.createElement('div');
-        separatorEl.className = 'date-separator';
-        separatorEl.textContent = dateText;
-        chatHistory.appendChild(separatorEl);
-    }
-
-    async function addChatMessage(text, sender, timestamp, isSilent = false) {
-        const time = timestamp ? timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-        const messageEl = document.createElement('div');
-
-        const senderClass = (sender === 'admin' || sender === 'support') ? 'support' : 'user';
-        messageEl.className = `chat-message ${senderClass}-message`;
-
-        messageEl.innerHTML = `
-            <div class="message-text">${text}</div>
-            <div class="message-timestamp">${time}</div>
-        `;
-        chatHistory.appendChild(messageEl);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
-        if (!isSilent && supabase) {
-            try {
-                const { error } = await supabase.from('support_messages').insert({ anonymous_chat_id: anonymousChatId, sender: 'user', message_text: text });
-                if (error) throw error;
-            } catch (err) {
-                console.error('Failed to send message:', err);
-                messageEl.style.opacity = '0.5';
-                messageEl.title = 'Не удалось отправить';
-            }
-        }
-    }
-
-    // Инициализация после загрузки страницы
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            // Ждем загрузки Supabase
-            const checkSupabase = () => {
-                if (window.supabase) {
-                    initializeSupportChat();
-                } else {
-                    setTimeout(checkSupabase, 100);
-                }
-            };
-            checkSupabase();
-        });
-    } else {
-        const checkSupabase = () => {
-            if (window.supabase) {
-                initializeSupportChat();
+            if (window.SupportChat && window.SupportChat.isAvailable()) {
+                window.SupportChat.open();
             } else {
-                setTimeout(checkSupabase, 100);
+                alert('Чат поддержки временно недоступен. Свяжитесь с менеджером.');
             }
-        };
-        checkSupabase();
+        });
     }
 
 </script>

@@ -34,9 +34,11 @@ echo "🔧 Проверка переменных окружения..."
 node -e "
 require('dotenv').config();
 const checks = [
-  ['SUPABASE_URL', process.env.SUPABASE_URL],
-  ['SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY],
-  ['SUPABASE_ANON_KEY', process.env.SUPABASE_ANON_KEY],
+  ['DB_HOST', process.env.DB_HOST],
+  ['DB_PORT', process.env.DB_PORT],
+  ['DB_NAME', process.env.DB_NAME],
+  ['DB_USER', process.env.DB_USER],
+  ['DB_PASSWORD', process.env.DB_PASSWORD],
   ['TELEGRAM_BOT_TOKEN', process.env.TELEGRAM_BOT_TOKEN],
   ['GEMINI_API_KEY', process.env.GEMINI_API_KEY],
   ['INTERNAL_SECRET', process.env.INTERNAL_SECRET]

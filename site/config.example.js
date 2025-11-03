@@ -1,9 +1,7 @@
 // Configuration file with environment variables
 // Copy this file to config.js and fill in your actual values
 window.CONFIG = {
-    SUPABASE_URL: 'https://your-project.supabase.co',
-    SUPABASE_ANON_KEY: 'your-supabase-anon-key',
-    SUPABASE_SERVICE_ROLE_KEY: 'your-supabase-service-role-key',
+    API_BASE_URL: '/api/router',
     GOOGLE_API_KEY: 'your-google-api-key',
     GEMINI_API_KEY: 'your-gemini-api-key',
     TELEGRAM_BOT_TOKEN: 'your-telegram-bot-token',
@@ -16,5 +14,5 @@ window.CONFIG = {
     CONTRACTS_API_URL: 'https://your-contracts-api.com'
 };
 
-// Также создаем алиас для удобства
+// Alias for convenience
 const CONFIG = window.CONFIG;
