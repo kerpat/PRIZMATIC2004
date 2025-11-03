@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 const { createClient } = require('@supabase/supabase-js');
-=======
-const { query } = require('./_lib_db');
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
 function createSupabaseAdmin() {
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -27,13 +23,9 @@ function parseRequestBody(body) {
     return body;
 }
 
-<<<<<<< HEAD
 
 export default async function handler(req, res) {
     // ... CORS и проверка метода остаются без изменений ...
-=======
-module.exports = async function handler(req, res) {
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -52,7 +44,6 @@ module.exports = async function handler(req, res) {
         const body = parseRequestBody(req.body);
         const { bikeCode } = body;
 
-<<<<<<< HEAD
         // --- ОТЛАДОЧНЫЙ ЛОГ №1 ---
         console.log(`[DEBUG] Received request for bikeCode: "${bikeCode}"`);
 
@@ -127,76 +118,3 @@ module.exports = async function handler(req, res) {
         res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера.' });
     }
 }
-=======
-        console.log(`[getTariffByBike] Received bikeCode="${bikeCode}"`);
-
-        if (!bikeCode) {
-            res.status(400).json({ error: 'bikeCode is required' });
-            return;
-        }
-
-        const bikeResult = await query(
-            'SELECT id, status, tariff_id FROM bikes WHERE bike_code = $1 LIMIT 1',
-            [bikeCode]
-        );
-
-        const bike = bikeResult.rows[0];
-        if (!bike) {
-            res.status(404).json({ error: 'Велосипед не найден' });
-            return;
-        }
-
-        if (bike.status !== 'available') {
-            res.status(400).json({ error: 'Велосипед недоступен для аренды' });
-            return;
-        }
-
-        if (!bike.tariff_id) {
-            res.status(400).json({ error: 'У велосипеда не указан тариф' });
-            return;
-        }
-
-        const tariffResult = await query(
-            'SELECT * FROM tariffs WHERE id = $1 AND is_active = true LIMIT 1',
-            [bike.tariff_id]
-        );
-
-        const tariff = tariffResult.rows[0];
-        if (!tariff) {
-            res.status(404).json({ error: 'Тариф не найден или неактивен' });
-            return;
-        }
-
-        const formattedTariff = {
-            id: tariff.id,
-            slug: tariff.slug || tariff.title?.toLowerCase()?.replace(/\s+/g, '-') || `tariff-${tariff.id}`,
-            title: tariff.title,
-            price_rub: tariff.price_rub,
-            duration_days: tariff.duration_days,
-            deposit_rub: tariff.deposit_rub || 0,
-            extensions: typeof tariff.extensions === 'string'
-                ? safeJsonParse(tariff.extensions, null)
-                : tariff.extensions || null,
-            description: tariff.description || '',
-            short_description: tariff.short_description || ''
-        };
-
-        res.status(200).json({ tariff: formattedTariff });
-    } catch (error) {
-        console.error('[getTariffByBike] Handler error:', error);
-        res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера.' });
-    }
-};
-
-function safeJsonParse(value, fallback) {
-    try {
-        if (typeof value !== 'string') {
-            return fallback;
-        }
-        return JSON.parse(value);
-    } catch (error) {
-        console.warn('[getTariffByBike] Failed to parse extensions JSON:', error);
-        return fallback;
-    }
-}
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

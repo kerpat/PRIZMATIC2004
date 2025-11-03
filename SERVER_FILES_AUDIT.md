@@ -64,15 +64,7 @@
 
 1. **Переменные окружения на Render.com** (для prizmatic-server):
    ```
-<<<<<<< HEAD
    SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
-=======
-<<<<<<< HEAD
-   SUPABASE_URL=https://gkxbcgugrorsqqxjhbtj.supabase.co
-=======
-   SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
->>>>>>> 20a65458d28573c238fa0148fea52f4cb6c2c355
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    TELEGRAM_BOT_TOKEN=8126548981:AAGC86ZaJ0SYLICC0WbpS7aGOhU9t8iz_a4
    BOT_USERNAME=PRIZMATICbot (или ваше актуальное имя)
@@ -82,15 +74,7 @@
 
 2. **Переменные окружения для ocr-worker**:
    ```
-<<<<<<< HEAD
    SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
-=======
-<<<<<<< HEAD
-   SUPABASE_URL=https://gkxbcgugrorsqqxjhbtj.supabase.co
-=======
-   SUPABASE_URL=https://avamqfmuhiwtlumjkzmv.supabase.co
->>>>>>> 20a65458d28573c238fa0148fea52f4cb6c2c355
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    GEMINI_API_KEY=AIzaSyCds0FmujbSW88GPJwXeyhIjD8JOdyx5uU
    INTERNAL_SECRET=MySuperSecretKeyForBikeAppOCR123!

@@ -7,7 +7,7 @@ function getProgressColor(progress) {
 function formatBalance(balance) {
     return `${balance.toFixed(2)} ₽`;
 }
-import { getRentalBatteries } from './api.js';
+import { supabase } from './api.js';
 export function renderDefaultView(mainContent) {
     mainContent.innerHTML = `
         <div class="bike-image-wrapper">
@@ -93,25 +93,28 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
 
     // ЗАГРУЖАЕМ И ОТОБРАЖАЕМ АККУМУЛЯТОРЫ
     try {
-        const batteries = await getRentalBatteries(rental.id);
+        const { data: batteries, error } = await supabase
+            .from('rental_batteries')
+            .select('batteries(serial_number)')
+            .eq('rental_id', rental.id);
+
         const batteryList = document.getElementById('rental-batteries-list');
-        if (batteryList) {
-            if (batteries.length > 0) {
-                batteries.forEach(({ serial_number }) => {
-                    const chip = document.createElement('div');
-                    chip.className = 'battery-chip';
-                    chip.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                        </svg>
-                        ${serial_number}
-                    `;
-                    batteryList.appendChild(chip);
-                });
-            } else {
-                batteryList.innerHTML = '<span style="color: #7a9a95; font-size: 0.85rem;">Информация недоступна</span>';
-            }
+        if (batteries && batteries.length > 0 && batteryList) {
+            batteries.forEach(rb => {
+                const chip = document.createElement('div');
+                chip.className = 'battery-chip';
+                chip.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    ${rb.batteries.serial_number}
+                `;
+                batteryList.appendChild(chip);
+            });
+        } else if (batteryList) {
+            // Если АКБ нет, показываем placeholder
+            batteryList.innerHTML = '<span style="color: #7a9a95; font-size: 0.85rem;">Информация недоступна</span>';
         }
     } catch (err) {
         console.error('Не удалось загрузить список аккумуляторов:', err);

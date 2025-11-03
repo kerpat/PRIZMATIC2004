@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /**
  * 🚀 UNIFIED API ROUTER
  * Объединяет все API endpoints в одну serverless функцию
@@ -285,6 +284,3 @@ module.exports = async (req, res) => {
         });
     }
 };
-=======
-module.exports = require('./router');
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

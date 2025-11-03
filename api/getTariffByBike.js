@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const { createClient } = require('@supabase/supabase-js');
 
 function createSupabaseAdmin() {
@@ -119,6 +118,3 @@ export default async function handler(req, res) {
         res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера.' });
     }
 }
-=======
-module.exports = require('./_lib_getTariffByBike');
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

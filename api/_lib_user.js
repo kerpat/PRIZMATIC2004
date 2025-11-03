@@ -1,22 +1,7 @@
-<<<<<<< HEAD
 
 const { createClient } = require('@supabase/supabase-js');
-=======
-const { query: dbQuery } = require('./_lib_db');
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 const fetch = require('node-fetch');
 const playwright = require('playwright-aws-lambda');
-const htmlToDocx = require('html-to-docx');
-// Вспомогательная функция для выполнения запросов
-async function query(text, params) {
-    try {
-        const result = await dbQuery(text, params);
-        return { rows: result.rows, rowCount: result.rowCount };
-    } catch (error) {
-        console.error('Database query error:', error);
-        throw error;
-    }
-}
 
 function createSupabaseAdmin() {
     const url = process.env.SUPABASE_URL;
@@ -51,7 +36,6 @@ async function handleUpdateLocation({ userId, latitude, longitude }) {
     if (!userId || typeof latitude !== 'number' || typeof longitude !== 'number') {
         return { status: 400, body: { error: 'userId, latitude, and longitude are required.' } };
     }
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
     const locationString = `POINT(${longitude} ${latitude})`;
     const { error } = await supabaseAdmin
@@ -62,16 +46,6 @@ async function handleUpdateLocation({ userId, latitude, longitude }) {
     if (error) {
         throw new Error('Failed to update location: ' + error.message);
     }
-=======
-    
-    // PostGIS использует ST_SetSRID(ST_MakePoint(lon, lat), 4326)
-    await query(
-        `UPDATE clients 
-         SET last_location = ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography 
-         WHERE id = $3`,
-        [longitude, latitude, userId]
-    );
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
     return { status: 200, body: { message: 'Location updated successfully.' } };
 }
@@ -80,26 +54,17 @@ async function handleVerifyToken({ token }) {
     if (!token) {
         return { status: 400, body: { error: 'token is required.' } };
     }
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
     const { data: client, error } = await supabaseAdmin
         .from('clients')
         .select('id, name, auth_token')
         .eq('auth_token', token)
         .single();
-=======
-    
-    const result = await query(
-        'SELECT id, name, auth_token FROM clients WHERE auth_token = $1',
-        [token]
-    );
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
-    if (result.rowCount === 0) {
+    if (error || !client) {
         return { status: 401, body: { error: 'Invalid or expired token.' } };
     }
 
-    const client = result.rows[0];
     return { status: 200, body: { userId: client.id, userName: client.name } };
 }
 
@@ -107,44 +72,24 @@ async function handleGetPendingContracts({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select('id, status, bike_id, tariffs(title), bikes(*)')
         .eq('user_id', userId)
         .eq('status', 'awaiting_contract_signing');
-=======
-    
-    const result = await query(
-        `SELECT r.id, r.status, r.bike_id,
-            jsonb_build_object('title', t.title) as tariffs,
-            jsonb_build_object(
-                'id', b.id,
-                'bike_code', b.bike_code,
-                'model_name', b.model_name,
-                'frame_number', b.frame_number,
-                'battery_numbers', b.battery_numbers,
-                'registration_number', b.registration_number,
-                'iot_device_id', b.iot_device_id,
-                'additional_equipment', b.additional_equipment
-            ) as bikes
-         FROM rentals r
-         LEFT JOIN tariffs t ON r.tariff_id = t.id
-         LEFT JOIN bikes b ON r.bike_id = b.id
-         WHERE r.user_id = $1 AND r.status = 'awaiting_contract_signing'`,
-        [userId]
-    );
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
-    return { status: 200, body: { rentals: result.rows } };
+    if (error) {
+        throw new Error('Failed to fetch pending contracts: ' + error.message);
+    }
+
+    return { status: 200, body: { rentals: data } };
 }
 
 async function handleGetContractDetails({ userId, rentalId }) {
     if (!userId || !rentalId) {
         return { status: 400, body: { error: 'userId and rentalId are required.' } };
     }
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
     const { data, error } = await supabaseAdmin
         .from('rentals')
@@ -157,45 +102,18 @@ async function handleGetContractDetails({ userId, rentalId }) {
         .eq('id', rentalId)
         .eq('user_id', userId) // Security check
         .single();
-=======
-    
-    const result = await query(
-        `SELECT r.id,
-            jsonb_build_object(
-                'name', c.name,
-                'city', c.city,
-                'recognized_passport_data', c.recognized_passport_data
-            ) as clients,
-            jsonb_build_object('title', t.title) as tariffs,
-            jsonb_build_object(
-                'model_name', b.model_name,
-                'frame_number', b.frame_number,
-                'battery_numbers', b.battery_numbers,
-                'registration_number', b.registration_number,
-                'iot_device_id', b.iot_device_id,
-                'additional_equipment', b.additional_equipment
-            ) as bikes
-         FROM rentals r
-         LEFT JOIN clients c ON r.user_id = c.id
-         LEFT JOIN tariffs t ON r.tariff_id = t.id
-         LEFT JOIN bikes b ON r.bike_id = b.id
-         WHERE r.id = $1 AND r.user_id = $2`,
-        [rentalId, userId]
-    );
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
-    if (result.rowCount === 0) {
-        return { status: 404, body: { error: 'Rental not found' } };
+    if (error) {
+        throw new Error('Failed to fetch contract details: ' + error.message);
     }
 
-    return { status: 200, body: { rental: result.rows[0] } };
+    return { status: 200, body: { rental: data } };
 }
 
 async function handleGetActiveRental({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
     const { data, error } = await supabaseAdmin
         .from('rentals')
@@ -234,26 +152,6 @@ async function handleGetActiveRental({ userId }) {
     }
 
     return { status: 200, body: { rental: data } };
-=======
-    
-    const result = await query(
-        `SELECT r.*,
-            jsonb_build_object(
-                'title', t.title,
-                'price_rub', t.price_rub,
-                'duration_days', t.duration_days
-            ) as tariffs
-         FROM rentals r
-         LEFT JOIN tariffs t ON r.tariff_id = t.id
-         WHERE r.user_id = $1 
-         AND r.status IN ('active', 'overdue', 'pending_return')
-         ORDER BY r.created_at DESC
-         LIMIT 1`,
-        [userId]
-    );
-
-    return { status: 200, body: { rental: result.rowCount > 0 ? result.rows[0] : null } };
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 }
 
 function generateContractHTML(rentalData) {
@@ -309,44 +207,25 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         return { status: 400, body: { error: 'userId, rentalId, and signatureData are required.' } };
     }
 
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
-=======
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
     let browser = null;
 
     try {
         // ШАГ 1: Получаем все данные для договора
-        const result = await query(
-            `SELECT 
-                jsonb_build_object(
-                    'name', c.name,
-                    'city', c.city,
-                    'recognized_passport_data', c.recognized_passport_data
-                ) as clients,
-                jsonb_build_object(
-                    'model_name', b.model_name,
-                    'frame_number', b.frame_number,
-                    'battery_numbers', b.battery_numbers,
-                    'registration_number', b.registration_number,
-                    'iot_device_id', b.iot_device_id,
-                    'additional_equipment', b.additional_equipment
-                ) as bikes
-             FROM rentals r
-             LEFT JOIN clients c ON r.user_id = c.id
-             LEFT JOIN bikes b ON r.bike_id = b.id
-             WHERE r.id = $1 AND r.user_id = $2`,
-            [rentalId, userId]
-        );
+        const { data: rentalData, error: rentalError } = await supabaseAdmin
+            .from('rentals')
+            .select(`
+                clients ( name, city, recognized_passport_data ),
+                bikes ( model_name, frame_number, battery_numbers, registration_number, iot_device_id, additional_equipment )
+            `)
+            .eq('id', rentalId)
+            .eq('user_id', userId)
+            .single();
 
-        if (result.rowCount === 0) {
-            throw new Error('Rental not found or access denied');
-        }
-
-        const rentalData = result.rows[0];
+        if (rentalError) throw new Error('Failed to fetch rental data: ' + rentalError.message);
 
         // ШАГ 2: Собираем полный HTML для PDF-документа
-        const contractBodyHTML = generateContractHTML(rentalData);
+        const contractBodyHTML = generateContractHTML(rentalData); // Эта функция уже должна быть в твоем файле
         const fullHTML = `
             <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><style>
             body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; line-height: 1.4; color: #333; }
@@ -370,24 +249,37 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         await page.setContent(fullHTML, { waitUntil: 'load' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
 
-        // ШАГ 4: Загружаем готовый PDF в Minio (TODO: нужно будет реализовать)
-        // Пока сохраним как base64 в extra_data
-        const pdfBase64 = pdfBuffer.toString('base64');
-        const publicUrl = `data:application/pdf;base64,${pdfBase64}`;
+        // ШАГ 4: Загружаем готовый PDF в хранилище Supabase
+        const filePath = `signed/${userId}/rental_${rentalId}_signed.pdf`;
+        const { error: uploadError } = await supabaseAdmin.storage
+            .from('contracts') // <--- Наше новое хранилище
+            .upload(filePath, pdfBuffer, {
+                contentType: 'application/pdf',
+                upsert: true
+            });
+
+        if (uploadError) throw new Error('Failed to save PDF: ' + uploadError.message);
+
+        const { data: { publicUrl } } = supabaseAdmin.storage.from('contracts').getPublicUrl(filePath);
 
         // ШАГ 5: Активируем аренду и сохраняем ссылку на документ
-        await query(
-            `UPDATE rentals 
-             SET status = 'active',
-                 extra_data = jsonb_set(COALESCE(extra_data, '{}'::jsonb), '{contract_document_url}', $1::jsonb)
-             WHERE id = $2 AND user_id = $3`,
-            [JSON.stringify(publicUrl), rentalId, userId]
-        );
+        const { error: updateError } = await supabaseAdmin
+            .from('rentals')
+            .update({
+                status: 'active',
+                // Убедись, что в таблице rentals есть колонка `extra_data` типа jsonb
+                extra_data: { contract_document_url: publicUrl }
+            })
+            .eq('id', rentalId)
+            .eq('user_id', userId);
+
+        if (updateError) throw new Error('Failed to activate rental: ' + updateError.message);
 
         return { status: 200, body: { message: 'Contract signed and rental activated' } };
 
     } catch (error) {
         console.error('Contract confirmation error:', error);
+        // Возвращаем ошибку, чтобы фронтенд мог ее показать
         return { status: 500, body: { error: 'Не удалось сгенерировать договор: ' + error.message } };
     } finally {
         if (browser !== null) {
@@ -396,121 +288,20 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
     }
 }
 
-async function handleUpdateCity({ userId, city }) {
-    if (!userId || !city) {
-        return { status: 400, body: { error: 'userId and city are required.' } };
-    }
-
-    await query(
-        'UPDATE clients SET city = $1 WHERE id = $2',
-        [city, userId]
-    );
-
-    return { status: 200, body: { success: true } };
-}
-
-async function handleGetSupportMessages({ userId, anonymousChatId }) {
-    if (!userId && !anonymousChatId) {
-        return { status: 400, body: { error: 'userId or anonymousChatId is required.' } };
-    }
-
-    const conditions = [];
-    const values = [];
-
-    if (userId) {
-        conditions.push('client_id = $' + (values.length + 1));
-        values.push(userId);
-    }
-
-    if (anonymousChatId) {
-        conditions.push('anonymous_chat_id = $' + (values.length + 1));
-        values.push(anonymousChatId);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const result = await query(
-        `SELECT id, created_at, sender, message_text, is_read, anonymous_chat_id, file_url, file_type
-         FROM support_messages
-         ${whereClause}
-         ORDER BY created_at ASC`,
-        values
-    );
-
-    return { status: 200, body: { messages: result.rows } };
-}
-
-async function handleSendSupportMessage({ userId, anonymousChatId, messageText, fileUrl, fileType, sender }) {
-    if (!messageText && !fileUrl) {
-        return { status: 400, body: { error: 'Message text or file is required.' } };
-    }
-
-    if (!userId && !anonymousChatId) {
-        return { status: 400, body: { error: 'userId or anonymousChatId is required.' } };
-    }
-
-    const result = await query(
-        `INSERT INTO support_messages (client_id, anonymous_chat_id, sender, message_text, file_url, file_type)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, created_at, sender, message_text, is_read, anonymous_chat_id, file_url, file_type`,
-        [userId || null, anonymousChatId || null, sender || 'user', messageText || '', fileUrl || null, fileType || null]
-    );
-
-    return { status: 200, body: { message: result.rows[0] } };
-}
-
-async function handleMarkSupportRead({ userId, anonymousChatId }) {
-    if (!userId && !anonymousChatId) {
-        return { status: 400, body: { error: 'userId or anonymousChatId is required.' } };
-    }
-
-    const conditions = ["sender = 'admin'", 'is_read = false'];
-    const values = [];
-
-    if (userId) {
-        conditions.push('client_id = $' + (values.length + 1));
-        values.push(userId);
-    }
-
-    if (anonymousChatId) {
-        conditions.push('anonymous_chat_id = $' + (values.length + 1));
-        values.push(anonymousChatId);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    await query(
-        `UPDATE support_messages SET is_read = true ${whereClause}`,
-        values
-    );
-
-    return { status: 200, body: { success: true } };
-}
 
 async function handleGetPaymentMethod({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
     const { data: client, error: clientError } = await supabaseAdmin
         .from('clients')
         .select('extra')
         .eq('id', userId)
         .single();
-=======
-    
-    const result = await query(
-        'SELECT extra FROM clients WHERE id = $1',
-        [userId]
-    );
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
-    if (result.rowCount === 0) {
-        return { status: 404, body: { error: 'User not found' } };
-    }
+    if (clientError) throw new Error('Failed to get client data: ' + clientError.message);
 
-    const client = result.rows[0];
     const paymentMethodDetails = client?.extra?.payment_method_details;
 
     if (!paymentMethodDetails) {
@@ -525,7 +316,6 @@ async function handleUnbindPaymentMethod({ userId }) {
         return { status: 400, body: { error: 'User ID is required' } };
     }
 
-<<<<<<< HEAD
     const supabaseAdmin = createSupabaseAdmin();
 
     // Просто зачищаем поля, связанные с YooKassa, у клиента
@@ -542,19 +332,10 @@ async function handleUnbindPaymentMethod({ userId }) {
         console.error('Error unbinding payment method:', error);
         return { status: 500, body: { error: 'Failed to unbind payment method in database.' } };
     }
-=======
-    await query(
-        `UPDATE clients 
-         SET yookassa_payment_method_id = NULL,
-             autopay_enabled = false,
-             extra = '{}'::jsonb
-         WHERE id = $1`,
-        [userId]
-    );
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
     return { status: 200, body: { success: true, message: 'Payment method successfully unbound.' } };
 }
+
 
 async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -592,18 +373,6 @@ async function handler(req, res) {
                 break;
             case 'unbind-payment-method':
                 result = await handleUnbindPaymentMethod(body);
-                break;
-            case 'update-city':
-                result = await handleUpdateCity(body);
-                break;
-            case 'get-support-messages':
-                result = await handleGetSupportMessages(body);
-                break;
-            case 'send-support-message':
-                result = await handleSendSupportMessage(body);
-                break;
-            case 'mark-support-read':
-                result = await handleMarkSupportRead(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const axios = require('axios');
@@ -545,6 +544,3 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-=======
-module.exports = require('./_lib_auth');
->>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

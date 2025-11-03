@@ -1,4 +1,4 @@
-import { getClient, getActiveRental, createPayment, getAvailableBikes } from './api.js';
+import { getClient, getActiveRental, createPayment } from './api.js';
 import { renderDefaultView, renderActiveRentalView, renderOverdueRentalView, renderPendingReturnView } from './ui.js';
 
 function initializeModals() {
@@ -14,18 +14,6 @@ function initializeModals() {
             }
         });
     });
-}
-
-async function updateAvailableBikesCount(city) {
-    try {
-        const bikes = await getAvailableBikes(city || 'Москва');
-        const countEl = document.getElementById('available-bikes-count');
-        if (countEl) {
-            countEl.textContent = bikes.length.toString();
-        }
-    } catch (error) {
-        console.warn('[Main] Failed to load available bikes count:', error.message);
-    }
 }
 
 function initializeMainScreenEventListeners(currentUser) {
@@ -77,31 +65,6 @@ function initializeMainScreenEventListeners(currentUser) {
     }
 }
 
-function initializePostRentalPrompt() {
-    const promptModal = document.getElementById('post-rental-prompt-modal');
-    if (!promptModal) return;
-
-    const closeBtn = document.getElementById('prompt-modal-close-btn');
-    const goToProfileBtn = document.getElementById('go-to-profile-btn');
-
-    const closeModal = () => promptModal.classList.add('hidden');
-
-    promptModal.addEventListener('click', (event) => {
-        if (event.target === promptModal) {
-            closeModal();
-        }
-    });
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeModal);
-    }
-    if (goToProfileBtn) {
-        goToProfileBtn.addEventListener('click', () => {
-            window.location.href = 'profile.html#notifications';
-            closeModal();
-        });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('isRegistered') !== 'true') {
         window.location.replace('registration.html');
@@ -148,11 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             renderDefaultView(mainContent);
             initializeMainScreenEventListeners(currentUser);
-            await updateAvailableBikesCount(currentUser.city);
         }
     }
 
     initializeRentalSystem();
     initializeModals();
-    initializePostRentalPrompt();
 });
