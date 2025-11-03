@@ -247,6 +247,57 @@
         }
 
         async execute() {
+            const selectFields = this.selectFields || '*';
+            const needsRentalRelations = this.table === 'rentals' && /(clients|tariffs|rental_batteries|bikes)\s*\(/.test(selectFields);
+            if (needsRentalRelations) {
+                const adminResponse = await this.client._adminRequest({
+                    action: 'select-rentals-with-relations',
+                    filters: this.filters,
+                    order: this.orderBy,
+                    limit: this.limitValue,
+                    offset: this.offsetValue,
+                    single: this.isSingleRow,
+                    maybeSingle: this.allowEmptySingle,
+                });
+
+                if (adminResponse.status !== 200) {
+                    const message = adminResponse.body?.error || 'Request failed';
+                    return { data: null, error: { message } };
+                }
+
+                let data = adminResponse.body?.data ?? null;
+                if (this.isSingleRow && Array.isArray(data)) {
+                    data = data[0] ?? null;
+                }
+
+                if (!this.allowEmptySingle && this.isSingleRow && !data) {
+                    return {
+                        data: null,
+                        error: { message: 'Record not found', code: 'NO_ROWS' },
+                    };
+                }
+
+                return { data, error: null, count: null };
+            }
+
+            const needsBookingRelations = this.table === 'bookings' && /clients\s*\(/.test(selectFields);
+            if (needsBookingRelations) {
+                const adminResponse = await this.client._adminRequest({
+                    action: 'select-bookings-with-client',
+                    filters: this.filters,
+                    order: this.orderBy,
+                    limit: this.limitValue,
+                    offset: this.offsetValue,
+                });
+
+                if (adminResponse.status !== 200) {
+                    const message = adminResponse.body?.error || 'Request failed';
+                    return { data: null, error: { message } };
+                }
+
+                return { data: adminResponse.body?.data ?? null, error: null, count: null };
+            }
+
             const response = await this.client._dataRequest('select', {
                 table: this.table,
                 select: this.selectFields,

@@ -5,6 +5,8 @@ const { query, transact } = require('./_lib_db');
 const { normalizePhone, addToBalance, logPayment } = require('./_lib_finance');
 const { listObjects } = require('./_lib_storage_backend');
 
+const IDENTIFIER_REGEX = /^[a-zA-Z0-9_.]+$/;
+
 function getAdminSecret() {
     const secret = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_PASSWORD || null;
     if (!secret) {
@@ -355,6 +357,192 @@ async function handleAdjustBalance({ userId, amount, reason }) {
     });
 
     return { status: 200, body: { message: 'Balance adjusted successfully.' } };
+}
+
+function quoteIdentifier(identifier) {
+    if (typeof identifier !== 'string' || !IDENTIFIER_REGEX.test(identifier)) {
+        throw new Error(`Invalid identifier: ${identifier}`);
+    }
+    return identifier
+        .split('.')
+        .map((part) => `"${part.replace(/"/g, '""')}"`)
+        .join('.');
+}
+
+function buildWhereClause(filters = [], values = []) {
+    if (!Array.isArray(filters) || filters.length === 0) {
+        return '';
+    }
+
+    const clauses = [];
+    filters.forEach((filter) => {
+        const { field, operator, value } = filter || {};
+        const quotedField = quoteIdentifier(field);
+
+        switch (operator) {
+            case 'eq':
+                values.push(value);
+                clauses.push(`${quotedField} = $${values.length}`);
+                break;
+            case 'neq':
+                values.push(value);
+                clauses.push(`${quotedField} <> $${values.length}`);
+                break;
+            case 'gt':
+                values.push(value);
+                clauses.push(`${quotedField} > $${values.length}`);
+                break;
+            case 'gte':
+                values.push(value);
+                clauses.push(`${quotedField} >= $${values.length}`);
+                break;
+            case 'lt':
+                values.push(value);
+                clauses.push(`${quotedField} < $${values.length}`);
+                break;
+            case 'lte':
+                values.push(value);
+                clauses.push(`${quotedField} <= $${values.length}`);
+                break;
+            case 'like':
+                values.push(value);
+                clauses.push(`${quotedField} LIKE $${values.length}`);
+                break;
+            case 'ilike':
+                values.push(value);
+                clauses.push(`${quotedField} ILIKE $${values.length}`);
+                break;
+            case 'in':
+                if (!Array.isArray(value) || value.length === 0) {
+                    clauses.push('FALSE');
+                } else {
+                    const placeholders = value.map((val) => {
+                        values.push(val);
+                        return `$${values.length}`;
+                    });
+                    clauses.push(`${quotedField} IN (${placeholders.join(', ')})`);
+                }
+                break;
+            case 'is':
+                if (value === null || value === 'null') {
+                    clauses.push(`${quotedField} IS NULL`);
+                } else {
+                    clauses.push(`${quotedField} IS NOT NULL`);
+                }
+                break;
+            default:
+                throw new Error(`Unsupported filter operator: ${operator}`);
+        }
+    });
+
+    return clauses.length > 0 ? clauses.join(' AND ') : '';
+}
+
+function appendOrderLimit(sqlParts, order, limit, offset, values) {
+    if (order?.field) {
+        const direction = order.direction === 'desc' ? 'DESC' : 'ASC';
+        sqlParts.push(`ORDER BY ${quoteIdentifier(order.field)} ${direction}`);
+    }
+    const offsetValue = Number(offset);
+    if (Number.isFinite(offsetValue) && offsetValue >= 0) {
+        values.push(offsetValue);
+        sqlParts.push(`OFFSET $${values.length}`);
+    }
+    const limitValue = Number(limit);
+    if (Number.isFinite(limitValue) && limitValue >= 0) {
+        values.push(limitValue);
+        sqlParts.push(`LIMIT $${values.length}`);
+    }
+}
+
+async function selectRentalsWithRelations({ filters = [], order = null, limit = null, offset = null }) {
+    const values = [];
+    const whereClause = buildWhereClause(filters, values);
+
+    const sqlParts = [
+        `SELECT 
+            r.id,
+            r.user_id,
+            r.bike_id,
+            r.tariff_id,
+            r.starts_at,
+            r.current_period_ends_at,
+            r.total_paid_rub,
+            r.status,
+            r.extra_data,
+            r.created_at,
+            jsonb_build_object(
+                'id', c.id,
+                'name', c.name,
+                'phone', c.phone
+            ) AS clients,
+            jsonb_build_object(
+                'id', t.id,
+                'title', t.title,
+                'price_rub', t.price_rub,
+                'duration_days', t.duration_days
+            ) AS tariffs,
+            jsonb_build_object(
+                'id', b.id,
+                'model_name', b.model_name,
+                'bike_code', b.bike_code
+            ) AS bikes,
+            COALESCE(
+                (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'batteries', jsonb_build_object(
+                                'id', bt.id,
+                                'serial_number', bt.serial_number
+                            )
+                        )
+                    )
+                    FROM rental_batteries rb
+                    LEFT JOIN batteries bt ON bt.id = rb.battery_id
+                    WHERE rb.rental_id = r.id
+                ),
+                '[]'::jsonb
+            ) AS rental_batteries
+        FROM rentals r
+        LEFT JOIN clients c ON c.id = r.user_id
+        LEFT JOIN tariffs t ON t.id = r.tariff_id
+        LEFT JOIN bikes b ON b.id = r.bike_id`
+    ];
+
+    if (whereClause) {
+        sqlParts.push(`WHERE ${whereClause}`);
+    }
+
+    appendOrderLimit(sqlParts, order, limit, offset, values);
+
+    const result = await query(sqlParts.join('\n'), values);
+    return result.rows ?? [];
+}
+
+async function selectBookingsWithClient({ filters = [], order = null, limit = null, offset = null }) {
+    const values = [];
+    const whereClause = buildWhereClause(filters, values);
+
+    const sqlParts = [
+        `SELECT 
+            b.*,
+            jsonb_build_object(
+                'id', c.id,
+                'name', c.name,
+                'phone', c.phone
+            ) AS clients
+        FROM bookings b
+        LEFT JOIN clients c ON c.id = b.user_id`
+    ];
+
+    if (whereClause) {
+        sqlParts.push(`WHERE ${whereClause}`);
+    }
+
+    appendOrderLimit(sqlParts, order, limit, offset, values);
+
+    const result = await query(sqlParts.join('\n'), values);
+    return result.rows ?? [];
 }
 
 async function handleAssignBike({ rental_id, bike_id }) {
@@ -992,6 +1180,36 @@ async function handler(req, res) {
             case 'mark-support-user-read':
                 result = await handleMarkSupportUserRead(body);
                 break;
+            case 'select-rentals-with-relations': {
+                const rows = await selectRentalsWithRelations({
+                    filters: Array.isArray(body.filters) ? body.filters : [],
+                    order: body.order || null,
+                    limit: body.limit != null ? Number(body.limit) : null,
+                    offset: body.offset != null ? Number(body.offset) : null,
+                });
+
+                if (body.single) {
+                    const row = rows[0] || null;
+                    if (!row && !body.maybeSingle) {
+                        result = { status: 404, body: { error: 'Record not found' } };
+                    } else {
+                        result = { status: 200, body: { data: row } };
+                    }
+                } else {
+                    result = { status: 200, body: { data: rows } };
+                }
+                break;
+            }
+            case 'select-bookings-with-client': {
+                const rows = await selectBookingsWithClient({
+                    filters: Array.isArray(body.filters) ? body.filters : [],
+                    order: body.order || null,
+                    limit: body.limit != null ? Number(body.limit) : null,
+                    offset: body.offset != null ? Number(body.offset) : null,
+                });
+                result = { status: 200, body: { data: rows } };
+                break;
+            }
             case 'link-anonymous-chat':
                 result = await handleLinkAnonymousChat(body);
                 break;

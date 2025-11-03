@@ -390,13 +390,14 @@ async function handleGetPaymentMethod({ userId }) {
     }
 
     const client = result.rows[0];
-    const paymentMethodDetails = client?.extra?.payment_method_details;
+    const paymentMethodDetails = client?.extra?.payment_method_details || null;
 
-    if (!paymentMethodDetails) {
-        return { status: 404, body: { error: 'No saved payment method found for this user.' } };
-    }
-
-    return { status: 200, body: { payment_method: paymentMethodDetails } };
+    return {
+        status: 200,
+        body: {
+            payment_method: paymentMethodDetails,
+        },
+    };
 }
 
 async function handleUnbindPaymentMethod({ userId }) {
