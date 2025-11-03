@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="/api/config?v=11.3"></script>
 <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
 <script src="auth-vk.js" defer></script>
 <style>
@@ -92,7 +91,7 @@ function showError(msg){errorMessage.textContent=msg;errorMessage.classList.add(
 function showSuccess(msg){successMessage.textContent=msg;successMessage.classList.add('active');setTimeout(()=>successMessage.classList.remove('active'),3000)}
 function checkExistingAuth(){const userId=localStorage.getItem('userId');const isRegistered=localStorage.getItem('isRegistered');if(userId&&isRegistered==='true'){console.log('[Auth] Logged in');window.location.href='index.html';return true}return false}
 async function initVKAuth(){try{console.log('[VK] Init');if(typeof VKAuthManager==='undefined'){await new Promise((resolve)=>{const check=setInterval(()=>{if(typeof VKAuthManager!=='undefined'){clearInterval(check);resolve()}},100)})}
-const vkAuth=new VKAuthManager({appId:window.CONFIG?.VK_APP_ID || 54250661,redirectUrl:window.CONFIG?.WEBAPP_URL || 'https://prizmatic-2004.vercel.app/',scope:'phone email'});
+const vkAuth=new VKAuthManager({appId:54250661,redirectUrl:'https://prizmatic-2004.vercel.app/',scope:'phone email'});
 await vkAuth.login('vk-auth-container',(response)=>{console.log('[VK] Success');showSuccess('Success!');setTimeout(()=>window.location.href='index.html',1000)},(error)=>{console.error('[VK] Error:',error);if(error.text!=='timeout'){showError('Error')}});
 console.log('[VK] Ready')}catch(error){console.error('[VK] Init error:',error);if(!error.message?.includes('timeout')){showError('VK ID load failed')}}}
 async function initAuth(){if(checkExistingAuth()){showLoading(true);return}
