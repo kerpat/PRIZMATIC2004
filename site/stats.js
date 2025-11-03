@@ -36,6 +36,11 @@ const state = {
 
 const elements = {};
 
+function toDateInputValue(date) {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
+}
+
 function initElements() {
     elements.historyContainer = document.getElementById('history-list-container');
     elements.totalTopups = document.getElementById('total-topups');
@@ -241,22 +246,28 @@ function bindModal() {
 }
 
 function attachPeriodPicker(defaultStart, defaultEnd) {
-    const input = document.getElementById('period-display');
-    if (!input || typeof window.flatpickr !== 'function') return;
+    const startInput = document.getElementById('period-start');
+    const endInput = document.getElementById('period-end');
+    if (!startInput || !endInput) return;
 
-    window.flatpickr(input, {
-        mode: 'range',
-        dateFormat: 'd.m.Y',
-        defaultDate: [defaultStart, defaultEnd],
-        locale: 'ru',
-        onClose: (selectedDates) => {
-            if (selectedDates.length === 2) {
-                const [start, end] = selectedDates;
-                end.setHours(23, 59, 59, 999);
-                loadHistory(start, end);
-            }
-        },
-    });
+    startInput.value = toDateInputValue(defaultStart);
+    endInput.value = toDateInputValue(defaultEnd);
+
+    const applyRange = () => {
+        if (!startInput.value || !endInput.value) return;
+        const start = new Date(startInput.value);
+        const end = new Date(endInput.value);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+        if (end < start) {
+            alert('Дата окончания не может быть раньше даты начала.');
+            return;
+        }
+        end.setHours(23, 59, 59, 999);
+        loadHistory(start, end);
+    };
+
+    startInput.addEventListener('change', applyRange);
+    endInput.addEventListener('change', applyRange);
 }
 
 async function loadHistory(startDate, endDate) {
@@ -278,17 +289,17 @@ async function loadHistory(startDate, endDate) {
             })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             : [];
 
-        const periodInput = document.getElementById('period-display');
-        if (periodInput && startDate && endDate) {
-            const options = { day: 'numeric', month: 'short' };
-            const startLabel = startDate.toLocaleDateString('ru-RU', options);
-            const endLabel = endDate.toLocaleDateString('ru-RU', options);
-            periodInput.value = `${startLabel} - ${endLabel}`;
-        }
-
         renderHistory();
         updateTotals();
         updateWeeklyGraph();
+        const startInput = document.getElementById('period-start');
+        const endInput = document.getElementById('period-end');
+        if (startInput && startDate) {
+            startInput.value = toDateInputValue(new Date(startDate));
+        }
+        if (endInput && endDate) {
+            endInput.value = toDateInputValue(new Date(endDate));
+        }
     } catch (error) {
         console.error('[Stats] Failed to load payments:', error);
         elements.historyContainer.innerHTML = '<p class="empty-history">Не удалось загрузить историю платежей.</p>';
