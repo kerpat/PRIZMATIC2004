@@ -4,8 +4,17 @@ const playwright = require('playwright-aws-lambda');
 const htmlToDocx = require('html-to-docx');
 
 // Создаем connection pool для PostgreSQL
+const dbUrl = process.env.DATABASE_URL || 
+    `postgresql://${process.env.DB_USER || 'prizmatic_user'}:${process.env.DB_PASSWORD || 'ln2+1fSbrciaIavThI+w2S/0+BQufhiMUmUU9g1CDeQ='}@${process.env.DB_HOST || '51.250.17.150'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'prizmatic'}`;
+
+console.log('[_lib_user] DB connection string check:', {
+    hasDatabaseUrl: !!process.env.DATABASE_URL,
+    hasDbHost: !!process.env.DB_HOST,
+    constructedUrl: dbUrl.substring(0, 30) + '...'
+});
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: dbUrl,
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     max: 20,
     idleTimeoutMillis: 30000,
