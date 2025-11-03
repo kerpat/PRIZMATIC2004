@@ -14,10 +14,13 @@ function buildPoolConfig() {
         connectionTimeoutMillis: 2000,
     };
 
-    const dbUrl = process.env.DATABASE_URL;
+    const rawUrl = process.env.DATABASE_URL;
+    const dbUrl = typeof rawUrl === 'string' ? rawUrl.trim() : rawUrl;
+
     if (dbUrl) {
+        const normalizedUrl = dbUrl.includes('://') ? dbUrl : `postgresql://${dbUrl}`;
         try {
-            const parsed = new URL(dbUrl);
+            const parsed = new URL(normalizedUrl);
             const searchParams = Object.fromEntries(parsed.searchParams.entries());
 
             const sslMode = (searchParams.sslmode || '').toLowerCase();
