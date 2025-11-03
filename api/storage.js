@@ -1,4 +1,12 @@
-const { getSupabaseServiceRoleClient } = require('../supabase');
+<<<<<<< HEAD
+const { createClient } = require('@supabase/supabase-js');
+
+function createSupabaseAdmin() {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Supabase service credentials are not configured.');
+    }
+    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
 
 function parseRequestBody(body) {
     if (!body) return {};
@@ -12,7 +20,7 @@ async function handleGetSignedUploadUrl({ path }) {
     if (!path) {
         return { status: 400, body: { error: 'File path is required.' } };
     }
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { data, error } = await supabaseAdmin.storage
         .from('passports')
         .createSignedUploadUrl(path);
@@ -58,3 +66,6 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
+=======
+module.exports = require('./_lib_storage');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

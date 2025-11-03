@@ -1,12 +1,15 @@
+<<<<<<< HEAD
 /**
  * Data API - универсальный endpoint для замены прямых запросов Supabase
  * Обрабатывает все read-операции через единый интерфейс
  */
 
-const { getSupabaseServiceRoleClient } = require('../supabase');
+const { createClient } = require('@supabase/supabase-js');
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = getSupabaseServiceRoleClient();
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 module.exports = async (req, res) => {
     // CORS headers
@@ -181,3 +184,6 @@ module.exports = async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 };
+=======
+module.exports = require('./_lib_data');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

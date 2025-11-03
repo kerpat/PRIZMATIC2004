@@ -1,0 +1,16 @@
+{
+  "name": "bikepark54-server",
+  "version": "1.0.0",
+  "description": "Backend server for BikePark54 App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.41.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-fetch": "^2.6.7",
+    "playwright": "1.55.1"
+  }
+}

@@ -1,9 +1,17 @@
-const { getSupabaseServiceRoleClient } = require('../supabase');
+<<<<<<< HEAD
+const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const axios = require('axios');
 const busboy = require('busboy');
 // +++ ДОБАВЛЯЕМ НОВЫЙ ИМПОРТ +++
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+function createSupabaseAdmin() {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Supabase service credentials are not configured.');
+    }
+    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
 
 function validateTelegramData(initData, botToken) {
     try {
@@ -190,7 +198,7 @@ async function handler(req, res) {
         if (isMultipart) {
             // Handle web registration with file uploads
             const { fields, files } = await parseMultipartForm(req);
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            const supabaseAdmin = createSupabaseAdmin();
             
             const { phone, city, citizenship, country } = fields;
             
@@ -315,7 +323,7 @@ async function handler(req, res) {
         if (action === 'check-user-exists') {
             // Проверка существует ли пользователь с таким номером
             const { phone } = body;
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            const supabaseAdmin = createSupabaseAdmin();
             
             const { data: client } = await supabaseAdmin
                 .from('clients')
@@ -329,7 +337,7 @@ async function handler(req, res) {
         } else if (action === 'login-by-phone') {
             // Вход по номеру телефона (после звонка)
             const { phone } = body;
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            const supabaseAdmin = createSupabaseAdmin();
             
             const { data: client, error } = await supabaseAdmin
                 .from('clients')
@@ -360,7 +368,7 @@ async function handler(req, res) {
             const urlParams = new URLSearchParams(initData);
             const userData = JSON.parse(decodeURIComponent(urlParams.get('user')));
             const telegramUserId = userData.id;
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            const supabaseAdmin = createSupabaseAdmin();
             const { data: client, error } = await supabaseAdmin
                 .from('clients')
                 .select('*')
@@ -389,7 +397,7 @@ async function handler(req, res) {
                 return res.status(400).json({ error: 'Missing required registration data from bot.' });
             }
 
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            const supabaseAdmin = createSupabaseAdmin();
 
             // +++ ЛОГИКА РАСПОЗНАВАНИЯ +++
             // 1. Собираем пути к файлам-картинкам
@@ -458,7 +466,7 @@ async function handler(req, res) {
             const urlParams = new URLSearchParams(initData);
             const userData = JSON.parse(decodeURIComponent(urlParams.get('user')));
             const userId = userData.id;
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            const supabaseAdmin = createSupabaseAdmin();
             const {
                 name, phone, city, citizenship, emergency_contact_phone,
                 recognized_data, inn, has_no_registration_stamp, migrant_info,
@@ -537,3 +545,6 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
+=======
+module.exports = require('./_lib_auth');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

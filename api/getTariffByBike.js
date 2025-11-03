@@ -1,4 +1,14 @@
-const { getSupabaseServiceRoleClient } = require('../supabase');
+<<<<<<< HEAD
+const { createClient } = require('@supabase/supabase-js');
+
+function createSupabaseAdmin() {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        // Если переменных нет, мы увидим это в логах
+        console.error('CRITICAL: Supabase credentials are not configured in Vercel Environment Variables.');
+        throw new Error('Supabase service credentials are not configured.');
+    }
+    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
 
 // ... parseRequestBody остается без изменений ...
 function parseRequestBody(body) {
@@ -42,7 +52,7 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'bikeCode is required' });
         }
 
-        const supabase = getSupabaseServiceRoleClient();
+        const supabase = createSupabaseAdmin();
 
         // --- ОТЛАДОЧНЫЙ ЛОГ №2 ---
         console.log('[DEBUG] Supabase admin client created. Starting query for bike...');
@@ -109,3 +119,6 @@ export default async function handler(req, res) {
         res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера.' });
     }
 }
+=======
+module.exports = require('./_lib_getTariffByBike');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

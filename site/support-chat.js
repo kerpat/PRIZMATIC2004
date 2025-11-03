@@ -17,7 +17,8 @@
         isHistoryLoaded: false,
         isLoadingHistory: false,
         anonymousChatId: null,
-        userName: null
+        userName: null,
+        disabled: false
     };
 
     const STORAGE_KEYS = {
@@ -28,13 +29,6 @@
         if (options && options.supabaseClient) {
             state.supabase = options.supabaseClient;
         }
-        if (!state.supabase && global.SupabaseBridge && typeof global.SupabaseBridge.getSupabaseAnonClient === 'function') {
-            try {
-                state.supabase = global.SupabaseBridge.getSupabaseAnonClient();
-            } catch (err) {
-                console.warn('SupportChat: failed to initialize SupabaseBridge client', err);
-            }
-        }
         if (!state.supabase && global.supabase && typeof global.supabase.createClient === 'function') {
             const url = global.SUPABASE_URL || global.localStorage?.getItem('supabaseUrl');
             const anonKey = global.SUPABASE_ANON_KEY || global.localStorage?.getItem('supabaseAnonKey');
@@ -44,6 +38,7 @@
         }
         if (!state.supabase) {
             console.warn('SupportChat: Supabase client is not configured.');
+            state.disabled = true;
         }
     }
 
@@ -178,6 +173,12 @@
     }
 
     async function loadHistory() {
+        if (state.disabled) {
+            if (state.chatHistory) {
+                state.chatHistory.innerHTML = '<div class="chat-error">Чат временно недоступен.</div>';
+            }
+            return;
+        }
         if (!state.supabase || !state.filterField || !state.filterValue || state.isLoadingHistory) {
             return;
         }
@@ -217,6 +218,9 @@
     }
 
     function subscribe() {
+        if (state.disabled) {
+            return;
+        }
         if (!state.supabase || !state.filterField || !state.filterValue) {
             return;
         }
@@ -254,6 +258,10 @@
     }
 
     async function handleSend() {
+        if (state.disabled) {
+            alert('Чат поддержки временно недоступен. Свяжитесь с менеджером другим способом.');
+            return;
+        }
         if (!state.supabase || !state.chatInput) {
             return;
         }

@@ -1,177 +1,328 @@
-// Файл: stats.js (ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ)
+import { getPaymentsHistory } from './api.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // --- ПРОВЕРКА КОНФИГУРАЦИИ ---
-    if (!window.CONFIG) {
-        console.error('CONFIG not loaded! Make sure /api/config is loaded before stats.js');
-        alert('Ошибка конфигурации. Пожалуйста, обновите страницу.');
+const PAYMENT_ICONS = {
+    rental: 'rental',
+    renewal: 'renewal',
+    'top-up': 'top-up',
+    booking: 'booking',
+    invoice: 'invoice',
+    adjustment: 'adjustment',
+    'refund_to_balance': 'refund_to_balance',
+    balance_debit: 'balance_debit',
+};
+
+const PAYMENT_LABELS = {
+    rental: 'Аренда',
+    renewal: 'Продление',
+    'top-up': 'Пополнение',
+    booking: 'Бронирование',
+    invoice: 'Счет',
+    adjustment: 'Корректировка',
+    'refund_to_balance': 'Возврат',
+    balance_debit: 'Списание',
+};
+
+const METHOD_LABELS = {
+    card: 'Карта',
+    sbp: 'СБП',
+    yoo_money: 'ЮMoney',
+    balance: 'Баланс',
+};
+
+const state = {
+    userId: null,
+    payments: [],
+};
+
+const elements = {};
+
+function initElements() {
+    elements.historyContainer = document.getElementById('history-list-container');
+    elements.totalTopups = document.getElementById('total-topups');
+    elements.totalExpenses = document.getElementById('total-expenses');
+    elements.bars = Array.from({ length: 7 }, (_, index) => document.getElementById(`day-${index}`)).filter(Boolean);
+    elements.paymentDetailModal = document.getElementById('payment-detail-modal');
+    elements.paymentDetailContent = document.getElementById('payment-detail-content');
+    elements.paymentDetailCloseBtn = document.getElementById('payment-detail-close-btn');
+}
+
+function formatCurrency(value) {
+    const amount = Number(value) || 0;
+    return `${amount.toLocaleString('ru-RU')} ₽`;
+}
+
+function normalizeType(type) {
+    if (!type) return 'other';
+    return PAYMENT_LABELS[type] ? type : 'other';
+}
+
+function getIconClass(type) {
+    const normalized = normalizeType(type);
+    return PAYMENT_ICONS[normalized] || 'other';
+}
+
+function getPaymentLabel(type) {
+    const normalized = normalizeType(type);
+    return PAYMENT_LABELS[normalized] || 'Операция';
+}
+
+function getMethodLabel(method) {
+    if (!method) return '—';
+    return METHOD_LABELS[method] || method;
+}
+
+function isIncome(payment) {
+    const type = normalizeType(payment.payment_type);
+    if (type === 'top-up' || type === 'refund_to_balance') {
+        return true;
+    }
+    if (type === 'adjustment' && Number(payment.amount_rub) > 0) {
+        return true;
+    }
+    return Number(payment.amount_rub) > 0 && type !== 'invoice';
+}
+
+function renderHistory() {
+    const container = elements.historyContainer;
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!state.payments.length) {
+        container.innerHTML = '<p class="empty-history">Нет операций за выбранный период.</p>';
         return;
     }
 
+<<<<<<< HEAD
     // --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
     const SUPABASE_URL = window.CONFIG.SUPABASE_URL;
     const SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
-    const supabase = window.SupabaseBridge.getSupabaseAnonClient();
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+=======
+    state.payments.forEach((payment) => {
+        const type = normalizeType(payment.payment_type);
+        const isPositive = isIncome(payment);
+        const amount = Number(payment.amount_rub) || 0;
+        const date = new Date(payment.created_at);
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
 
-    // --- ЭЛЕМЕНТЫ DOM ---
-    const historyContainer = document.getElementById('history-list-container');
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const periodDisplayText = document.getElementById('period-text');
-
-    let allOperations = [];
-    let currentFilter = 'all';
-
-    // --- ИКОНКИ ТИПОВ ОПЕРАЦИЙ ---
-    const icons = {
-        'rental': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
-        'renewal': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>`,
-        'top-up': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
-        'booking': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
-        'refund_to_balance': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 23 12 17 12"></polyline><polyline points="1 6 1 12 7 12"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>`,
-        'adjustment': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
-        'balance_debit': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`,
-        'invoice': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
-        'other': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`
-    };
-    
-    const paymentTypeLabels = {
-        'rental': 'Аренда',
-        'renewal': 'Продление аренды',
-        'top-up': 'Пополнение баланса',
-        'booking': 'Бронирование',
-        'refund_to_balance': 'Возврат на баланс',
-        'adjustment': 'Корректировка баланса',
-        'balance_debit': 'Списание с баланса',
-        'invoice': 'Оплата по счету'
-    };
-
-    const paymentMethodLabels = {
-        'card': 'Карта',
-        'sbp': 'СБП',
-        'balance': 'Баланс',
-        'yoo_money': 'ЮMoney'
-    };
-
-    /**
-     * Рендерит отфильтрованный список операций
-     */
-    function renderHistory() {
-        let operationsToRender = allOperations;
-        if (currentFilter === 'rent') { // Фильтр "расходы"
-            operationsToRender = allOperations.filter(op => op.amount_rub <= 0);
-        } else if (currentFilter === 'topup') { // Фильтр "пополнения"
-            operationsToRender = allOperations.filter(op => op.amount_rub > 0);
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        if (payment.status && payment.status !== 'succeeded') {
+            item.classList.add('history-item--pending');
         }
-        
-        historyContainer.innerHTML = '';
-        if (operationsToRender.length === 0) {
-            historyContainer.innerHTML = '<p class="empty-history">Операций за выбранный период нет.</p>';
-            return;
+        item.dataset.paymentId = payment.id;
+
+        item.innerHTML = `
+            <div class="history-info">
+                <div class="history-icon-wrapper ${getIconClass(type)}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <div class="history-details">
+                    <span class="history-title">${getPaymentLabel(type)}</span>
+                    <span class="history-subtitle">${getMethodLabel(payment.method)}</span>
+                </div>
+            </div>
+            <div class="history-cost ${isPositive ? 'positive' : 'negative'}">
+                ${isPositive ? '+' : '-'}${Math.abs(amount).toLocaleString('ru-RU')} ₽
+            </div>
+        `;
+
+        container.appendChild(item);
+    });
+}
+
+function updateTotals() {
+    let income = 0;
+    let expenses = 0;
+
+    state.payments.forEach((payment) => {
+        const value = Number(payment.amount_rub) || 0;
+        if (isIncome(payment)) {
+            income += value;
+        } else {
+            expenses += Math.abs(value);
         }
-
-        const groupedByDate = operationsToRender.reduce((acc, op) => {
-            const date = new Date(op.created_at).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' });
-            if (!acc[date]) acc[date] = [];
-            acc[date].push(op);
-            return acc;
-        }, {});
-
-        for (const date in groupedByDate) {
-            const dateHeader = document.createElement('h3');
-            dateHeader.className = 'history-date-header';
-            dateHeader.textContent = date;
-            historyContainer.appendChild(dateHeader);
-
-            groupedByDate[date].forEach(item => {
-                const isTopup = item.amount_rub > 0;
-                const type = item.payment_type || (isTopup ? 'top-up' : 'other');
-                const title = paymentTypeLabels[type] || 'Операция';
-                const iconHTML = icons[type] || icons['other'];
-                
-                // Формируем подзаголовок: способ оплаты + время
-                const methodLabel = item.method ? paymentMethodLabels[item.method] : null;
-                const timeStr = new Date(item.created_at).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
-                const subtitle = methodLabel ? `${methodLabel} • ${timeStr}` : timeStr;
-
-                const itemHTML = `
-                    <div class="history-item">
-                        <div class="history-item-left">
-                            <div class="history-icon-wrapper ${type}">${iconHTML}</div>
-                            <div class="history-details">
-                                <span class="history-title">${title}</span>
-                                <span class="history-subtitle">${subtitle}</span>
-                            </div>
-                        </div>
-                        <div class="history-cost ${isTopup ? 'positive' : 'negative'}">${isTopup ? '+' : ''}${item.amount_rub.toLocaleString('ru-RU')} ₽</div>
-                    </div>`;
-                historyContainer.insertAdjacentHTML('beforeend', itemHTML);
-            });
-        }
-    }
-
-    /**
-     * Загружает историю операций с сервера за указанный период
-     */
-    async function loadHistory(startDate, endDate) {
-        historyContainer.innerHTML = '<p class="empty-history">Загрузка истории...</p>';
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
-            historyContainer.innerHTML = '<p class="empty-history">Не удалось определить пользователя.</p>';
-            return;
-        }
-
-        try {
-            let query = supabase
-                .from('payments')
-                .select('id, created_at, amount_rub, payment_type, method, description')
-                .eq('client_id', userId)
-                .order('created_at', { ascending: false });
-
-            if (startDate) query = query.gte('created_at', startDate.toISOString());
-            if (endDate) query = query.lte('created_at', endDate.toISOString());
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-            
-            allOperations = data;
-            renderHistory();
-        } catch (err) {
-            console.error('Ошибка загрузки истории:', err);
-            historyContainer.innerHTML = '<p class="empty-history">Не удалось загрузить историю платежей.</p>';
-        }
-    }
-
-    // --- ЛОГИКА ФИЛЬТРОВ (без изменений) ---
-    filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            currentFilter = button.dataset.filter;
-            renderHistory();
-        });
     });
 
-    // --- ИНИЦИАЛИЗАЦИЯ КАЛЕНДАРЯ (без изменений) ---
-    const fp = flatpickr("#period-display", {
-        mode: "range",
-        dateFormat: "d.m.Y",
-        locale: "ru",
-        onClose: function(selectedDates) {
+    if (elements.totalTopups) {
+        elements.totalTopups.textContent = formatCurrency(income);
+    }
+    if (elements.totalExpenses) {
+        elements.totalExpenses.textContent = formatCurrency(expenses);
+    }
+}
+
+function updateWeeklyGraph() {
+    if (!elements.bars.length) return;
+
+    const totals = Array(7).fill(0);
+    state.payments.forEach((payment) => {
+        const value = Math.abs(Number(payment.amount_rub) || 0);
+        const createdAt = new Date(payment.created_at);
+        if (Number.isNaN(createdAt.getTime())) {
+            return;
+        }
+        // Convert Sunday-based index to Monday-based (0 = Monday)
+        const jsDay = createdAt.getDay(); // 0 (Sun) - 6 (Sat)
+        const mondayIndex = (jsDay + 6) % 7;
+        totals[mondayIndex] += value;
+    });
+
+    const maxValue = Math.max(...totals, 1);
+    elements.bars.forEach((bar, index) => {
+        const value = totals[index];
+        const percent = Math.round((value / maxValue) * 100);
+        bar.style.setProperty('height', `${percent}%`);
+        bar.title = `${value.toLocaleString('ru-RU')} ₽`;
+    });
+}
+
+function renderPaymentDetails(payment) {
+    if (!elements.paymentDetailContent) return;
+    const amount = Number(payment.amount_rub) || 0;
+    const createdAt = new Date(payment.created_at);
+
+    const detailsHTML = `
+        <div class="payment-details">
+            <div class="detail-row">
+                <span class="detail-label">Тип</span>
+                <span class="detail-value">${getPaymentLabel(payment.payment_type)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Сумма</span>
+                <span class="detail-value">${formatCurrency(amount)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Статус</span>
+                <span class="detail-value">${payment.status || 'succeeded'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Метод</span>
+                <span class="detail-value">${getMethodLabel(payment.method)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Дата</span>
+                <span class="detail-value">${createdAt.toLocaleString('ru-RU')}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Описание</span>
+                <span class="detail-value">${payment.description || '—'}</span>
+            </div>
+        </div>
+    `;
+
+    elements.paymentDetailContent.innerHTML = detailsHTML;
+    elements.paymentDetailModal?.classList.remove('hidden');
+}
+
+function bindHistoryClick() {
+    if (!elements.historyContainer) return;
+    elements.historyContainer.addEventListener('click', (event) => {
+        const item = event.target.closest('.history-item');
+        if (!item) return;
+        const payment = state.payments.find((entry) => String(entry.id) === item.dataset.paymentId);
+        if (payment) {
+            renderPaymentDetails(payment);
+        }
+    });
+}
+
+function bindModal() {
+    if (!elements.paymentDetailModal) return;
+
+    const close = () => elements.paymentDetailModal.classList.add('hidden');
+
+    if (elements.paymentDetailCloseBtn) {
+        elements.paymentDetailCloseBtn.addEventListener('click', close);
+    }
+
+    elements.paymentDetailModal.addEventListener('click', (event) => {
+        if (event.target === elements.paymentDetailModal) {
+            close();
+        }
+    });
+}
+
+function attachPeriodPicker(defaultStart, defaultEnd) {
+    const input = document.getElementById('period-display');
+    if (!input || typeof window.flatpickr !== 'function') return;
+
+    window.flatpickr(input, {
+        mode: 'range',
+        dateFormat: 'd.m.Y',
+        defaultDate: [defaultStart, defaultEnd],
+        locale: 'ru',
+        onClose: (selectedDates) => {
             if (selectedDates.length === 2) {
                 const [start, end] = selectedDates;
-                end.setHours(23, 59, 59, 999); 
-                
-                const options = { day: 'numeric', month: 'short' };
-                periodDisplayText.textContent = `${start.toLocaleDateString('ru-RU', options)} - ${end.toLocaleDateString('ru-RU', options)}`;
+                end.setHours(23, 59, 59, 999);
                 loadHistory(start, end);
             }
-        }
+        },
     });
+}
 
-    // --- НАЧАЛЬНАЯ ЗАГРУЗКА ДАННЫХ ЗА ТЕКУЩИЙ МЕСЯЦ (без изменений) ---
+async function loadHistory(startDate, endDate) {
+    if (!elements.historyContainer) return;
+
+    elements.historyContainer.innerHTML = '<p class="empty-history">Загрузка истории...</p>';
+
+    try {
+        const data = await getPaymentsHistory({
+            userId: state.userId,
+            startDate: startDate?.toISOString(),
+            endDate: endDate?.toISOString(),
+        });
+
+        state.payments = Array.isArray(data)
+            ? data.map((payment) => ({
+                ...payment,
+                created_at: payment.created_at,
+            })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            : [];
+
+        const periodInput = document.getElementById('period-display');
+        if (periodInput && startDate && endDate) {
+            const options = { day: 'numeric', month: 'short' };
+            const startLabel = startDate.toLocaleDateString('ru-RU', options);
+            const endLabel = endDate.toLocaleDateString('ru-RU', options);
+            periodInput.value = `${startLabel} - ${endLabel}`;
+        }
+
+        renderHistory();
+        updateTotals();
+        updateWeeklyGraph();
+    } catch (error) {
+        console.error('[Stats] Failed to load payments:', error);
+        elements.historyContainer.innerHTML = '<p class="empty-history">Не удалось загрузить историю платежей.</p>';
+    }
+}
+
+async function init() {
+    state.userId = localStorage.getItem('userId');
+    if (!state.userId) {
+        if (elements.historyContainer) {
+            elements.historyContainer.innerHTML = '<p class="empty-history">Пользователь не найден. Авторизуйтесь заново.</p>';
+        }
+        return;
+    }
+
+    bindHistoryClick();
+    bindModal();
+
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
-    loadHistory(startOfMonth, endOfMonth);
+
+    attachPeriodPicker(startOfMonth, endOfMonth);
+    await loadHistory(startOfMonth, endOfMonth);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initElements();
+    init();
 });

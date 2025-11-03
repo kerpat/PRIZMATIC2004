@@ -1,22 +1,17 @@
+<<<<<<< HEAD
 /**
  * 🚀 UNIFIED API ROUTER
  * Объединяет все API endpoints в одну serverless функцию
  * Решает проблему лимита Vercel (12 функций на Hobby плане)
  */
 
-const { getSupabaseServiceRoleClient, getSupabaseConfig } = require('../supabase');
+const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
 // Инициализация Supabase
-let cachedSupabaseAdmin = null;
-const supabaseConfig = getSupabaseConfig();
-
-function ensureSupabaseAdmin() {
-    if (!cachedSupabaseAdmin) {
-        cachedSupabaseAdmin = getSupabaseServiceRoleClient();
-    }
-    return cachedSupabaseAdmin;
-}
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // Импортируем обработчики из отдельных модулей
 const handleAuth = require('./handlers/auth');
@@ -50,35 +45,35 @@ module.exports = async (req, res) => {
             case 'config':
                 return res.status(200).send(`
                     window.CONFIG = {
-                        SUPABASE_URL: "${supabaseConfig.url}",
-                        SUPABASE_ANON_KEY: "${supabaseConfig.anonKey}",
+                        SUPABASE_URL: "${process.env.SUPABASE_URL}",
+                        SUPABASE_ANON_KEY: "${process.env.SUPABASE_ANON_KEY}",
                         CONTRACTS_API_URL: "${process.env.CONTRACTS_API_URL || process.env.VERCEL_URL || 'http://localhost:3000'}"
                     };
                 `);
 
             // ===== AUTH =====
             case 'auth':
-                return handleAuth(req, res, ensureSupabaseAdmin());
+                return handleAuth(req, res, supabaseAdmin);
 
             // ===== PAYMENTS =====
             case 'payments':
-                return handlePayments(req, res, ensureSupabaseAdmin());
+                return handlePayments(req, res, supabaseAdmin);
 
             // ===== PAYMENT WEBHOOK =====
             case 'payment-webhook':
-                return handleWebhook(req, res, ensureSupabaseAdmin());
+                return handleWebhook(req, res, supabaseAdmin);
 
             // ===== USER =====
             case 'user':
-                return handleUser(req, res, ensureSupabaseAdmin());
+                return handleUser(req, res, supabaseAdmin);
 
             // ===== ADMIN =====
             case 'admin':
-                return handleAdmin(req, res, ensureSupabaseAdmin());
+                return handleAdmin(req, res, supabaseAdmin);
 
             // ===== DATA (оптимизированный прокси) =====
             case 'data':
-                return handleData(req, res, ensureSupabaseAdmin());
+                return handleData(req, res, supabaseAdmin);
 
             // ===== GET TARIFF BY BIKE =====
             case 'getTariffByBike':
@@ -91,8 +86,7 @@ module.exports = async (req, res) => {
                     return res.status(400).json({ error: 'bikeCode is required' });
                 }
 
-                const supabaseTariffClient = ensureSupabaseAdmin();
-                const { data: bike, error: bikeError } = await supabaseTariffClient
+                const { data: bike, error: bikeError } = await supabaseAdmin
                     .from('bikes')
                     .select('*, tariffs(*)')
                     .eq('code', bikeCode)
@@ -211,8 +205,7 @@ module.exports = async (req, res) => {
                 }
 
                 const buffer = Buffer.from(fileData, 'base64');
-                const supabaseStorageClient = ensureSupabaseAdmin();
-                const { error: uploadError } = await supabaseStorageClient.storage
+                const { error: uploadError } = await supabaseAdmin.storage
                     .from(bucket)
                     .upload(filePath, buffer, { contentType: 'application/octet-stream' });
 
@@ -220,7 +213,7 @@ module.exports = async (req, res) => {
                     return res.status(500).json({ error: uploadError.message });
                 }
 
-                const { data: urlData } = supabaseStorageClient.storage
+                const { data: urlData } = supabaseAdmin.storage
                     .from(bucket)
                     .getPublicUrl(filePath);
 
@@ -292,3 +285,6 @@ module.exports = async (req, res) => {
         });
     }
 };
+=======
+module.exports = require('./router');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4

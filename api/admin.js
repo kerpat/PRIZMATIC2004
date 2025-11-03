@@ -1,6 +1,15 @@
-const { getSupabaseServiceRoleClient } = require('../supabase');
+<<<<<<< HEAD
+
+const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
+
+function createSupabaseAdmin() {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Supabase service credentials are not configured.');
+    }
+    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
 
 function normalizePhone(phone) {
     if (!phone) return '';
@@ -76,7 +85,7 @@ async function handleAdjustBalance({ userId, amount, reason }) {
         return { status: 400, body: { error: 'Invalid amount value.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { error: rpcError } = await supabaseAdmin.rpc('add_to_balance', {
         client_id_to_update: userId,
         amount_to_add: value
@@ -111,7 +120,7 @@ async function handleAssignBike({ rental_id, bike_id }) {
     }
 
     try {
-        const supabaseAdmin = getSupabaseServiceRoleClient();
+        const supabaseAdmin = createSupabaseAdmin();
         
         console.log(`[1/3] Вызов RPC assign_bike_to_rental с параметрами: rental_id=${numericRentalId}, bike_id=${numericBikeId}`);
         const { error: rpcError } = await supabaseAdmin.rpc('assign_bike_to_rental', {
@@ -174,7 +183,7 @@ async function handleCreateInvoice({ userId, amount, description }) {
         return { status: 400, body: { error: 'Amount must be a positive number.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { data: client, error: clientError } = await supabaseAdmin
         .from('clients')
         .select('id, yookassa_payment_method_id, phone, balance_rub')
@@ -304,7 +313,7 @@ async function handleCreateRefund({ payment_id, amount, reason }) {
         return { status: 400, body: { error: 'Amount must be a positive number.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
 
     const idempotenceKey = crypto.randomUUID();
     const auth = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
@@ -370,7 +379,7 @@ async function handleLinkAnonymousChat({ anonymousChatId, clientId }) {
     if (!anonymousChatId || !clientId) {
         return { status: 400, body: { error: 'anonymousChatId and clientId are required.' } };
     }
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { error } = await supabaseAdmin
         .from('support_messages')
         .update({ client_id: clientId, anonymous_chat_id: null })
@@ -384,7 +393,7 @@ async function handleRejectRental({ rental_id }) {
     if (!rental_id) {
         return { status: 400, body: { error: 'rental_id is required.' } };
     }
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { data: rental, error: fetchError } = await supabaseAdmin
         .from('rentals')
         .select('user_id, total_paid_rub, status')
@@ -437,7 +446,7 @@ async function handleResetAuthToken({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
     }
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const newAuthToken = crypto.randomUUID();
     const { data, error } = await supabaseAdmin
         .from('clients')
@@ -452,7 +461,7 @@ async function handleResetAuthToken({ userId }) {
 }
 
 async function handleGetAllRentals() {
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { data, error } = await supabaseAdmin
         .from('rentals')
         .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, clients (name, phone)')
@@ -469,7 +478,7 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
         return { status: 400, body: { error: 'rental_id and new_bike_status are required.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
 
     // 1. Get rental to find the bike_id and current extra_data
     const { data: rental, error: rentalError } = await supabaseAdmin
@@ -541,7 +550,7 @@ async function handleChargeForDamages({ userId, rentalId, amount, description, d
         return { status: 400, body: { error: 'userId, rentalId, amount, and description are required.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const chargeAmount = parseFloat(amount);
     if (isNaN(chargeAmount) || chargeAmount <= 0) {
         return { status: 400, body: { error: 'Invalid amount specified.' } };
@@ -632,7 +641,7 @@ async function handleNotifyBatteryAssignment({ rentalId }) {
         return { status: 400, body: { error: 'rentalId обязателен.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
 
     try {
         const { data: rental, error } = await supabaseAdmin
@@ -675,7 +684,7 @@ async function handleNotifyOverdue({ rentalId, messageText }) {
         return { status: 400, body: { error: 'rentalId и messageText обязательны.' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createSupabaseAdmin();
 
     try {
         // Получаем данные аренды с extra_data
@@ -815,3 +824,6 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports.default = handler;
+=======
+module.exports = require('./_lib_admin');
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
