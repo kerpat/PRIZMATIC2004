@@ -38,6 +38,15 @@ function initializeMainScreenEventListeners(currentUser) {
     const idInputModal = document.getElementById('id-input-modal');
     const bookingListModal = document.getElementById('booking-list-modal');
     const qrModal = document.getElementById('qr-modal');
+    const balanceAmount = document.getElementById('balance-amount');
+
+    if (balanceAmount) {
+        const balanceValue = Number(currentUser?.balance_rub || 0);
+        balanceAmount.textContent = `${balanceValue.toLocaleString('ru-RU', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        })} ₽`;
+    }
 
     if (scanBtn) {
         scanBtn.addEventListener('click', () => {
@@ -126,7 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        appHeader.textContent = '';
+        const firstName = typeof currentUser.name === 'string' ? currentUser.name.split(' ')[0] : null;
+        if (appHeader) {
+            if (firstName) {
+                appHeader.textContent = `Привет, ${firstName}!`;
+            } else if (currentUser.city) {
+                appHeader.textContent = currentUser.city;
+            } else {
+                appHeader.textContent = 'PRIZMATIC';
+            }
+        }
 
         const activeRental = await getActiveRental(userId);
 
