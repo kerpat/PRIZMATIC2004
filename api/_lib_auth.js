@@ -166,6 +166,8 @@ function parseMultipartForm(req) {
 
 async function handler(req, res) {
     try {
+        // Set JSON content type first to ensure errors are returned as JSON
+        res.setHeader('Content-Type', 'application/json');
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -180,7 +182,7 @@ async function handler(req, res) {
         }
         const botToken = process.env.TELEGRAM_BOT_TOKEN;
         if (!botToken) {
-            throw new Error('TELEGRAM_BOT_TOKEN is not configured');
+            return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN is not configured on server' });
         }
 
         // Check if this is multipart/form-data (web registration with files)
@@ -190,7 +192,14 @@ async function handler(req, res) {
         if (isMultipart) {
             // Handle web registration with file uploads
             const { fields, files } = await parseMultipartForm(req);
-            const supabaseAdmin = getSupabaseServiceRoleClient();
+            
+            let supabaseAdmin;
+            try {
+                supabaseAdmin = getSupabaseServiceRoleClient();
+            } catch (supabaseError) {
+                console.error('[Auth] Supabase initialization error:', supabaseError);
+                return res.status(500).json({ error: 'Database configuration error. Please contact support.' });
+            }
             
             const { phone, city, citizenship, country } = fields;
             
@@ -309,7 +318,18 @@ async function handler(req, res) {
         }
         
         // Handle JSON requests (Telegram-based auth)
-        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        let body;
+        try {
+            body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        } catch (parseError) {
+            console.error('[Auth] Failed to parse request body:', parseError);
+            return res.status(400).json({ error: 'Invalid JSON in request body' });
+        }
+        
+        if (!body) {
+            return res.status(400).json({ error: 'Request body is required' });
+        }
+        
         const { action } = body;
 
         if (action === 'check-user-exists') {
@@ -541,8 +561,13 @@ async function handler(req, res) {
             });
         }
     } catch (error) {
-        console.error('Authentication handler error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('[Auth] Handler error:', error);
+        // Ensure Content-Type is set to JSON
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ 
+            error: error.message || 'An internal server error occurred',
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 }
 
