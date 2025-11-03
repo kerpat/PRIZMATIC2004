@@ -1,193 +1,15 @@
-const { Pool } = require('pg');
+const { query: dbQuery } = require('./_lib_db');
 const fetch = require('node-fetch');
 const playwright = require('playwright-aws-lambda');
 const htmlToDocx = require('html-to-docx');
-
-// Lazy initialization для connection pool
-let pool = null;
-
-function buildPoolConfig() {
-    const baseConfig = {
-        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
-    };
-
-    const rawUrl =
-        process.env.DATABASE_URL ||
-        process.env.POSTGRES_URL ||
-        process.env.POSTGRES_CONNECTION ||
-        process.env.POSTGRES_URI ||
-        null;
-    const dbUrl = typeof rawUrl === 'string' ? rawUrl.trim() : rawUrl;
-
-    if (dbUrl) {
-        const normalizedUrl = normalizeConnectionString(dbUrl);
-        try {
-            const parsed = new URL(normalizedUrl);
-            const searchParams = Object.fromEntries(parsed.searchParams.entries());
-
-            const sslMode = (searchParams.sslmode || '').toLowerCase();
-            let sslConfig = baseConfig.ssl;
-            if (sslMode === 'require' || sslMode === 'prefer' || sslMode === 'allow') {
-                sslConfig = { rejectUnauthorized: false };
-            } else if (sslMode === 'disable') {
-                sslConfig = false;
-            }
-
-            return {
-                ...baseConfig,
-                ...sanitizeClientConfig(searchParams),
-                ssl: sslConfig,
-                host: parsed.hostname,
-                port: parsed.port ? parseInt(parsed.port, 10) : 5432,
-                user: decodeURIComponent(parsed.username || ''),
-                password: decodeURIComponent(parsed.password || ''),
-                database: decodeURIComponent(parsed.pathname.replace(/^\//, '') || process.env.DB_NAME || 'postgres'),
-                _source: 'DATABASE_URL',
-            };
-        } catch (error) {
-            console.error('[_lib_user] Failed to parse DATABASE_URL, falling back to individual env vars:', error.message);
-        }
-    }
-
-    return {
-        ...baseConfig,
-        host: process.env.DB_HOST || '51.250.17.150',
-        port: parseInt(process.env.DB_PORT || '5432', 10),
-        user: process.env.DB_USER || 'prizmatic_user',
-        password: process.env.DB_PASSWORD || 'ln2+1fSbrciaIavThI+w2S/0+BQufhiMUmUU9g1CDeQ=',
-        database: process.env.DB_NAME || 'prizmatic',
-        _source: 'ENV_FALLBACK',
-    };
-}
-
-function sanitizeClientConfig(params) {
-    const config = {};
-
-    if ('application_name' in params) {
-        config.application_name = params.application_name;
-    }
-    if ('options' in params) {
-        config.options = params.options;
-    }
-    if ('statement_timeout' in params) {
-        const value = parseInt(params.statement_timeout, 10);
-        if (!Number.isNaN(value)) {
-            config.statement_timeout = value;
-        }
-    }
-    if ('query_timeout' in params) {
-        const value = parseInt(params.query_timeout, 10);
-        if (!Number.isNaN(value)) {
-            config.query_timeout = value;
-        }
-    }
-    if ('connect_timeout' in params) {
-        const value = parseInt(params.connect_timeout, 10);
-        if (!Number.isNaN(value)) {
-            config.connectionTimeoutMillis = value * 1000;
-        }
-    }
-    if ('keepalives' in params) {
-        config.keepAlive = params.keepalives === '1' || params.keepalives === 'true';
-    }
-
-    return config;
-}
-
-function normalizeConnectionString(connectionString) {
-    let normalized = connectionString.includes('://')
-        ? connectionString
-        : `postgresql://${connectionString}`;
-
-    normalized = normalized.trim();
-
-    // Удаляем квадратные скобки вокруг пароля (формат Supabase)
-    normalized = normalized.replace(
-        /(:\/\/[^@/]+):\[([^\]]+)\]@/,
-        (_, prefix, password) => `${prefix}:${password}@`
-    );
-
-    return encodeAuthCredentials(normalized);
-}
-
-function encodeAuthCredentials(url) {
-    const schemeIndex = url.indexOf('://');
-    if (schemeIndex === -1) {
-        return url;
-    }
-
-    const authStart = schemeIndex + 3;
-    const atIndex = url.indexOf('@', authStart);
-    if (atIndex === -1) {
-        return url;
-    }
-
-    const auth = url.slice(authStart, atIndex);
-    if (!auth) {
-        return url;
-    }
-
-    const colonIndex = auth.indexOf(':');
-    let username = auth;
-    let password = null;
-
-    if (colonIndex !== -1) {
-        username = auth.slice(0, colonIndex);
-        password = auth.slice(colonIndex + 1);
-    }
-
-    const encodedUser = encodeURIComponent(safeDecodeURIComponent(username));
-    let newAuth = encodedUser;
-
-    if (password !== null) {
-        const encodedPass = encodeURIComponent(safeDecodeURIComponent(password));
-        newAuth += `:${encodedPass}`;
-    }
-
-    return `${url.slice(0, authStart)}${newAuth}${url.slice(atIndex)}`;
-}
-
-function safeDecodeURIComponent(value) {
-    try {
-        return decodeURIComponent(value);
-    } catch (error) {
-        return value;
-    }
-}
-
-function getPool() {
-    if (!pool) {
-        const config = buildPoolConfig();
-
-        console.log('[_lib_user] Creating DB pool with:', {
-            source: config._source,
-            host: config.host,
-            port: config.port,
-            database: config.database,
-            user: config.user,
-            ssl: !!config.ssl,
-        });
-
-        const { _source, ...poolConfig } = config;
-        pool = new Pool(poolConfig);
-    }
-    return pool;
-}
-
 // Вспомогательная функция для выполнения запросов
 async function query(text, params) {
-    const client = await getPool().connect();
     try {
-        const result = await client.query(text, params);
+        const result = await dbQuery(text, params);
         return { rows: result.rows, rowCount: result.rowCount };
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
-    } finally {
-        client.release();
     }
 }
 
@@ -462,6 +284,97 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
     }
 }
 
+async function handleUpdateCity({ userId, city }) {
+    if (!userId || !city) {
+        return { status: 400, body: { error: 'userId and city are required.' } };
+    }
+
+    await query(
+        'UPDATE clients SET city = $1 WHERE id = $2',
+        [city, userId]
+    );
+
+    return { status: 200, body: { success: true } };
+}
+
+async function handleGetSupportMessages({ userId, anonymousChatId }) {
+    if (!userId && !anonymousChatId) {
+        return { status: 400, body: { error: 'userId or anonymousChatId is required.' } };
+    }
+
+    const conditions = [];
+    const values = [];
+
+    if (userId) {
+        conditions.push('client_id = $' + (values.length + 1));
+        values.push(userId);
+    }
+
+    if (anonymousChatId) {
+        conditions.push('anonymous_chat_id = $' + (values.length + 1));
+        values.push(anonymousChatId);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await query(
+        `SELECT id, created_at, sender, message_text, is_read, anonymous_chat_id, file_url, file_type
+         FROM support_messages
+         ${whereClause}
+         ORDER BY created_at ASC`,
+        values
+    );
+
+    return { status: 200, body: { messages: result.rows } };
+}
+
+async function handleSendSupportMessage({ userId, anonymousChatId, messageText, fileUrl, fileType, sender }) {
+    if (!messageText && !fileUrl) {
+        return { status: 400, body: { error: 'Message text or file is required.' } };
+    }
+
+    if (!userId && !anonymousChatId) {
+        return { status: 400, body: { error: 'userId or anonymousChatId is required.' } };
+    }
+
+    const result = await query(
+        `INSERT INTO support_messages (client_id, anonymous_chat_id, sender, message_text, file_url, file_type)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, created_at, sender, message_text, is_read, anonymous_chat_id, file_url, file_type`,
+        [userId || null, anonymousChatId || null, sender || 'user', messageText || '', fileUrl || null, fileType || null]
+    );
+
+    return { status: 200, body: { message: result.rows[0] } };
+}
+
+async function handleMarkSupportRead({ userId, anonymousChatId }) {
+    if (!userId && !anonymousChatId) {
+        return { status: 400, body: { error: 'userId or anonymousChatId is required.' } };
+    }
+
+    const conditions = ["sender = 'admin'", 'is_read = false'];
+    const values = [];
+
+    if (userId) {
+        conditions.push('client_id = $' + (values.length + 1));
+        values.push(userId);
+    }
+
+    if (anonymousChatId) {
+        conditions.push('anonymous_chat_id = $' + (values.length + 1));
+        values.push(anonymousChatId);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    await query(
+        `UPDATE support_messages SET is_read = true ${whereClause}`,
+        values
+    );
+
+    return { status: 200, body: { success: true } };
+}
+
 async function handleGetPaymentMethod({ userId }) {
     if (!userId) {
         return { status: 400, body: { error: 'userId is required.' } };
@@ -539,6 +452,18 @@ async function handler(req, res) {
                 break;
             case 'unbind-payment-method':
                 result = await handleUnbindPaymentMethod(body);
+                break;
+            case 'update-city':
+                result = await handleUpdateCity(body);
+                break;
+            case 'get-support-messages':
+                result = await handleGetSupportMessages(body);
+                break;
+            case 'send-support-message':
+                result = await handleSendSupportMessage(body);
+                break;
+            case 'mark-support-read':
+                result = await handleMarkSupportRead(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

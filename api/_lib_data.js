@@ -4,44 +4,16 @@
  * ОБНОВЛЕНО: Прямое подключение к PostgreSQL на VPS
  */
 
-const { Pool } = require('pg');
-
-// Lazy initialization для connection pool
-let pool = null;
-
-function getPool() {
-    if (!pool) {
-        const dbUrl = process.env.DATABASE_URL || 
-            `postgresql://${process.env.DB_USER || 'prizmatic_user'}:${process.env.DB_PASSWORD || 'ln2+1fSbrciaIavThI+w2S/0+BQufhiMUmUU9g1CDeQ='}@${process.env.DB_HOST || '51.250.17.150'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'prizmatic'}`;
-
-        console.log('[_lib_data] Creating DB pool with:', {
-            hasDatabaseUrl: !!process.env.DATABASE_URL,
-            hasDbHost: !!process.env.DB_HOST,
-            urlStart: dbUrl.substring(0, 30) + '...'
-        });
-
-        pool = new Pool({
-            connectionString: dbUrl,
-            ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
-        });
-    }
-    return pool;
-}
+const { query: dbQuery } = require('./_lib_db');
 
 // Вспомогательная функция для выполнения запросов
 async function query(text, params) {
-    const client = await getPool().connect();
     try {
-        const result = await client.query(text, params);
+        const result = await dbQuery(text, params);
         return { data: result.rows, error: null, count: result.rowCount };
     } catch (error) {
         console.error('Database query error:', error);
         return { data: null, error: error.message };
-    } finally {
-        client.release();
     }
 }
 
@@ -196,6 +168,71 @@ module.exports = async (req, res) => {
                     ORDER BY p.created_at DESC
                     LIMIT $1`,
                     [params.limit || 100]
+                );
+                break;
+
+            case 'get-payments-range': {
+                const conditions = [];
+                const values = [];
+                let idx = 1;
+
+                if (params.userId) {
+                    conditions.push(`p.client_id = $${idx}`);
+                    values.push(params.userId);
+                    idx += 1;
+                }
+                if (params.startDate) {
+                    const start = new Date(params.startDate);
+                    if (!Number.isNaN(start.getTime())) {
+                        conditions.push(`p.created_at >= $${idx}`);
+                        values.push(start);
+                        idx += 1;
+                    }
+                }
+                if (params.endDate) {
+                    const end = new Date(params.endDate);
+                    if (!Number.isNaN(end.getTime())) {
+                        conditions.push(`p.created_at <= $${idx}`);
+                        values.push(end);
+                        idx += 1;
+                    }
+                }
+                if (Array.isArray(params.paymentTypes) && params.paymentTypes.length > 0) {
+                    conditions.push(`p.payment_type = ANY($${idx})`);
+                    values.push(params.paymentTypes);
+                    idx += 1;
+                }
+
+                let sql = `SELECT p.*, c.name as client_name
+                           FROM payments p
+                           LEFT JOIN clients c ON p.client_id = c.id`;
+
+                if (conditions.length > 0) {
+                    sql += ` WHERE ${conditions.join(' AND ')}`;
+                }
+
+                sql += ' ORDER BY p.created_at DESC';
+
+                if (params.limit) {
+                    sql += ` LIMIT $${idx}`;
+                    values.push(Number(params.limit));
+                }
+
+                result = await query(sql, values);
+                break;
+            }
+
+            case 'get-rental-batteries':
+                if (!params.rentalId) {
+                    return res.status(400).json({ error: 'rentalId is required' });
+                }
+                result = await query(
+                    `SELECT b.serial_number
+                     FROM rental_batteries rb
+                     JOIN batteries b ON b.id = rb.battery_id
+                     WHERE rb.rental_id = $1
+                     ORDER BY b.serial_number ASC`,
+                    [params.rentalId]
                 );
                 break;
 

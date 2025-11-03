@@ -1,33 +1,42 @@
-const { createClient } = require('@supabase/supabase-js');
-
-function createSupabaseAdmin() {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('Supabase service credentials are not configured.');
-    }
-    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
+const path = require('path');
 
 function parseRequestBody(body) {
     if (!body) return {};
     if (typeof body === 'string') {
-        try { return JSON.parse(body); } catch (err) { return {}; }
+        try {
+            return JSON.parse(body);
+        } catch (error) {
+            console.error('[storage] Failed to parse body:', error);
+            return {};
+        }
     }
     return body;
 }
 
-async function handleGetSignedUploadUrl({ path }) {
+function buildDirectUploadInstruction(filePath, bucket) {
+    const targetBucket = bucket || 'passports';
+    const normalizedPath = filePath.replace(/^\/+/, '');
+    const filename = path.basename(normalizedPath);
+
+    return {
+        uploadUrl: '/api/storage-upload',
+        method: 'POST',
+        formFields: {
+            bucket: targetBucket,
+            path: normalizedPath,
+        },
+        filename,
+        note: 'Используйте POST multipart/form-data на /api/storage-upload с полями bucket и userId.'
+    };
+}
+
+async function handleGetUploadInstruction({ path, bucket }) {
     if (!path) {
         return { status: 400, body: { error: 'File path is required.' } };
     }
-    const supabaseAdmin = createSupabaseAdmin();
-    const { data, error } = await supabaseAdmin.storage
-        .from('passports')
-        .createSignedUploadUrl(path);
 
-    if (error) {
-        throw new Error(`Failed to create signed URL: ${error.message}`);
-    }
-    return { status: 200, body: data };
+    const instruction = buildDirectUploadInstruction(path, bucket);
+    return { status: 200, body: instruction };
 }
 
 async function handler(req, res) {
@@ -51,7 +60,8 @@ async function handler(req, res) {
         let result;
         switch (action) {
             case 'get-signed-upload-url':
-                result = await handleGetSignedUploadUrl(body);
+            case 'get-upload-instruction':
+                result = await handleGetUploadInstruction(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };
@@ -59,9 +69,10 @@ async function handler(req, res) {
 
         res.status(result.status).json(result.body);
     } catch (error) {
-        console.error('Storage handler error:', error);
+        console.error('[storage] Handler error:', error);
         res.status(500).json({ error: error.message });
     }
 }
 
 module.exports = handler;
+module.exports.default = handler;

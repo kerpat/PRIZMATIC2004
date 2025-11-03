@@ -1,16 +1,9 @@
-
-const { createClient } = require('@supabase/supabase-js');
 const Busboy = require('busboy');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-function createSupabaseAdmin() {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('Supabase service credentials are not configured.');
-    }
-    return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
+const { saveBuffer } = require('./_lib_storage_backend');
 
 function parseMultipartForm(req) {
     return new Promise((resolve, reject) => {
@@ -31,7 +24,7 @@ function parseMultipartForm(req) {
                     filename: safeName,
                     encoding,
                     mimetype: mimeType,
-                    filepath
+                    filepath,
                 });
             });
 
@@ -48,6 +41,7 @@ function parseMultipartForm(req) {
             resolved = true;
             resolve({ fields, files });
         };
+
         busboy.on('close', finalize);
         busboy.on('finish', finalize);
         busboy.on('error', reject);
@@ -80,40 +74,31 @@ async function handler(req, res) {
             return;
         }
 
-        const supabaseAdmin = createSupabaseAdmin();
-        const bucketName = 'support_attachments';
-        const destinationPath = `${clientId || anonymousChatId}/${Date.now()}-${file.filename}`;
         const fileBuffer = fs.readFileSync(file.filepath);
 
-        const { data, error } = await supabaseAdmin.storage
-            .from(bucketName)
-            .upload(destinationPath, fileBuffer, {
-                contentType: file.mimetype,
-                upsert: false
-            });
+        const stored = await saveBuffer({
+            bucket: 'support',
+            buffer: fileBuffer,
+            mimeType: file.mimetype,
+            userId: clientId || anonymousChatId || 'anonymous',
+            prefix: file.fieldname || 'attachment',
+            originalName: file.filename,
+        });
 
-        fs.unlink(file.filepath, unlinkErr => {
+        fs.unlink(file.filepath, (unlinkErr) => {
             if (unlinkErr) {
-                console.warn('Failed to remove temporary upload:', unlinkErr.message);
+                console.warn('[upload-support-attachment] Failed to remove temporary upload:', unlinkErr.message);
             }
         });
 
-        if (error) {
-            console.error('Supabase upload error:', error);
-            throw new Error('Failed to upload file to storage: ' + error.message);
-        }
-
-        const { publicUrl } = supabaseAdmin.storage
-            .from(bucketName)
-            .getPublicUrl(data.path).data;
-
         res.status(200).json({
             message: 'File uploaded successfully.',
-            publicUrl,
-            fileType: file.mimetype
+            publicUrl: stored.publicUrl,
+            path: stored.path,
+            fileType: file.mimetype,
         });
     } catch (error) {
-        console.error('Upload handler error:', error);
+        console.error('[upload-support-attachment] Handler error:', error);
         res.status(500).json({ error: error.message });
     }
 }
