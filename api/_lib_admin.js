@@ -281,7 +281,7 @@ function quoteIdentifier(identifier) {
         .join('.');
 }
 
-function buildWhereClause(filters = [], values = []) {
+function buildWhereClause(filters = [], values = [], defaultAlias = null) {
     if (!Array.isArray(filters) || filters.length === 0) {
         return '';
     }
@@ -289,7 +289,8 @@ function buildWhereClause(filters = [], values = []) {
     const clauses = [];
     filters.forEach((filter) => {
         const { field, operator, value } = filter || {};
-        const quotedField = quoteIdentifier(field);
+        const fieldName = (defaultAlias && typeof field === "string" && !field.includes(".")) ? `${defaultAlias}.${field}` : field;
+        const quotedField = quoteIdentifier(fieldName);
 
         switch (operator) {
             case 'eq':
@@ -369,11 +370,7 @@ function appendOrderLimit(sqlParts, order, limit, offset, values) {
 
 async function selectRentalsWithRelations({ filters = [], order = null, limit = null, offset = null }) {
     const values = [];
-    const normalizedFilters = (filters || []).map((filter) => ({
-        ...filter,
-        field: filter?.field?.includes('.') ? filter.field : `r.${filter.field}`,
-    }));
-    const whereClause = buildWhereClause(normalizedFilters, values);
+    const whereClause = buildWhereClause(filters, values, 'r');
     const normalizedOrder = order?.field
         ? { field: order.field.includes('.') ? order.field : `r.${order.field}`, direction: order.direction }
         : null;
@@ -443,11 +440,7 @@ async function selectRentalsWithRelations({ filters = [], order = null, limit = 
 
 async function selectBookingsWithClient({ filters = [], order = null, limit = null, offset = null }) {
     const values = [];
-    const normalizedFilters = (filters || []).map((filter) => ({
-        ...filter,
-        field: filter?.field?.includes('.') ? filter.field : `b.${filter.field}`,
-    }));
-    const whereClause = buildWhereClause(normalizedFilters, values);
+    const whereClause = buildWhereClause(filters, values, 'b');
     const normalizedOrder = order?.field
         ? { field: order.field.includes('.') ? order.field : `b.${order.field}`, direction: order.direction }
         : null;
@@ -479,11 +472,7 @@ async function selectBookingsWithClient({ filters = [], order = null, limit = nu
 
 async function selectPaymentsWithClient({ filters = [], order = null, limit = null, offset = null }) {
     const values = [];
-    const normalizedFilters = (filters || []).map((filter) => ({
-        ...filter,
-        field: filter?.field?.includes('.') ? filter.field : `p.${filter.field}`,
-    }));
-    const whereClause = buildWhereClause(normalizedFilters, values);
+    const whereClause = buildWhereClause(filters, values, 'p');
     const normalizedOrder = order?.field
         ? { field: order.field.includes('.') ? order.field : `p.${order.field}`, direction: order.direction }
         : null;
@@ -539,7 +528,7 @@ async function listSupportChats() {
             MAX(anonymous_chat_id) AS anonymous_chat_id
         FROM ordered
         GROUP BY COALESCE(client_id::text, anonymous_chat_id::text)
-        ORDER BY MAX(created_at) DESC`
+        ORDER BY last_message_at DESC`
     );
 
     return { status: 200, body: { chats: result.rows } };
