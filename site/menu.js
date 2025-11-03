@@ -62,11 +62,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Навигационные действия. Если соответствующие страницы существуют,
     // открываем их; иначе выводим предупреждение.
     if (tariffBtn) {
-        tariffBtn.addEventListener('click', () => {
-            // Открываем существующее модальное окно с тарифами
-            const modal = document.getElementById('tariff-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
+        tariffBtn.addEventListener('click', async () => {
+            try {
+                if (typeof window.openTariffModal === 'function') {
+                    await window.openTariffModal();
+                } else {
+                    const modal = document.getElementById('tariff-modal');
+                    if (modal) {
+                        modal.classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.warn('[Menu] Не удалось открыть модалку тарифов:', error);
             }
             closeMenu();
         });

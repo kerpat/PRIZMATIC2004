@@ -46,6 +46,21 @@ export async function createPayment(userId, bikeCode, tariffId, extra = {}) {
     return post('/api/payments', payload);
 }
 
+export async function chargeFromBalance(userId, tariffId, extra = {}) {
+    const payload = {
+        action: 'charge-from-balance',
+        userId,
+        tariffId,
+        ...extra,
+    };
+
+    if (payload.bikeCode && !payload.bikeId) {
+        payload.bikeId = payload.bikeCode;
+    }
+
+    return post('/api/payments', payload);
+}
+
 export async function getRentalBatteries(rentalId) {
     if (!rentalId) return [];
     const data = await post('/api/data', { action: 'get-rental-batteries', rentalId });

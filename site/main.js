@@ -1,321 +1,579 @@
-import { getClient, getActiveRental, createPayment, getAvailableBikes, getTariffs } from './api.js';
+import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance } from './api.js';
 import { renderDefaultView, renderActiveRentalView, renderOverdueRentalView, renderPendingReturnView } from './ui.js';
 
-let cachedTariffs = null;
-async function fetchTariffs() {
-    if (cachedTariffs) {
-        return cachedTariffs;
+const state = {
+    user: null,
+    activeRental: null,
+    tariffs: null,
+    selectedTariff: null,
+    selectedOption: null,
+    detailTariff: null,
+    detailOptions: [],
+    detailOptionIndex: 0,
+    processingTariff: false,
+};
+
+const optionCache = new Map();
+const toastTimers = new Map();
+
+function formatRub(value) {
+    const numeric = Number(value || 0);
+    if (!Number.isFinite(numeric)) {
+        return '0 ₽';
     }
-    try {
-        const tariffs = await getTariffs(true);
-        cachedTariffs = Array.isArray(tariffs) ? tariffs : [];
-    } catch (error) {
-        console.error('[Main] Failed to load tariffs:', error);
-        cachedTariffs = [];
-    }
-    return cachedTariffs;
+    return `${numeric.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₽`;
 }
 
-let selectedTariffForCheckout = null;
-let selectedTariffOption = null;
+function formatDuration(option) {
+    if (!option) return '';
+    const duration = Number(option.duration_days ?? option.days ?? option.duration ?? 0);
+    if (!Number.isFinite(duration) || duration <= 0) {
+        return '';
+    }
+    return `${duration} дн.`;
+}
 
-function initializeModals() {
-    const modals = document.querySelectorAll('.modal-overlay');
-    modals.forEach(modal => {
-        const closeBtn = modal.querySelector('.modal-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+function openModalByElement(modal) {
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeModalByElement(modal) {
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function openModalById(id) {
+    if (!id) return;
+    openModalByElement(document.getElementById(id));
+}
+
+function closeModalById(id) {
+    if (!id) return;
+    closeModalByElement(document.getElementById(id));
+}
+
+function updateHeader(user) {
+    const header = document.querySelector('.app-header h1');
+    if (!header) return;
+    const firstName = typeof user?.name === 'string' ? user.name.split(' ')[0] : null;
+    if (firstName) {
+        header.textContent = `Привет, ${firstName}!`;
+    } else if (user?.city) {
+        header.textContent = user.city;
+    } else {
+        header.textContent = 'PRIZMATIC';
+    }
+}
+
+function updateBalanceDisplay(balance) {
+    const balanceEl = document.getElementById('balance-amount');
+    if (balanceEl) {
+        balanceEl.textContent = formatRub(balance);
+    }
+}
+
+function updateTariffLabel() {
+    const label = document.getElementById('bike-label');
+    if (!label) return;
+
+    if (!state.selectedTariff || !state.selectedOption) {
+        label.textContent = '';
+        label.classList.add('hidden');
+        return;
+    }
+
+    const parts = [];
+    parts.push(state.selectedTariff.title || 'Тариф');
+
+    const durationText = formatDuration(state.selectedOption);
+    if (durationText) parts.push(durationText);
+
+    if (Number.isFinite(state.selectedOption.price_rub)) {
+        parts.push(formatRub(state.selectedOption.price_rub));
+    }
+
+    label.textContent = parts.join(' • ');
+    label.classList.remove('hidden');
+}
+
+function showToast(id, duration = 2600) {
+    const toast = document.getElementById(id);
+    if (!toast) return;
+
+    toast.classList.remove('hidden');
+
+    if (toastTimers.has(id)) {
+        clearTimeout(toastTimers.get(id));
+    }
+
+    const timerId = setTimeout(() => {
+        toast.classList.add('hidden');
+        toastTimers.delete(id);
+    }, duration);
+
+    toastTimers.set(id, timerId);
+}
+
+async function fetchTariffs(force = false) {
+    if (!force && Array.isArray(state.tariffs) && state.tariffs.length > 0) {
+        return state.tariffs;
+    }
+
+    try {
+        const data = await getTariffs(true);
+        state.tariffs = Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('[Main] Не удалось загрузить тарифы:', error);
+        state.tariffs = [];
+    }
+
+    return state.tariffs;
+}
+
+function parseExtensions(rawExtensions) {
+    if (!rawExtensions) return null;
+    if (Array.isArray(rawExtensions)) return rawExtensions;
+    if (typeof rawExtensions === 'string') {
+        try {
+            const parsed = JSON.parse(rawExtensions);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (error) {
+            console.warn('[Main] Не удалось разобрать extensions тарифа:', error);
         }
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.add('hidden');
-            }
-        });
+    }
+    return null;
+}
+
+function mapTariffOptions(tariff) {
+    if (!tariff) return [];
+
+    const cacheKey = tariff.id ?? tariff.slug ?? tariff.title ?? null;
+    if (cacheKey && optionCache.has(cacheKey)) {
+        return optionCache.get(cacheKey);
+    }
+
+    const baseOption = {
+        title: tariff.title || 'Тариф',
+        duration_days: Number(tariff.duration_days) || null,
+        price_rub: Number(tariff.price_rub) || null,
+        deposit_rub: Number(tariff.deposit_rub) || null,
+        raw: null,
+    };
+
+    const extensions = parseExtensions(tariff.extensions);
+    let options = [];
+
+    if (extensions && extensions.length > 0) {
+        options = extensions
+            .map((ext) => ({
+                title: ext.title ?? tariff.title ?? 'Тариф',
+                duration_days: Number(ext.duration_days ?? ext.days ?? ext.duration ?? baseOption.duration_days) || baseOption.duration_days,
+                price_rub: Number(ext.price_rub ?? ext.cost ?? ext.price ?? baseOption.price_rub),
+                deposit_rub: Number(ext.deposit_rub ?? ext.deposit ?? baseOption.deposit_rub) || null,
+                raw: ext,
+                bikeCode: ext.bike_code ?? ext.bikeCode ?? null,
+            }))
+            .filter((opt) => Number.isFinite(opt.price_rub) && opt.price_rub > 0);
+    }
+
+    if (options.length === 0) {
+        if (Number.isFinite(baseOption.price_rub) && baseOption.price_rub > 0) {
+            options = [baseOption];
+        } else {
+            options = [];
+        }
+    }
+
+    if (cacheKey) {
+        optionCache.set(cacheKey, options);
+    }
+    return options;
+}
+
+function renderTariffList() {
+    const list = document.querySelector('#tariff-modal .bike-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    const tariffs = Array.isArray(state.tariffs) ? state.tariffs : [];
+
+    if (!tariffs.length) {
+        list.innerHTML = '<div class="bike-list-item">Тарифы временно недоступны</div>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    tariffs.forEach((tariff) => {
+        const item = document.createElement('div');
+        item.className = 'bike-list-item tariff-option';
+
+        const options = mapTariffOptions(tariff);
+        const firstOption = options[0] || null;
+
+        const priceText = firstOption?.price_rub ? formatRub(firstOption.price_rub) : '';
+        const durationText = firstOption ? formatDuration(firstOption) : '';
+        const subtitle = tariff.short_description || tariff.description || '';
+        const meta = [priceText, durationText].filter(Boolean).join(' • ') || subtitle;
+
+        item.innerHTML = `
+            <strong>${tariff.title || 'Тариф'}</strong>
+            <span>${meta}</span>
+        `;
+
+        item.addEventListener('click', () => renderTariffDetail(tariff));
+        fragment.appendChild(item);
+    });
+
+    list.appendChild(fragment);
+}
+
+function renderTariffDetail(tariff) {
+    state.detailTariff = tariff;
+    state.detailOptions = mapTariffOptions(tariff);
+    state.detailOptionIndex = 0;
+
+    const detailTitle = document.getElementById('tariff-detail-title');
+    if (detailTitle) {
+        detailTitle.textContent = tariff.title || 'Тариф';
+    }
+
+    const detailDescription = document.getElementById('tariff-detail-description');
+    if (detailDescription) {
+        detailDescription.textContent = tariff.short_description || tariff.description || '';
+    }
+
+    const optionsList = document.getElementById('tariff-options-list');
+    if (optionsList) {
+        optionsList.innerHTML = '';
+
+        if (!state.detailOptions.length) {
+            const fallback = document.createElement('div');
+            fallback.className = 'tariff-option-item';
+            fallback.textContent = 'Опции тарифа временно недоступны';
+            optionsList.appendChild(fallback);
+        } else {
+            state.detailOptions.forEach((option, idx) => {
+                const depositText = option.deposit_rub ? `Залог ${formatRub(option.deposit_rub)}` : '';
+                const label = document.createElement('label');
+                label.className = 'tariff-option-item' + (idx === 0 ? ' selected' : '');
+                label.innerHTML = `
+                    <input type="radio" name="tariff-duration-option" value="${idx}" ${idx === 0 ? 'checked' : ''}>
+                    <div class="option-details">
+                        <span class="option-title">${option.title || tariff.title || 'Тариф'}</span>
+                        ${formatDuration(option) ? `<span class="option-duration">${formatDuration(option)}</span>` : ''}
+                        ${depositText ? `<span class="option-deposit">${depositText}</span>` : ''}
+                    </div>
+                    <span class="option-price">${formatRub(option.price_rub)}</span>
+                `;
+
+                label.addEventListener('click', () => selectDetailOption(idx));
+                label.addEventListener('change', () => selectDetailOption(idx));
+
+                optionsList.appendChild(label);
+            });
+        }
+    }
+
+    closeModalById('tariff-modal');
+    openModalById('tariff-detail-modal');
+}
+
+function selectDetailOption(index) {
+    state.detailOptionIndex = index;
+    const optionsList = document.getElementById('tariff-options-list');
+    if (!optionsList) return;
+    optionsList.querySelectorAll('.tariff-option-item').forEach((element, idx) => {
+        if (idx === index) {
+            element.classList.add('selected');
+            const radio = element.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        } else {
+            element.classList.remove('selected');
+        }
     });
 }
 
-async function updateAvailableBikesCount(city) {
+async function handleTariffSelection() {
+    if (!state.detailTariff || !state.detailOptions.length || state.processingTariff) {
+        return;
+    }
+
+    const option = state.detailOptions[state.detailOptionIndex] || state.detailOptions[0];
+    state.selectedTariff = state.detailTariff;
+    state.selectedOption = option;
+    updateTariffLabel();
+
+    const trigger = document.getElementById('select-tariff-btn');
+    await checkoutTariff(state.detailTariff, option, { trigger });
+}
+
+async function checkoutTariff(tariff, option, { trigger } = {}) {
+    if (!state.user || !tariff || !option || state.processingTariff) {
+        return;
+    }
+
+    state.processingTariff = true;
+    const originalText = trigger?.textContent;
+
+    if (trigger) {
+        trigger.disabled = true;
+        trigger.textContent = 'Обработка...';
+    }
+
     try {
-        const bikes = await getAvailableBikes(city || 'Москва');
-        const countEl = document.getElementById('available-bikes-count');
-        if (countEl) {
-            countEl.textContent = bikes.length.toString();
+        const amount = Number(option.price_rub);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error('Не удалось определить стоимость тарифа.');
         }
+
+        const durationValue = Number(option.duration_days);
+        const normalizedDays = Number.isFinite(durationValue) && durationValue > 0 ? durationValue : undefined;
+
+        const freshUser = await refreshUser();
+        if (!freshUser) {
+            throw new Error('Клиент не найден.');
+        }
+
+        const bikeCode = option.bikeCode ?? null;
+        const balance = Number(freshUser.balance_rub || 0);
+
+        if (balance >= amount) {
+            await chargeFromBalance(freshUser.id, tariff.id, {
+                amount,
+                days: normalizedDays,
+                bikeCode,
+                extension: option.raw ?? null,
+            });
+
+            showToast('rent-success-toast');
+            closeModalById('tariff-detail-modal');
+            closeModalById('tariff-modal');
+            await refreshRentalView();
+            return;
+        }
+
+        const response = await createPayment(freshUser.id, bikeCode, tariff.id, {
+            amount,
+            days: normalizedDays,
+            extension: option.raw ?? null,
+        });
+
+        if (response?.confirmation_url) {
+            window.location.href = response.confirmation_url;
+            return;
+        }
+
+        throw new Error('Не удалось получить ссылку на оплату.');
     } catch (error) {
-        console.warn('[Main] Failed to load available bikes count:', error.message);
+        console.error('[Main] Ошибка оформления тарифа:', error);
+        alert(`Ошибка оформления аренды: ${error.message}`);
+    } finally {
+        if (trigger) {
+            trigger.disabled = false;
+            trigger.textContent = originalText || 'Выбрать тариф';
+        }
+        state.processingTariff = false;
     }
 }
 
-function initializeMainScreenEventListeners(currentUser) {
+async function refreshUser() {
+    if (!state.user) return null;
+    try {
+        const fresh = await getClient(state.user.id);
+        if (fresh) {
+            state.user = fresh;
+            updateHeader(fresh);
+            updateBalanceDisplay(fresh.balance_rub);
+        }
+        return fresh;
+    } catch (error) {
+        console.warn('[Main] Не удалось обновить данные клиента:', error);
+        return state.user;
+    }
+}
+
+async function refreshAvailableBikes() {
+    if (!state.user) return;
+    try {
+        const bikes = await getAvailableBikes(state.user.city || 'Москва');
+        const countEl = document.getElementById('available-bikes-count');
+        if (countEl) {
+            const count = Array.isArray(bikes) ? bikes.length : 0;
+            countEl.textContent = count.toString();
+        }
+    } catch (error) {
+        console.warn('[Main] Не удалось загрузить свободные велосипеды:', error);
+    }
+}
+
+function bindDefaultViewEvents() {
     const scanBtn = document.getElementById('scan-qr-btn');
-    const balanceCard = document.getElementById('balance-card');
-    const idInputBtn = document.getElementById('id-input-btn');
-    const bookingBtn = document.getElementById('booking-btn');
-    const rentBtn = document.getElementById('rent-btn');
-    const topupModal = document.getElementById('topup-modal');
-    const idInputModal = document.getElementById('id-input-modal');
-    const bookingListModal = document.getElementById('booking-list-modal');
-    const tariffModal = document.getElementById('tariff-modal');
-    const tariffModalCloseBtn = document.getElementById('tariff-modal-close-btn');
-    const tariffList = tariffModal ? tariffModal.querySelector('.bike-list') : null;
-    const tariffDetailModal = document.getElementById('tariff-detail-modal');
-    const tariffDetailCloseBtn = document.getElementById('tariff-detail-close-btn');
-    const tariffOptionsList = document.getElementById('tariff-options-list');
-    const selectTariffBtn = document.getElementById('select-tariff-btn');
-    const bikeLabelElement = document.getElementById('bike-label');
-    const balanceAmount = document.getElementById('balance-amount');
-
-    let activeTariff = null;
-    let activeTariffExtensions = [];
-    let activeExtensionIndex = 0;
-
-    const formatRub = (value) => {
-        const numeric = Number(value || 0);
-        return `${numeric.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ₽`;
-    };
-
-    const formatDuration = (extension) => {
-        if (!extension) return '';
-        const duration = extension.duration_days ?? extension.days ?? extension.duration ?? null;
-        return duration ? `${duration} дн.` : '';
-    };
-
-    const closeModal = (modal) => {
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    };
-
-    const openModal = (modal) => {
-        if (modal) {
-            modal.classList.remove('hidden');
-        }
-    };
-
-    const updateTariffLabel = () => {
-        if (!bikeLabelElement) {
-            return;
-        }
-        if (!selectedTariffForCheckout) {
-            bikeLabelElement.textContent = '';
-            bikeLabelElement.classList.add('hidden');
-            return;
-        }
-        const parts = [selectedTariffForCheckout.title || 'Тариф'];
-        const extension = selectedTariffOption;
-        if (extension) {
-            const durationText = formatDuration(extension);
-            if (durationText) parts.push(durationText);
-            const priceText = formatRub(extension.price_rub ?? extension.cost);
-            if (priceText) parts.push(priceText);
-        } else {
-            if (selectedTariffForCheckout.duration_days) {
-                parts.push(`${selectedTariffForCheckout.duration_days} дн.`);
-            }
-            if (selectedTariffForCheckout.price_rub) {
-                parts.push(formatRub(selectedTariffForCheckout.price_rub));
-            }
-        }
-        bikeLabelElement.textContent = parts.join(' • ');
-        bikeLabelElement.classList.remove('hidden');
-    };
-
-    const renderTariffDetail = (tariff) => {
-        if (!tariffDetailModal) {
-            return;
-        }
-        activeTariff = tariff;
-        const detailTitle = document.getElementById('tariff-detail-title');
-        const detailDescription = document.getElementById('tariff-detail-description');
-        if (detailTitle) {
-            detailTitle.textContent = tariff.title || 'Тариф';
-        }
-        if (detailDescription) {
-            detailDescription.textContent = tariff.short_description || tariff.description || '';
-        }
-
-        activeTariffExtensions = Array.isArray(tariff.extensions) && tariff.extensions.length > 0
-            ? tariff.extensions.map((ext) => ({
-                  title: ext.title ?? tariff.title,
-                  duration_days: ext.duration_days ?? ext.days ?? ext.duration ?? null,
-                  price_rub: ext.price_rub ?? ext.cost ?? ext.price ?? null,
-                  deposit_rub: ext.deposit_rub ?? ext.deposit ?? null,
-                  raw: ext,
-              }))
-            : [{
-                  title: tariff.title,
-                  duration_days: tariff.duration_days,
-                  price_rub: tariff.price_rub,
-                  deposit_rub: tariff.deposit_rub ?? null,
-                  raw: null,
-              }];
-
-        activeExtensionIndex = 0;
-
-        if (tariffOptionsList) {
-            tariffOptionsList.innerHTML = '';
-            activeTariffExtensions.forEach((ext, idx) => {
-                const option = document.createElement('label');
-                option.className = 'tariff-option-item' + (idx === 0 ? ' selected' : '');
-                const depositText = ext.deposit_rub ? `Залог ${formatRub(ext.deposit_rub)}` : '';
-                option.innerHTML = `
-                    <input type=\"radio\" name=\"tariff-duration-option\" value=\"${idx}\" ${idx === 0 ? 'checked' : ''}>
-                    <div class=\"option-details\">
-                        <span class=\"option-title\">${ext.title || tariff.title}</span>
-                        ${formatDuration(ext) ? `<span class=\"option-duration\">${formatDuration(ext)}</span>` : ''}
-                        ${depositText ? `<span class=\"option-deposit\">${depositText}</span>` : ''}
-                    </div>
-                    <span class=\"option-price\">${formatRub(ext.price_rub)}</span>
-                `;
-                const input = option.querySelector('input');
-                if (input) {
-                    input.addEventListener('change', () => {
-                        activeExtensionIndex = idx;
-                        tariffOptionsList.querySelectorAll('.tariff-option-item').forEach((el) => el.classList.remove('selected'));
-                        option.classList.add('selected');
-                    });
-                }
-                tariffOptionsList.appendChild(option);
-            });
-        }
-
-        closeModal(tariffModal);
-        openModal(tariffDetailModal);
-    };
-
-    const renderTariffList = async () => {
-        if (!tariffList) {
-            return;
-        }
-        const tariffs = await fetchTariffs();
-        if (!tariffs.length) {
-            tariffList.innerHTML = '<div class="bike-list-item">Тарифы временно недоступны</div>';
-            return;
-        }
-        tariffList.innerHTML = '';
-        tariffs.forEach((tariff) => {
-            const item = document.createElement('div');
-            item.className = 'bike-list-item tariff-option';
-            const subtitle = tariff.short_description || tariff.description || '';
-            const priceText = tariff.price_rub ? formatRub(tariff.price_rub) : '';
-            const durationText = tariff.duration_days ? `${tariff.duration_days} дн.` : '';
-            const meta = [priceText, durationText].filter(Boolean).join(' • ');
-            item.innerHTML = `
-                <strong>${tariff.title || 'Тариф'}</strong>
-                <span>${meta || subtitle}</span>
-            `;
-            item.addEventListener('click', () => renderTariffDetail(tariff));
-            tariffList.appendChild(item);
-        });
-    };
-
-    const openTariffModal = async () => {
-        await renderTariffList();
-        openModal(tariffModal);
-    };
-
-    if (balanceAmount) {
-        const balanceValue = Number(currentUser?.balance_rub || 0);
-        balanceAmount.textContent = formatRub(balanceValue);
-    }
-
     if (scanBtn) {
-        scanBtn.addEventListener('click', openTariffModal);
+        scanBtn.addEventListener('click', async () => {
+            await openTariffModal();
+        });
     }
 
+    const balanceCard = document.getElementById('balance-card');
     if (balanceCard) {
-        balanceCard.addEventListener('click', () => {
-            openModal(topupModal);
-        });
+        balanceCard.addEventListener('click', () => openModalById('topup-modal'));
     }
 
+    const idInputBtn = document.getElementById('id-input-btn');
     if (idInputBtn) {
-        idInputBtn.addEventListener('click', () => {
-            openModal(idInputModal);
-        });
+        idInputBtn.addEventListener('click', () => openModalById('id-input-modal'));
     }
 
+    const bookingBtn = document.getElementById('booking-btn');
     if (bookingBtn) {
-        bookingBtn.addEventListener('click', () => {
-            openModal(bookingListModal);
-        });
+        bookingBtn.addEventListener('click', () => openModalById('booking-list-modal'));
     }
 
+    const rentBtn = document.getElementById('rent-btn');
     if (rentBtn) {
         rentBtn.addEventListener('click', async () => {
-            try {
-                if (!selectedTariffForCheckout) {
-                    alert('Пожалуйста, выберите тариф перед оплатой.');
-                    return;
-                }
-
-                const tariffId = selectedTariffForCheckout.id;
-                const extension = selectedTariffOption;
-                const amount = Number(extension?.price_rub ?? selectedTariffForCheckout.price_rub);
-                const days = Number(extension?.duration_days ?? selectedTariffForCheckout.duration_days);
-
-                if (!Number.isFinite(amount) || amount <= 0) {
-                    alert('Не удалось определить стоимость тарифа. Повторите выбор тарифа.');
-                    return;
-                }
-
-                const response = await createPayment(currentUser.id, '00001', tariffId, {
-                    amount,
-                    days: Number.isFinite(days) && days > 0 ? days : undefined,
-                    extension: extension?.raw ?? null,
-                });
-                if (response.confirmation_url) {
-                    window.location.href = response.confirmation_url;
-                }
-            } catch (error) {
-                alert('Ошибка: ' + error.message);
+            if (state.selectedTariff && state.selectedOption) {
+                await checkoutTariff(state.selectedTariff, state.selectedOption, { trigger: rentBtn });
+            } else {
+                await openTariffModal();
             }
         });
     }
 
-    if (tariffModalCloseBtn) {
-        tariffModalCloseBtn.addEventListener('click', () => closeModal(tariffModal));
-    }
-
-    if (tariffModal) {
-        tariffModal.addEventListener('click', (event) => {
-            if (event.target === tariffModal) {
-                closeModal(tariffModal);
-            }
-        });
-    }
-
-    if (tariffDetailCloseBtn) {
-        tariffDetailCloseBtn.addEventListener('click', () => {
-            closeModal(tariffDetailModal);
-            openModal(tariffModal);
-        });
-    }
-
-    if (tariffDetailModal) {
-        tariffDetailModal.addEventListener('click', (event) => {
-            if (event.target === tariffDetailModal) {
-                closeModal(tariffDetailModal);
-                openModal(tariffModal);
-            }
-        });
-    }
-
-    if (selectTariffBtn) {
-        selectTariffBtn.addEventListener('click', () => {
-            if (!activeTariff) {
-                closeModal(tariffDetailModal);
-                openModal(tariffModal);
-                return;
-            }
-            selectedTariffForCheckout = activeTariff;
-            selectedTariffOption = activeTariffExtensions[activeExtensionIndex] || null;
-            closeModal(tariffDetailModal);
-            updateTariffLabel();
-        });
-    }
-
+    updateBalanceDisplay(state.user?.balance_rub || 0);
     updateTariffLabel();
+}
+
+async function openTariffModal() {
+    await fetchTariffs();
+    renderTariffList();
+    openModalById('tariff-modal');
+}
+
+if (typeof window !== 'undefined') {
+    window.openTariffModal = openTariffModal;
+}
+
+function setupModalClose(modal, handler) {
+    if (!modal || modal.dataset.bound) return;
+    modal.dataset.bound = 'true';
+
+    const closeBtn = modal.querySelector('.modal-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => handler(modal));
+    }
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            handler(modal);
+        }
+    });
+}
+
+function attachStaticHandlers() {
+    setupModalClose(document.getElementById('tariff-modal'), () => closeModalById('tariff-modal'));
+    setupModalClose(document.getElementById('tariff-detail-modal'), () => {
+        closeModalById('tariff-detail-modal');
+        if (!state.processingTariff) {
+            openModalById('tariff-modal');
+        }
+    });
+
+    ['topup-modal', 'id-input-modal', 'booking-list-modal', 'post-rental-prompt-modal'].forEach((id) => {
+        setupModalClose(document.getElementById(id), () => closeModalById(id));
+    });
+
+    const selectBtn = document.getElementById('select-tariff-btn');
+    if (selectBtn && !selectBtn.dataset.bound) {
+        selectBtn.dataset.bound = 'true';
+        selectBtn.addEventListener('click', handleTariffSelection);
+    }
+}
+
+async function refreshRentalView() {
+    if (!state.user) return;
+    const mainContent = document.querySelector('.app-main');
+    if (!mainContent) return;
+
+    try {
+        const rental = await getActiveRental(state.user.id);
+        state.activeRental = rental;
+
+        if (rental) {
+            state.selectedTariff = null;
+            state.selectedOption = null;
+            updateTariffLabel();
+            switch (rental.status) {
+                case 'active':
+                    await renderActiveRentalView(mainContent, rental, state.user.balance_rub);
+                    break;
+                case 'overdue':
+                    renderOverdueRentalView(mainContent, rental);
+                    break;
+                case 'pending_return':
+                    renderPendingReturnView(mainContent, rental);
+                    break;
+                default:
+                    renderDefaultView(mainContent);
+                    bindDefaultViewEvents();
+            }
+            await refreshAvailableBikes();
+        } else {
+            renderDefaultView(mainContent);
+            bindDefaultViewEvents();
+            await refreshAvailableBikes();
+            updateBalanceDisplay(state.user.balance_rub);
+            updateTariffLabel();
+        }
+    } catch (error) {
+        console.error('[Main] Не удалось обновить состояние аренды:', error);
+        renderDefaultView(mainContent);
+        bindDefaultViewEvents();
+        updateBalanceDisplay(state.user.balance_rub);
+        updateTariffLabel();
+    }
+}
+
+async function bootstrap() {
+    if (localStorage.getItem('isRegistered') !== 'true') {
+        window.location.replace('registration.html');
+        return;
+    }
+
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        localStorage.clear();
+        window.location.replace('registration.html');
+        return;
+    }
+
+    try {
+        const user = await getClient(userId);
+        if (!user) {
+            localStorage.clear();
+            window.location.replace('registration.html');
+            return;
+        }
+
+        state.user = user;
+        updateHeader(user);
+
+        attachStaticHandlers();
+        initializePostRentalPrompt();
+
+        // Прогреваем список тарифов для мгновенного открытия модалки
+        fetchTariffs().catch((error) => {
+            console.warn('[Main] Предзагрузка тарифов не удалась:', error);
+        });
+
+        await refreshRentalView();
+    } catch (error) {
+        console.error('[Main] Критическая ошибка инициализации:', error);
+        alert('Не удалось загрузить данные. Попробуйте обновить страницу.');
+    }
 }
 
 function initializePostRentalPrompt() {
@@ -323,86 +581,19 @@ function initializePostRentalPrompt() {
     if (!promptModal) return;
 
     const closeBtn = document.getElementById('prompt-modal-close-btn');
-    const goToProfileBtn = document.getElementById('go-to-profile-btn');
-
-    const closeModal = () => promptModal.classList.add('hidden');
-
-    promptModal.addEventListener('click', (event) => {
-        if (event.target === promptModal) {
-            closeModal();
-        }
-    });
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeModal);
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = 'true';
+        closeBtn.addEventListener('click', () => closeModalByElement(promptModal));
     }
-    if (goToProfileBtn) {
+
+    const goToProfileBtn = document.getElementById('go-to-profile-btn');
+    if (goToProfileBtn && !goToProfileBtn.dataset.bound) {
+        goToProfileBtn.dataset.bound = 'true';
         goToProfileBtn.addEventListener('click', () => {
             window.location.href = 'profile.html#notifications';
-            closeModal();
+            closeModalByElement(promptModal);
         });
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('isRegistered') !== 'true') {
-        window.location.replace('registration.html');
-        return;
-    }
-
-    async function initializeRentalSystem() {
-        const mainContent = document.querySelector('.app-main');
-        const appHeader = document.querySelector('.app-header h1');
-        const userId = localStorage.getItem('userId');
-
-        if (!userId) {
-            localStorage.clear();
-            window.location.replace('registration.html');
-            return;
-        }
-
-        const currentUser = await getClient(userId);
-        if (!currentUser) {
-            localStorage.clear();
-            window.location.replace('registration.html');
-            return;
-        }
-
-        const firstName = typeof currentUser.name === 'string' ? currentUser.name.split(' ')[0] : null;
-        if (appHeader) {
-            if (firstName) {
-                appHeader.textContent = `Привет, ${firstName}!`;
-            } else if (currentUser.city) {
-                appHeader.textContent = currentUser.city;
-            } else {
-                appHeader.textContent = 'PRIZMATIC';
-            }
-        }
-
-        const activeRental = await getActiveRental(userId);
-
-        if (activeRental) {
-            switch(activeRental.status) {
-                case 'active':
-                    await renderActiveRentalView(mainContent, activeRental, currentUser.balance_rub);
-                    break;
-                case 'overdue': 
-                    renderOverdueRentalView(mainContent, activeRental); 
-                    break;
-                case 'pending_return': 
-                    renderPendingReturnView(mainContent, activeRental); 
-                    break;
-                default: 
-                    renderDefaultView(mainContent);
-                    initializeMainScreenEventListeners(currentUser);
-            }
-        } else {
-            renderDefaultView(mainContent);
-            initializeMainScreenEventListeners(currentUser);
-            await updateAvailableBikesCount(currentUser.city);
-        }
-    }
-
-    initializeRentalSystem();
-    initializeModals();
-    initializePostRentalPrompt();
-});
+document.addEventListener('DOMContentLoaded', bootstrap);
