@@ -6,24 +6,104 @@ const htmlToDocx = require('html-to-docx');
 // Lazy initialization для connection pool
 let pool = null;
 
+function buildPoolConfig() {
+    const baseConfig = {
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+    };
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+        try {
+            const parsed = new URL(dbUrl);
+            const searchParams = Object.fromEntries(parsed.searchParams.entries());
+
+            const sslMode = (searchParams.sslmode || '').toLowerCase();
+            let sslConfig = baseConfig.ssl;
+            if (sslMode === 'require' || sslMode === 'prefer' || sslMode === 'allow') {
+                sslConfig = { rejectUnauthorized: false };
+            } else if (sslMode === 'disable') {
+                sslConfig = false;
+            }
+
+            return {
+                ...baseConfig,
+                ...sanitizeClientConfig(searchParams),
+                ssl: sslConfig,
+                host: parsed.hostname,
+                port: parsed.port ? parseInt(parsed.port, 10) : 5432,
+                user: decodeURIComponent(parsed.username || ''),
+                password: decodeURIComponent(parsed.password || ''),
+                database: decodeURIComponent(parsed.pathname.replace(/^\//, '') || process.env.DB_NAME || 'postgres'),
+                _source: 'DATABASE_URL',
+            };
+        } catch (error) {
+            console.error('[_lib_user] Failed to parse DATABASE_URL, falling back to individual env vars:', error.message);
+        }
+    }
+
+    return {
+        ...baseConfig,
+        host: process.env.DB_HOST || '51.250.17.150',
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        user: process.env.DB_USER || 'prizmatic_user',
+        password: process.env.DB_PASSWORD || 'ln2+1fSbrciaIavThI+w2S/0+BQufhiMUmUU9g1CDeQ=',
+        database: process.env.DB_NAME || 'prizmatic',
+        _source: 'ENV_FALLBACK',
+    };
+}
+
+function sanitizeClientConfig(params) {
+    const config = {};
+
+    if ('application_name' in params) {
+        config.application_name = params.application_name;
+    }
+    if ('options' in params) {
+        config.options = params.options;
+    }
+    if ('statement_timeout' in params) {
+        const value = parseInt(params.statement_timeout, 10);
+        if (!Number.isNaN(value)) {
+            config.statement_timeout = value;
+        }
+    }
+    if ('query_timeout' in params) {
+        const value = parseInt(params.query_timeout, 10);
+        if (!Number.isNaN(value)) {
+            config.query_timeout = value;
+        }
+    }
+    if ('connect_timeout' in params) {
+        const value = parseInt(params.connect_timeout, 10);
+        if (!Number.isNaN(value)) {
+            config.connectionTimeoutMillis = value * 1000;
+        }
+    }
+    if ('keepalives' in params) {
+        config.keepAlive = params.keepalives === '1' || params.keepalives === 'true';
+    }
+
+    return config;
+}
+
 function getPool() {
     if (!pool) {
-        const dbUrl = process.env.DATABASE_URL || 
-            `postgresql://${process.env.DB_USER || 'prizmatic_user'}:${process.env.DB_PASSWORD || 'ln2+1fSbrciaIavThI+w2S/0+BQufhiMUmUU9g1CDeQ='}@${process.env.DB_HOST || '51.250.17.150'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'prizmatic'}`;
+        const config = buildPoolConfig();
 
         console.log('[_lib_user] Creating DB pool with:', {
-            hasDatabaseUrl: !!process.env.DATABASE_URL,
-            hasDbHost: !!process.env.DB_HOST,
-            urlStart: dbUrl.substring(0, 30) + '...'
+            source: config._source,
+            host: config.host,
+            port: config.port,
+            database: config.database,
+            user: config.user,
+            ssl: !!config.ssl,
         });
 
-        pool = new Pool({
-            connectionString: dbUrl,
-            ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
-        });
+        const { _source, ...poolConfig } = config;
+        pool = new Pool(poolConfig);
     }
     return pool;
 }
