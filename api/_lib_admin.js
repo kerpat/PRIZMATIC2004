@@ -149,94 +149,6 @@ function jsonStringify(data) {
     }
 }
 
-async function handleListSupportChats() {
-    const anonymousResult = await query(
-        `SELECT *
-         FROM (
-             SELECT
-                 anonymous_chat_id,
-                 message_text,
-                 created_at,
-                 ROW_NUMBER() OVER (PARTITION BY anonymous_chat_id ORDER BY created_at DESC) AS rn,
-                 SUM(CASE WHEN sender = 'user' AND is_read = false THEN 1 ELSE 0)
-                     OVER (PARTITION BY anonymous_chat_id) AS unread_count
-             FROM support_messages
-             WHERE anonymous_chat_id IS NOT NULL
-         ) AS sub
-         WHERE rn = 1
-         ORDER BY created_at DESC`,
-        []
-    );
-
-    const clientResult = await query(
-        `SELECT *
-         FROM (
-             SELECT
-                 sm.client_id,
-                 sm.message_text,
-                 sm.created_at,
-                 ROW_NUMBER() OVER (PARTITION BY sm.client_id ORDER BY sm.created_at DESC) AS rn,
-                 SUM(CASE WHEN sm.sender = 'user' AND sm.is_read = false THEN 1 ELSE 0)
-                     OVER (PARTITION BY sm.client_id) AS unread_count
-             FROM support_messages sm
-             WHERE sm.client_id IS NOT NULL
-         ) AS sub
-         LEFT JOIN clients c ON c.id = sub.client_id
-         WHERE rn = 1
-         ORDER BY sub.created_at DESC`,
-        []
-    );
-
-    return {
-        status: 200,
-        body: {
-            anonymousChats: anonymousResult.rows.map((row) => ({
-                anonymous_chat_id: row.anonymous_chat_id,
-                last_message_text: row.message_text,
-                last_message_at: row.created_at,
-                unread_count: Number(row.unread_count || 0),
-            })),
-            clientChats: clientResult.rows.map((row) => ({
-                client_id: row.client_id,
-                last_message_text: row.message_text,
-                last_message_at: row.created_at,
-                unread_count: Number(row.unread_count || 0),
-                name: row.name || null,
-                phone: row.phone || null,
-            })),
-        },
-    };
-}
-
-async function handleGetSupportHistory({ clientId, anonymousChatId }) {
-    if (!clientId && !anonymousChatId) {
-        return { status: 400, body: { error: 'clientId or anonymousChatId is required.' } };
-    }
-    const conditions = [];
-    const values = [];
-
-    if (clientId) {
-        conditions.push(`client_id = $${values.length + 1}`);
-        values.push(clientId);
-    }
-
-    if (anonymousChatId) {
-        conditions.push(`anonymous_chat_id = $${values.length + 1}`);
-        values.push(anonymousChatId);
-    }
-
-    const result = await query(
-        `SELECT id, created_at, sender, message_text, file_url, file_type, is_read,
-                client_id, anonymous_chat_id
-         FROM support_messages
-         WHERE ${conditions.join(' AND ')}
-         ORDER BY created_at ASC`,
-        values
-    );
-
-    return { status: 200, body: { messages: result.rows } };
-}
-
 async function handleSendSupportMessageAdmin({ clientId, anonymousChatId, messageText, fileUrl, fileType }) {
     if (!clientId && !anonymousChatId) {
         return { status: 400, body: { error: 'clientId or anonymousChatId is required.' } };
@@ -457,7 +369,14 @@ function appendOrderLimit(sqlParts, order, limit, offset, values) {
 
 async function selectRentalsWithRelations({ filters = [], order = null, limit = null, offset = null }) {
     const values = [];
-    const whereClause = buildWhereClause(filters, values);
+    const normalizedFilters = (filters || []).map((filter) => ({
+        ...filter,
+        field: filter?.field?.includes('.') ? filter.field : `r.${filter.field}`,
+    }));
+    const whereClause = buildWhereClause(normalizedFilters, values);
+    const normalizedOrder = order?.field
+        ? { field: order.field.includes('.') ? order.field : `r.${order.field}`, direction: order.direction }
+        : null;
 
     const sqlParts = [
         `SELECT 
@@ -513,15 +432,25 @@ async function selectRentalsWithRelations({ filters = [], order = null, limit = 
         sqlParts.push(`WHERE ${whereClause}`);
     }
 
-    appendOrderLimit(sqlParts, order, limit, offset, values);
+    appendOrderLimit(sqlParts, normalizedOrder, limit, offset, values);
 
+    if (process.env.DEBUG_ADMIN_SQL) {
+        console.log('[admin][rentals] SQL:', sqlParts.join(' '), 'values:', values);
+    }
     const result = await query(sqlParts.join('\n'), values);
     return result.rows ?? [];
 }
 
 async function selectBookingsWithClient({ filters = [], order = null, limit = null, offset = null }) {
     const values = [];
-    const whereClause = buildWhereClause(filters, values);
+    const normalizedFilters = (filters || []).map((filter) => ({
+        ...filter,
+        field: filter?.field?.includes('.') ? filter.field : `b.${filter.field}`,
+    }));
+    const whereClause = buildWhereClause(normalizedFilters, values);
+    const normalizedOrder = order?.field
+        ? { field: order.field.includes('.') ? order.field : `b.${order.field}`, direction: order.direction }
+        : null;
 
     const sqlParts = [
         `SELECT 
@@ -539,15 +468,25 @@ async function selectBookingsWithClient({ filters = [], order = null, limit = nu
         sqlParts.push(`WHERE ${whereClause}`);
     }
 
-    appendOrderLimit(sqlParts, order, limit, offset, values);
+    appendOrderLimit(sqlParts, normalizedOrder, limit, offset, values);
 
+    if (process.env.DEBUG_ADMIN_SQL) {
+        console.log('[admin][bookings] SQL:', sqlParts.join(' '), 'values:', values);
+    }
     const result = await query(sqlParts.join('\n'), values);
     return result.rows ?? [];
 }
 
 async function selectPaymentsWithClient({ filters = [], order = null, limit = null, offset = null }) {
     const values = [];
-    const whereClause = buildWhereClause(filters, values);
+    const normalizedFilters = (filters || []).map((filter) => ({
+        ...filter,
+        field: filter?.field?.includes('.') ? filter.field : `p.${filter.field}`,
+    }));
+    const whereClause = buildWhereClause(normalizedFilters, values);
+    const normalizedOrder = order?.field
+        ? { field: order.field.includes('.') ? order.field : `p.${order.field}`, direction: order.direction }
+        : null;
 
     const sqlParts = [
         `SELECT 
@@ -565,10 +504,45 @@ async function selectPaymentsWithClient({ filters = [], order = null, limit = nu
         sqlParts.push(`WHERE ${whereClause}`);
     }
 
-    appendOrderLimit(sqlParts, order, limit, offset, values);
+    appendOrderLimit(sqlParts, normalizedOrder, limit, offset, values);
 
+    if (process.env.DEBUG_ADMIN_SQL) {
+        console.log('[admin][payments] SQL:', sqlParts.join(' '), 'values:', values);
+    }
     const result = await query(sqlParts.join('\n'), values);
     return result.rows ?? [];
+}
+
+
+async function listSupportChats() {
+    const result = await query(
+        `WITH ordered AS (
+            SELECT
+                sm.*,
+                ROW_NUMBER() OVER (PARTITION BY COALESCE(sm.client_id::text, sm.anonymous_chat_id::text) ORDER BY sm.created_at DESC) AS rn,
+                jsonb_build_object(
+                    'id', c.id,
+                    'name', c.name,
+                    'phone', c.phone
+                ) AS clients
+            FROM support_messages sm
+            LEFT JOIN clients c ON c.id = sm.client_id
+        )
+        SELECT
+            MIN(id) AS chat_id,
+            MIN(created_at) AS first_message_at,
+            MAX(created_at) AS last_message_at,
+            MAX(CASE WHEN sender = 'user' AND is_read = false THEN 1 ELSE 0 END) > 0 AS has_unread,
+            (ARRAY_AGG(message_text ORDER BY created_at DESC) FILTER (WHERE message_text IS NOT NULL))[1] AS last_message_text,
+            MAX(clients::text)::jsonb AS clients,
+            MAX(client_id) AS client_id,
+            MAX(anonymous_chat_id) AS anonymous_chat_id
+        FROM ordered
+        GROUP BY COALESCE(client_id::text, anonymous_chat_id::text)
+        ORDER BY MAX(created_at) DESC`
+    );
+
+    return { status: 200, body: { chats: result.rows } };
 }
 
 async function handleAssignBike({ rental_id, bike_id }) {
