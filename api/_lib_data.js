@@ -338,11 +338,7 @@ module.exports = async (req, res) => {
                     LIMIT 1`,
                     [params.userId]
                 );
-                if (result.data && result.data.length > 0) {
-                    result.data = result.data[0];
-                } else {
-                    result.error = 'No active rental found';
-                }
+                result.data = result.data && result.data.length > 0 ? result.data[0] : null;
                 break;
 
             case 'get-all-rentals':
@@ -373,11 +369,7 @@ module.exports = async (req, res) => {
                     LIMIT 1`,
                     [params.userId]
                 );
-                if (result.data && result.data.length > 0) {
-                    result.data = result.data[0];
-                } else {
-                    result.error = 'No active booking found';
-                }
+                result.data = result.data && result.data.length > 0 ? result.data[0] : null;
                 break;
 
             case 'get-all-bookings':
