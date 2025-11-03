@@ -57,19 +57,31 @@ module.exports = async (req, res) => {
         switch (endpoint) {
             case 'config':
                 console.log('[Config] ENV check:', {
-                    hasUrl: !!process.env.SUPABASE_URL,
-                    hasKey: !!process.env.SUPABASE_ANON_KEY,
-                    hasContractsUrl: !!process.env.CONTRACTS_API_URL
+                    hasDbUrl: !!process.env.DATABASE_URL,
+                    hasDbHost: !!process.env.DB_HOST,
+                    hasStorageUrl: !!process.env.STORAGE_URL
                 });
 
-                // Fallback значения для локальной разработки
+                // Fallback значения для локальной разработки (VPS mode)
                 const config = {
+<<<<<<< HEAD
                     SUPABASE_URL: process.env.SUPABASE_URL || 'https://avamqfmuhiwtlumjkzmv.supabase.co',
                     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I',
                     CONTRACTS_API_URL: process.env.CONTRACTS_API_URL || 'https://gogovorprizmatic.onrender.com'
+=======
+                    DATABASE_URL: process.env.DATABASE_URL,
+                    DB_HOST: process.env.DB_HOST || '51.250.17.150',
+                    DB_PORT: process.env.DB_PORT || '5432',
+                    DB_NAME: process.env.DB_NAME || 'prizmatic',
+                    STORAGE_URL: process.env.STORAGE_URL || 'http://51.250.17.150:9000',
+                    MINIO_ENDPOINT: process.env.MINIO_ENDPOINT || '51.250.17.150',
+                    CONTRACTS_API_URL: process.env.CONTRACTS_API_URL || 'https://gogovorprizmatic.onrender.com',
+                    GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
+                    GEMINI_API_KEY: process.env.GEMINI_API_KEY
+>>>>>>> d4306959aa221b0eb872970fe06d8d9816de1ea4
                 };
 
-                console.log('[Config] Returning config with URL:', config.SUPABASE_URL?.substring(0, 30) + '...');
+                console.log('[Config] Returning config with DB_HOST:', config.DB_HOST);
 
                 res.setHeader('Content-Type', 'application/javascript');
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
