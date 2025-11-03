@@ -1157,9 +1157,6 @@ async function handler(req, res) {
             case 'list-storage-files':
                 result = await handleListStorageFiles(body);
                 break;
-            case 'list-support-chats':
-                result = await handleListSupportChats();
-                break;
             case 'select-rentals-with-relations': {
                 const rows = await selectRentalsWithRelations({
                     filters: Array.isArray(body.filters) ? body.filters : [],
