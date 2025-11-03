@@ -1,9 +1,6 @@
-const { getSupabaseServiceRoleClient, getSupabaseAnonClient } = require('../supabase');
+const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 const crypto = require('crypto');
-
-// Get WEBAPP_URL from environment variables
-const WEBAPP_URL = process.env.WEBAPP_URL || 'https://prizmatic-2004.vercel.app';
 
 function normalizePhone(phone) {
     if (!phone) return '';
@@ -39,7 +36,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         return { status: 400, body: { error: 'userId and tariffId are required' } };
     }
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const [tariffResult, clientResult] = await Promise.all([
         supabaseAdmin.from('tariffs').select('price_rub, duration_days').eq('id', tariffId).single(),
         supabaseAdmin.from('clients').select('balance_rub, city').eq('id', userId).single()
@@ -140,7 +137,7 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 async function handleSaveCard({ userId }) {
     if (!userId) throw new Error('Client ID (userId) is required.');
 
-    const supabase = getSupabaseAnonClient();
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
     const { data: clientData, error: clientError } = await supabase.from('clients').select('phone').eq('id', userId).single();
     if (clientError || !clientData) throw new Error(`Client with id ${userId} not found in Supabase.`);
 
@@ -157,7 +154,7 @@ async function handleSaveCard({ userId }) {
         description,
         metadata: { userId, payment_type: 'save_card' }, // Special metadata
         save_payment_method: true,
-        confirmation: { type: 'redirect', return_url: `${WEBAPP_URL}/profile.html?card_saved=true` }, // Redirect back to profile
+        confirmation: { type: 'redirect', return_url: 'https://prizmatic-2004.vercel.app/profile.html?card_saved=true' }, // Redirect back to profile
         receipt: {
             customer: { phone: normalizedPhone },
             items: [{
@@ -197,7 +194,7 @@ async function handleCreatePayment(body) {
     const { userId, tariffId, amount: amountFromClient, type, rentalId, return_url, bikeCode, days } = body;
     if (!userId) throw new Error('Client ID (userId) is required.');
 
-    const supabaseAdmin = getSupabaseServiceRoleClient();
+    const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const { data: clientData, error: clientError } = await supabaseAdmin.from('clients').select('phone, balance_rub, yookassa_payment_method_id').eq('id', userId).single();
     if (clientError || !clientData) throw new Error(`Client not found.`);
 
@@ -212,7 +209,7 @@ async function handleCreatePayment(body) {
     // Determine payment type and calculate amounts
     if (type === 'renewal') {
         paymentType = 'renewal';
-        successRedirectUrl = `${WEBAPP_URL}/?renewal_success=true`;
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?renewal_success=true';
         description = `Продление аренды`;
         const renewalCost = Number.parseFloat(amountFromClient);
 
@@ -226,12 +223,12 @@ async function handleCreatePayment(body) {
         }
     } else if (type === 'booking') {
         paymentType = 'booking';
-        successRedirectUrl = `${WEBAPP_URL}/?booking_success=true`;
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?booking_success=true';
         description = `Бронирование велосипеда`;
         amount = Number.parseFloat(amountFromClient);
     } else if (tariffId && amountFromClient) {
         paymentType = 'rental';
-        successRedirectUrl = `${WEBAPP_URL}/?rental_success=true`;
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?rental_success=true';
         const tariffCost = Number.parseFloat(amountFromClient);
         description = `Аренда велосипеда`;
 
@@ -245,7 +242,7 @@ async function handleCreatePayment(body) {
         }
     } else if (amountFromClient) {
         paymentType = 'top-up';
-        successRedirectUrl = `${WEBAPP_URL}/?topup_success=true`;
+        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?topup_success=true';
         description = 'Пополнение баланса PRIZMATIC';
         amount = Number.parseFloat(amountFromClient);
     } else {
