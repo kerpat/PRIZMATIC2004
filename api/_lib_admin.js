@@ -523,12 +523,12 @@ async function listSupportChats() {
             MAX(created_at) AS last_message_at,
             BOOL_OR(sender = 'user' AND is_read = false) AS has_unread,
             (ARRAY_AGG(message_text ORDER BY created_at DESC) FILTER (WHERE message_text IS NOT NULL))[1] AS last_message_text,
-            MAX(clients::text)::jsonb AS clients,
-            MAX(client_id) AS client_id,
-            MAX(anonymous_chat_id) AS anonymous_chat_id
+            (ARRAY_AGG(clients ORDER BY created_at DESC))[1] AS clients,
+            (ARRAY_AGG(client_id ORDER BY created_at DESC))[1] AS client_id,
+            (ARRAY_AGG(anonymous_chat_id ORDER BY created_at DESC))[1] AS anonymous_chat_id
         FROM ordered
         GROUP BY COALESCE(client_id::text, anonymous_chat_id::text)
-        ORDER BY last_message_at DESC`
+        ORDER BY MAX(created_at) DESC`
     );
 
     return { status: 200, body: { chats: result.rows } };
