@@ -518,10 +518,10 @@ async function listSupportChats() {
             LEFT JOIN clients c ON c.id = sm.client_id
         )
         SELECT
-            MIN(id) AS chat_id,
-            MIN(created_at) AS first_message_at,
+            (ARRAY_AGG(id ORDER BY created_at ASC))[1] AS chat_id,
+            (ARRAY_AGG(created_at ORDER BY created_at ASC))[1] AS first_message_at,
             MAX(created_at) AS last_message_at,
-            MAX(CASE WHEN sender = 'user' AND is_read = false THEN 1 ELSE 0 END) > 0 AS has_unread,
+            BOOL_OR(sender = 'user' AND is_read = false) AS has_unread,
             (ARRAY_AGG(message_text ORDER BY created_at DESC) FILTER (WHERE message_text IS NOT NULL))[1] AS last_message_text,
             MAX(clients::text)::jsonb AS clients,
             MAX(client_id) AS client_id,
