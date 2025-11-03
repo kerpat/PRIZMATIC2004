@@ -1197,15 +1197,6 @@ async function handler(req, res) {
             case 'list-support-chats':
                 result = await handleListSupportChats();
                 break;
-            case 'get-support-history':
-                result = await handleGetSupportHistory(body);
-                break;
-            case 'send-support-message-admin':
-                result = await handleSendSupportMessageAdmin(body);
-                break;
-            case 'mark-support-user-read':
-                result = await handleMarkSupportUserRead(body);
-                break;
             case 'select-rentals-with-relations': {
                 const rows = await selectRentalsWithRelations({
                     filters: Array.isArray(body.filters) ? body.filters : [],
@@ -1246,6 +1237,18 @@ async function handler(req, res) {
                 result = { status: 200, body: { data: rows } };
                 break;
             }
+            case 'list-support-chats':
+                result = await listSupportChats();
+                break;
+            case 'get-support-history':
+                result = await handleGetSupportHistory(body);
+                break;
+            case 'send-support-message-admin':
+                result = await handleSendSupportMessageAdmin(body);
+                break;
+            case 'mark-support-user-read':
+                result = await handleMarkSupportUserRead(body);
+                break;
             case 'link-anonymous-chat':
                 result = await handleLinkAnonymousChat(body);
                 break;

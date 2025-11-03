@@ -68,32 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function normalizeChats(raw) {
-        const { anonymousChats = [], clientChats = [] } = raw || {};
-        const normalized = [];
-
-        anonymousChats.forEach((chat) => {
-            normalized.push({
-                id: chat.anonymous_chat_id,
-                isAnonymous: true,
-                name: `Анонимный чат ${chat.anonymous_chat_id.slice(-4)}`,
-                phone: null,
-                lastMessageText: chat.last_message_text || '',
-                lastMessageAt: chat.last_message_at || null,
-                unreadCount: Number(chat.unread_count || 0),
-            });
-        });
-
-        clientChats.forEach((chat) => {
-            normalized.push({
-                id: chat.client_id,
-                isAnonymous: false,
-                name: chat.name || 'Без имени',
-                phone: chat.phone || 'Не указан',
-                lastMessageText: chat.last_message_text || '',
-                lastMessageAt: chat.last_message_at || null,
-                unreadCount: Number(chat.unread_count || 0),
-            });
-        });
+        const chats = Array.isArray(raw?.chats) ? raw.chats : [];
+        const normalized = chats.map((chat) => ({
+            id: chat.client_id || chat.anonymous_chat_id || chat.reference_id || chat.chat_id,
+            isAnonymous: !chat.client_id,
+            name: chat.clients?.name || (chat.anonymous_chat_id ? `Анонимный чат ${String(chat.anonymous_chat_id).slice(-4)}` : 'Без имени'),
+            phone: chat.clients?.phone || null,
+            lastMessageText: chat.last_message_text || '',
+            lastMessageAt: chat.last_message_at || chat.updated_at || null,
+            unreadCount: Number(chat.has_unread ? 1 : chat.unread_count || 0),
+        }));
 
         normalized.sort((a, b) => {
             const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
