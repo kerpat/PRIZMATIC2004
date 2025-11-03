@@ -30,14 +30,18 @@ export async function getActiveRental(userId) {
     return data;
 }
 
-export async function createPayment(userId, bikeId, tariffId, extra = {}) {
+export async function createPayment(userId, bikeCode, tariffId, extra = {}) {
     const payload = {
         action: 'create-payment',
         userId,
-        bikeId,
         tariffId,
         ...extra,
     };
+
+    if (bikeCode) {
+        payload.bikeCode = bikeCode;
+        payload.bikeId = bikeCode;
+    }
 
     return post('/api/payments', payload);
 }
@@ -50,6 +54,11 @@ export async function getRentalBatteries(rentalId) {
 
 export async function getAvailableBikes(city) {
     const data = await post('/api/data', { action: 'get-available-bikes', city });
+    return Array.isArray(data) ? data : [];
+}
+
+export async function getTariffs(activeOnly = false) {
+    const data = await post('/api/data', { action: 'get-tariffs', activeOnly });
     return Array.isArray(data) ? data : [];
 }
 

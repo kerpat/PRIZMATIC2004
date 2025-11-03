@@ -1,3 +1,5 @@
+import { getRentalBatteries } from './api.js';
+
 function getProgressColor(progress) {
     if (progress > 50) return '#40A4DF'; // azure
     if (progress > 20) return '#f5a623'; // orange
@@ -5,9 +7,11 @@ function getProgressColor(progress) {
 }
 
 function formatBalance(balance) {
-    return `${balance.toFixed(2)} ₽`;
+    const amount = Number(balance ?? 0);
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    return `${safeAmount.toFixed(2)} ₽`;
 }
-import { getRentalBatteries } from './api.js';
+
 export function renderDefaultView(mainContent) {
     mainContent.innerHTML = `
         <div class="bike-image-wrapper">
@@ -23,8 +27,11 @@ export function renderDefaultView(mainContent) {
             <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">0 ₽</strong></div></div>
         </div>
         <div class="action-buttons">
-            <button class="btn btn-primary" id="scan-qr-btn">Сканировать QR-код</button>
-            <div class="secondary-actions"><button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button><button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button><button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button></div>
+            <button class="btn btn-primary" id="scan-qr-btn">Тарифы</button>
+            <div class="secondary-actions">
+                <button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button>
+                <button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button>
+            </div>
         </div>
         <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
     `;
