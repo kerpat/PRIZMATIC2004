@@ -3000,6 +3000,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const rentals = Array.isArray(data) ? data : [];
+            console.groupCollapsed('[admin] loadAssignments debug');
+            console.log('total:', rentals.length);
+            console.log('rows:', rentals);
+            console.groupEnd();
+
             if (rentals.length === 0) {
                 assignmentsTableBody.innerHTML = '<tr><td colspan="5">Нет активных заявок.</td></tr>';
                 return;
