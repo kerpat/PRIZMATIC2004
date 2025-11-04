@@ -472,23 +472,33 @@ async function selectRentalsWithRelations({ filters = [], order = null, limit = 
     appendOrderLimit(sqlParts, normalizedOrder, limit, offset, values);
 
     const finalSQL = sqlParts.join('\n');
-    console.log('[admin][rentals] SQL:', finalSQL);
-    console.log('[admin][rentals] values:', JSON.stringify(values));
-    console.log('[admin][rentals] filters:', JSON.stringify(filters));
+    
+    // ВРЕМЕННАЯ ОТЛАДКА: выводим SQL
+    const debugInfo = {
+        sql: finalSQL,
+        values: values,
+        filters: filters,
+        timestamp: new Date().toISOString()
+    };
     
     try {
         const result = await query(finalSQL, values);
-        console.log('[admin][rentals] query result rows count:', result.rows?.length || 0);
+        debugInfo.rowsCount = result.rows?.length || 0;
+        debugInfo.success = true;
+        
+        // Временно: добавляем отладочную инфу в каждую строку
         if (result.rows && result.rows.length > 0) {
-            console.log('[admin][rentals] first row sample:', JSON.stringify(result.rows[0], null, 2));
-        } else {
-            console.log('[admin][rentals] WARNING: query returned empty result');
+            result.rows.forEach(row => {
+                row.__debug = { filters, sql: finalSQL.substring(0, 100) + '...', rowsCount: result.rows.length };
+            });
         }
+        
+        console.log('[admin][rentals] DEBUG:', JSON.stringify(debugInfo));
         return result.rows ?? [];
     } catch (error) {
-        console.error('[admin][rentals] Query error:', error);
-        console.error('[admin][rentals] SQL that failed:', finalSQL);
-        console.error('[admin][rentals] Values that failed:', values);
+        debugInfo.error = error.message;
+        debugInfo.success = false;
+        console.error('[admin][rentals] ERROR:', JSON.stringify(debugInfo));
         throw error;
     }
 }
@@ -1213,12 +1223,18 @@ async function handler(req, res) {
                 result = await handleListStorageFiles(body);
                 break;
             case 'select-rentals-with-relations': {
+                console.log('[admin] select-rentals-with-relations called');
+                console.log('[admin] filters:', body.filters);
+                console.log('[admin] order:', body.order);
+                
                 const rows = await selectRentalsWithRelations({
                     filters: Array.isArray(body.filters) ? body.filters : [],
                     order: body.order || null,
                     limit: body.limit != null ? Number(body.limit) : null,
                     offset: body.offset != null ? Number(body.offset) : null,
                 });
+
+                console.log('[admin] Rows returned from selectRentalsWithRelations:', rows.length);
 
                 if (body.single) {
                     const row = rows[0] || null;
@@ -1230,6 +1246,8 @@ async function handler(req, res) {
                 } else {
                     result = { status: 200, body: { data: rows } };
                 }
+                
+                console.log('[admin] Returning result with data length:', result.body?.data?.length || 0);
                 break;
             }
             case 'select-bookings-with-client': {
