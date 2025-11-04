@@ -69,7 +69,7 @@ async function processInstantTopUp({ userId, amount, payment }) {
     return true;
 }
 
-async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, days }) {
+async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, days, rentalId, extension }) {
     if (!userId || !tariffId) {
         return { status: 400, body: { error: 'userId and tariffId are required' } };
     }
@@ -102,6 +102,46 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 
     if (userBalance < rentalCost) {
         return { status: 400, body: { error: 'Client has insufficient balance.' } };
+    }
+
+    if (rentalId) {
+        await transact(async (dbClient) => {
+            await addToBalance(userId, -rentalCost, dbClient);
+
+            const rentalResult = await dbClient.query(
+                'SELECT current_period_ends_at, total_paid_rub FROM rentals WHERE id = $1 FOR UPDATE',
+                [rentalId]
+            );
+            const rental = rentalResult.rows[0];
+            if (!rental) {
+                throw new Error('Rental not found for renewal.');
+            }
+
+            const daysToAdd = Number(duration || 0);
+            const newEndDate = new Date(rental.current_period_ends_at || new Date());
+            newEndDate.setDate(newEndDate.getDate() + daysToAdd);
+            const totalPaid = Number(rental.total_paid_rub || 0) + rentalCost;
+
+            await dbClient.query(
+                'UPDATE rentals SET current_period_ends_at = $1, total_paid_rub = $2 WHERE id = $3',
+                [newEndDate.toISOString(), totalPaid, rentalId]
+            );
+
+            await logPayment({
+                clientId: userId,
+                rentalId,
+                amountRub: rentalCost,
+                status: 'succeeded',
+                paymentType: 'renewal',
+                method: 'balance',
+                paymentMethodTitle: 'Баланс',
+                yookassaPaymentId: null,
+                description: 'Продление с баланса',
+                createdAt: new Date(),
+            }, dbClient);
+        });
+
+        return { status: 200, body: { success: true, message: 'Rental renewed from balance.' } };
     }
 
     let bikeId = null;
