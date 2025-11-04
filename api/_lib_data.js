@@ -160,7 +160,28 @@ async function handleSelect(params) {
         }
     }
 
-    return { data, error: null, count, wrapResponse: true };
+return { data, error: null, count, wrapResponse: true };
+}
+
+function prepareValue(value) {
+    if (value === undefined) {
+        return null;
+    }
+    if (value === null) {
+        return null;
+    }
+    if (value instanceof Date) {
+        return value;
+    }
+    if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+        try {
+            return JSON.stringify(value);
+        } catch (error) {
+            console.warn('[Data API] Failed to serialize value to JSON:', error);
+            return JSON.stringify({});
+        }
+    }
+    return value;
 }
 
 async function handleInsert(params) {
