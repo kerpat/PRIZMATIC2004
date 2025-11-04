@@ -1646,14 +1646,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 'rejected': 'Отклонена'
             };
 
-            const { data, error } = await supabase
+            const { data, error } = await window.dbClient
                 .from('rentals')
                 .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone), rental_batteries(batteries(serial_number))')
                 .order('starts_at', { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                throw new Error(error?.message || 'Не удалось загрузить аренды');
+            }
+            const rentals = Array.isArray(data) ? data : [];
+            console.groupCollapsed('[admin] loadRentals debug');
+            console.log('total:', rentals.length);
+            console.log('rows:', rentals);
+            console.groupEnd();
+
             tbody.innerHTML = '';
-            (data || []).forEach(r => {
+            rentals.forEach(r => {
                 const tr = document.createElement('tr');
                 const start = r.starts_at ? new Date(r.starts_at).toLocaleString('ru-RU') : '—';
                 const end = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
@@ -1698,7 +1706,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // Открываем план платежей
                     try {
-                        const { data: rental, error } = await supabase
+                        const { data: rental, error } = await window.dbClient
                             .from('rentals')
                             .select('*, clients(name, phone), tariffs(duration_days, price_rub)')
                             .eq('id', r.id)
