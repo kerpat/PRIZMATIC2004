@@ -138,10 +138,17 @@
             this.offsetValue = null;
             this.isSingleRow = false;
             this.allowEmptySingle = false;
+            this.mode = 'select';
+            this.mutationData = null;
+            this.returningFields = null;
         }
 
         select(fields = '*') {
-            this.selectFields = fields;
+            if (this.mode === 'select') {
+                this.selectFields = fields;
+            } else {
+                this.returningFields = fields;
+            }
             return this;
         }
 
@@ -224,29 +231,75 @@
             return this;
         }
 
-        async insert(payload) {
-            return this.client._dataRequest('insert', {
-                table: this.table,
-                data: payload,
-            });
+        _setMutation(mode, payload = null) {
+            this.mode = mode;
+            this.mutationData = payload;
+            return this;
         }
 
-        async update(payload) {
-            return this.client._dataRequest('update', {
-                table: this.table,
-                data: payload,
-                filters: this.filters,
-            });
+        insert(payload) {
+            return this._setMutation('insert', payload);
         }
 
-        async delete() {
-            return this.client._dataRequest('delete', {
-                table: this.table,
-                filters: this.filters,
-            });
+        update(payload) {
+            return this._setMutation('update', payload);
+        }
+
+        delete() {
+            return this._setMutation('delete');
+        }
+
+        _resetMutationState() {
+            this.mode = 'select';
+            this.mutationData = null;
+            this.returningFields = null;
+            this.filters = [];
+            this.orderBy = null;
+            this.limitValue = null;
+            this.offsetValue = null;
+            this.isSingleRow = false;
+            this.allowEmptySingle = false;
+        }
+
+        async _executeMutation() {
+            const payload = { table: this.table };
+            if (this.mode === 'insert' || this.mode === 'update') {
+                payload.data = this.mutationData;
+            }
+            if (this.mode !== 'insert') {
+                payload.filters = this.filters;
+            }
+            if (this.returningFields) {
+                payload.returning = this.returningFields;
+            }
+
+            const response = await this.client._dataRequest(this.mode, payload);
+            this._resetMutationState();
+
+            if (response?.error) {
+                return { data: null, error: response.error };
+            }
+
+            let data = response?.data ?? null;
+            if (this.isSingleRow && Array.isArray(data)) {
+                data = data[0] ?? null;
+            }
+
+            if (!this.allowEmptySingle && this.isSingleRow && !data) {
+                return {
+                    data: null,
+                    error: { message: 'Record not found', code: 'NO_ROWS' },
+                };
+            }
+
+            return { data, error: null, count: response?.count ?? null };
         }
 
         async execute() {
+            if (this.mode !== 'select') {
+                return this._executeMutation();
+            }
+
             const selectFields = this.selectFields || '*';
             const needsRentalRelations = this.table === 'rentals' && /(clients|tariffs|rental_batteries|bikes)\s*\(/.test(selectFields);
             if (needsRentalRelations) {
