@@ -3017,7 +3017,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rentals = Array.isArray(data) ? data : [];
             console.groupCollapsed('[admin] loadAssignments debug');
+            console.log('data received:', data);
+            console.log('is array:', Array.isArray(data));
             console.log('rows:', rentals);
+            console.log('rows length:', rentals.length);
             console.groupEnd();
 
             if (rentals.length === 0) {

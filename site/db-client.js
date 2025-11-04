@@ -296,13 +296,22 @@
         }
 
         async execute() {
+            console.log('[db-client] execute() called, table:', this.table, 'mode:', this.mode, 'selectFields:', this.selectFields);
+            
             if (this.mode !== 'select') {
                 return this._executeMutation();
             }
 
             const selectFields = this.selectFields || '*';
+            console.log('[db-client] Checking if needs rental relations...');
+            console.log('[db-client] table === rentals?', this.table === 'rentals');
+            console.log('[db-client] regex test:', /(clients|tariffs|rental_batteries|bikes)\s*\(/.test(selectFields));
+            
             const needsRentalRelations = this.table === 'rentals' && /(clients|tariffs|rental_batteries|bikes)\s*\(/.test(selectFields);
+            console.log('[db-client] needsRentalRelations:', needsRentalRelations);
+            
             if (needsRentalRelations) {
+                console.log('[db-client] Making admin request with filters:', this.filters);
                 const adminResponse = await this.client._adminRequest({
                     action: 'select-rentals-with-relations',
                     filters: this.filters,
@@ -313,12 +322,20 @@
                     maybeSingle: this.allowEmptySingle,
                 });
 
+                console.log('[db-client] Admin response status:', adminResponse.status);
+                console.log('[db-client] Admin response body:', adminResponse.body);
+                console.log('[db-client] Admin response data:', adminResponse.body?.data);
+
                 if (adminResponse.status !== 200) {
                     const message = adminResponse.body?.error || 'Request failed';
                     return { data: null, error: { message } };
                 }
 
                 let data = adminResponse.body?.data ?? null;
+                console.log('[db-client] Extracted data:', data);
+                console.log('[db-client] Is array?', Array.isArray(data));
+                console.log('[db-client] Data length:', Array.isArray(data) ? data.length : 'not array');
+                
                 if (this.isSingleRow && Array.isArray(data)) {
                     data = data[0] ?? null;
                 }
