@@ -68,10 +68,8 @@ function closeModalById(id) {
 function updateHeader(user) {
     const header = document.querySelector('.app-header h1');
     if (!header) return;
-    const firstName = typeof user?.name === 'string' ? user.name.split(' ')[0] : null;
-    if (firstName) {
-        header.textContent = `Привет, ${firstName}!`;
-    } else if (user?.city) {
+    // Убрали приветствие - просто показываем бренд или город
+    if (user?.city) {
         header.textContent = user.city;
     } else {
         header.textContent = 'PRIZMATIC';
