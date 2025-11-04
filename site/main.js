@@ -501,9 +501,22 @@ async function handleExtendConfirm(event) {
     } catch (error) {
         const message = String(error?.message || error);
         if (message.includes('Balance is sufficient')) {
-            alert('Баланс уже покрывает продление. Запрос будет обработан автоматически, как только предыдущая операция завершится.');
+            try {
+                await chargeFromBalance(state.user.id, tariff.id, {
+                    rentalId: rental.id,
+                    amount,
+                    days: normalizedDays,
+                    extension: option.raw ?? null,
+                });
+                alert('Продление списано с баланса. Страница обновится автоматически.');
+                closeModalById('extend-modal');
+                await refreshUser();
+                await refreshRentalView();
+            } catch (balanceError) {
+                alert(`Не удалось продлить с баланса: ${balanceError.message}`);
+            }
         } else {
-            alert(`Не удалось выполнить операцию: ${message}`);
+            alert(`Не удалось выполнить продление: ${message}`);
         }
     } finally {
         state.processingExtension = false;
