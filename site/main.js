@@ -465,14 +465,16 @@ async function handleExtendConfirm(event) {
         trigger.textContent = 'Обработка...';
     }
 
+    let amount = Number.NaN;
+    let normalizedDays;
     try {
-        const amount = Number(option.price_rub);
+        amount = Number(option.price_rub);
         if (!Number.isFinite(amount) || amount <= 0) {
             throw new Error('Не удалось определить стоимость продления.');
         }
 
         const days = Number(option.duration_days);
-        const normalizedDays = Number.isFinite(days) && days > 0 ? days : undefined;
+        normalizedDays = Number.isFinite(days) && days > 0 ? days : undefined;
 
         const response = await createPayment(state.user.id, null, tariff.id, {
             amount,
@@ -604,7 +606,7 @@ async function checkoutTariff(tariff, option, { trigger } = {}) {
     }
 
     try {
-        const amount = Number(option.price_rub);
+        amount = Number(option.price_rub);
         if (!Number.isFinite(amount) || amount <= 0) {
             throw new Error('Не удалось определить стоимость тарифа.');
         }
