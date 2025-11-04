@@ -2981,11 +2981,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!assignmentsTableBody) return;
         assignmentsTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
         try {
-            const { data, error } = await supabase
+            const { data, error } = await window.dbClient
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
