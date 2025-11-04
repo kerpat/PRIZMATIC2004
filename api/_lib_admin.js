@@ -418,22 +418,31 @@ async function selectRentalsWithRelations({ filters = [], order = null, limit = 
             r.status,
             r.extra_data,
             r.created_at,
-            jsonb_build_object(
-                'id', c.id,
-                'name', c.name,
-                'phone', c.phone
-            ) AS clients,
-            jsonb_build_object(
-                'id', t.id,
-                'title', t.title,
-                'price_rub', t.price_rub,
-                'duration_days', t.duration_days
-            ) AS tariffs,
-            jsonb_build_object(
-                'id', b.id,
-                'model_name', b.model_name,
-                'bike_code', b.bike_code
-            ) AS bikes,
+            CASE 
+                WHEN c.id IS NOT NULL THEN jsonb_build_object(
+                    'id', c.id,
+                    'name', c.name,
+                    'phone', c.phone
+                )
+                ELSE NULL
+            END AS clients,
+            CASE 
+                WHEN t.id IS NOT NULL THEN jsonb_build_object(
+                    'id', t.id,
+                    'title', t.title,
+                    'price_rub', t.price_rub,
+                    'duration_days', t.duration_days
+                )
+                ELSE NULL
+            END AS tariffs,
+            CASE 
+                WHEN b.id IS NOT NULL THEN jsonb_build_object(
+                    'id', b.id,
+                    'model_name', b.model_name,
+                    'bike_code', b.bike_code
+                )
+                ELSE NULL
+            END AS bikes,
             COALESCE(
                 (
                     SELECT jsonb_agg(
@@ -462,11 +471,26 @@ async function selectRentalsWithRelations({ filters = [], order = null, limit = 
 
     appendOrderLimit(sqlParts, normalizedOrder, limit, offset, values);
 
-    if (process.env.DEBUG_ADMIN_SQL) {
-        console.log('[admin][rentals] SQL:', sqlParts.join(' '), 'values:', values);
+    const finalSQL = sqlParts.join('\n');
+    console.log('[admin][rentals] SQL:', finalSQL);
+    console.log('[admin][rentals] values:', JSON.stringify(values));
+    console.log('[admin][rentals] filters:', JSON.stringify(filters));
+    
+    try {
+        const result = await query(finalSQL, values);
+        console.log('[admin][rentals] query result rows count:', result.rows?.length || 0);
+        if (result.rows && result.rows.length > 0) {
+            console.log('[admin][rentals] first row sample:', JSON.stringify(result.rows[0], null, 2));
+        } else {
+            console.log('[admin][rentals] WARNING: query returned empty result');
+        }
+        return result.rows ?? [];
+    } catch (error) {
+        console.error('[admin][rentals] Query error:', error);
+        console.error('[admin][rentals] SQL that failed:', finalSQL);
+        console.error('[admin][rentals] Values that failed:', values);
+        throw error;
     }
-    const result = await query(sqlParts.join('\n'), values);
-    return result.rows ?? [];
 }
 
 async function selectBookingsWithClient({ filters = [], order = null, limit = null, offset = null }) {
