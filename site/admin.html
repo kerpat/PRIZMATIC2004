@@ -33,15 +33,6 @@
       });
     };
 
-    window.loadTipTap = () => {
-      if (window.TipTap) return Promise.resolve();
-      return new Promise((resolve) => {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@tiptap/starter-kit@2.0.0-beta.183/dist/index.global.js';
-        script.onload = resolve;
-        document.head.appendChild(script);
-      });
-    };
 
     window.loadYandexMaps = () => {
       if (window.ymaps) return Promise.resolve();

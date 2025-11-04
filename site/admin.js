@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentEditingId = null;
     let currentEditingExtra = null;
     let bookingUpdateInterval = null; // Таймер для обновления броней
-    let templateEditorInstance = null; // TipTap editor instance
+    // Редактор шаблонов - обычный contenteditable
 
     // --- Map Logic (НОВЫЙ БЛОК) ---
     const adminMapSection = document.getElementById('admin-map-section');
@@ -3016,12 +3016,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const rentals = Array.isArray(data) ? data : [];
-            console.groupCollapsed('[admin] loadAssignments debug');
-            console.log('data received:', data);
-            console.log('is array:', Array.isArray(data));
-            console.log('rows:', rentals);
-            console.log('rows length:', rentals.length);
-            console.groupEnd();
 
             if (rentals.length === 0) {
                 const { data: rawRentals, error: rawError } = await window.dbClient
@@ -4772,17 +4766,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toolbarAction(e) {
         const btn = e.target.closest('button[data-cmd]');
-        if (!btn || !templateEditorInstance) return;
+        if (!btn) return;
         const cmd = btn.dataset.cmd;
+        const editorElement = document.getElementById('template-editor');
+        if (!editorElement) return;
+        
+        editorElement.focus();
         if (cmd === 'bold') {
-            templateEditorInstance.chain().focus().toggleBold().run();
+            document.execCommand('bold', false);
         } else if (cmd === 'italic') {
-            templateEditorInstance.chain().focus().toggleItalic().run();
+            document.execCommand('italic', false);
         } else if (cmd === 'underline') {
-            // Underline not in StarterKit, need to add extension
-            // For now, skip or add later
+            document.execCommand('underline', false);
         } else if (cmd === 'insertParagraph') {
-            templateEditorInstance.chain().focus().setParagraph().run();
+            document.execCommand('formatBlock', false, 'p');
         }
     }
 
@@ -4903,30 +4900,19 @@ document.addEventListener('DOMContentLoaded', () => {
         html = html.replace(/\{\{\s*([\w\.\-]+)\s*\}\}/g, (_, k) => { const v = pathGet(ctx, k); return v === undefined ? '' : String(v) });
         return html;
     }
-    function openTemplatePreview() { if (!templatePreviewOverlay || !templatePreviewContent) return; templatePreviewContent.innerHTML = buildPreviewHTML(); templatePreviewOverlay.classList.remove('hidden'); }
+    function openTemplatePreview() {
+        if (!templatePreviewOverlay || !templatePreviewContent) return;
+        const editorElement = document.getElementById('template-editor');
+        if (!editorElement) return;
+        templatePreviewContent.innerHTML = editorElement.innerHTML;
+        templatePreviewOverlay.classList.remove('hidden');
+    }
     function closeTemplatePreview() { if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
     if (templatePreviewBtn) templatePreviewBtn.addEventListener('click', openTemplatePreview);
     if (templatePreviewClose) templatePreviewClose.addEventListener('click', closeTemplatePreview);
     if (templatePreviewOverlay) templatePreviewOverlay.addEventListener('click', (e) => { if (e.target === templatePreviewOverlay) closeTemplatePreview(); });
 
-    function initTemplateEditor() {
-        if (templateEditorInstance) {
-            templateEditorInstance.destroy();
-        }
-        const editorElement = document.getElementById('template-editor');
-        if (editorElement) {
-            templateEditorInstance = new TipTap.Editor({
-                element: editorElement,
-                extensions: [
-                    TipTap.StarterKit,
-                ],
-                content: '',
-                onUpdate: ({ editor }) => {
-                    // Optional: handle updates
-                },
-            });
-        }
-    }
+    // TipTap удалён - используем обычный contenteditable
 
     async function loadTemplates() {
         try {
@@ -4939,9 +4925,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // включаем перетаскивание и постподсветку
             enableDnDForChips();
-
-            // Initialize TipTap editor
-            initTemplateEditor();
 
             const { data, error } = await supabase.from('contract_templates').select('*').order('id', { ascending: true });
             if (error) throw error;
@@ -4970,11 +4953,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveTemplate() {
-        if (!templateEditorInstance) return;
+        const editorElement = document.getElementById('template-editor');
+        if (!editorElement) return;
         const id = (document.getElementById('template-id') || {}).value;
         const name = (document.getElementById('template-name') || {}).value || 'Без названия';
         const isActive = (document.getElementById('template-active') || { checked: true }).checked;
-        const content = templateEditorInstance.getHTML() || '';
+        const content = editorElement.innerHTML || '';
         const rec = { name, content, is_active: isActive, placeholders: PLACEHOLDERS };
         try {
             let resp;

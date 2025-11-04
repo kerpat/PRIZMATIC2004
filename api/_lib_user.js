@@ -1,6 +1,6 @@
 const { query: dbQuery } = require('./_lib_db');
 const fetch = require('node-fetch');
-const playwright = require('playwright-aws-lambda');
+// Playwright удален - используем HTML вместо PDF
 const htmlToDocx = require('html-to-docx');
 // Вспомогательная функция для выполнения запросов
 async function query(text, params) {
@@ -201,8 +201,6 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         return { status: 400, body: { error: 'userId, rentalId, and signatureData are required.' } };
     }
 
-    let browser = null;
-
     try {
         // ШАГ 1: Получаем все данные для договора
         const result = await query(
@@ -236,51 +234,54 @@ async function handleConfirmContract({ userId, rentalId, signatureData }) {
         // ШАГ 2: Собираем полный HTML для PDF-документа
         const contractBodyHTML = generateContractHTML(rentalData);
         const fullHTML = `
-            <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><style>
-            body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; line-height: 1.4; color: #333; }
+            <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+            body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
             table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-            th { background-color: #f2f2f2; font-weight: bold; width: 40%; }
-            h2, h4 { text-align: center; }
+            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            h2, h4 { text-align: center; margin: 20px 0; }
+            .signature-block { margin-top: 40px; page-break-inside: avoid; }
+            .signature-image { width: 200px; height: auto; border: 1px solid #ddd; padding: 10px; }
+            @media print {
+                body { padding: 0; }
+                .no-print { display: none; }
+            }
             </style></head><body>
                 ${contractBodyHTML}
-                <div style="margin-top: 30px; page-break-inside: avoid;">
+                <div class="signature-block">
                     <h4>Подпись Арендатора:</h4>
-                    <img src="${signatureData}" alt="Подпись" style="width: 180px; height: auto;"/>
+                    <img src="${signatureData}" alt="Подпись" class="signature-image"/>
+                    <p><small>Дата подписания: ${new Date().toLocaleString('ru-RU')}</small></p>
+                </div>
+                <div class="no-print" style="margin-top: 30px; text-align: center;">
+                    <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">Скачать PDF</button>
                 </div>
             </body></html>
         `;
 
-        // ШАГ 3: Запускаем "невидимый" браузер и генерируем PDF
-        browser = await playwright.launchChromium({ headless: true });
-        const context = await browser.newContext();
-        const page = await context.newPage();
-        await page.setContent(fullHTML, { waitUntil: 'load' });
-        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        // ШАГ 3: Сохраняем HTML договора (клиент сможет скачать PDF через браузер)
+        const contractHtmlBase64 = Buffer.from(fullHTML).toString('base64');
+        const contractUrl = `data:text/html;base64,${contractHtmlBase64}`;
 
-        // ШАГ 4: Загружаем готовый PDF в Minio (TODO: нужно будет реализовать)
-        // Пока сохраним как base64 в extra_data
-        const pdfBase64 = pdfBuffer.toString('base64');
-        const publicUrl = `data:application/pdf;base64,${pdfBase64}`;
-
-        // ШАГ 5: Активируем аренду и сохраняем ссылку на документ
+        // ШАГ 4: Активируем аренду и сохраняем HTML договора
         await query(
             `UPDATE rentals 
              SET status = 'active',
-                 extra_data = jsonb_set(COALESCE(extra_data, '{}'::jsonb), '{contract_document_url}', $1::jsonb)
-             WHERE id = $2 AND user_id = $3`,
-            [JSON.stringify(publicUrl), rentalId, userId]
+                 extra_data = jsonb_set(
+                     jsonb_set(COALESCE(extra_data, '{}'::jsonb), '{contract_document_url}', $1::jsonb),
+                     '{contract_signed_at}', $2::jsonb
+                 )
+             WHERE id = $3 AND user_id = $4`,
+            [JSON.stringify(contractUrl), JSON.stringify(new Date().toISOString()), rentalId, userId]
         );
 
-        return { status: 200, body: { message: 'Contract signed and rental activated' } };
+        return { status: 200, body: { message: 'Contract signed and rental activated', contractUrl } };
 
     } catch (error) {
         console.error('Contract confirmation error:', error);
         return { status: 500, body: { error: 'Не удалось сгенерировать договор: ' + error.message } };
-    } finally {
-        if (browser !== null) {
-            await browser.close();
-        }
     }
 }
 
