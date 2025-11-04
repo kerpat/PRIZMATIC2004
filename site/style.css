@@ -1847,52 +1847,73 @@ body:has(.map-page-container) .app-screen {
   /* Скругляем только верхние углы, а нижние оставляем прямыми (0) */
   border-radius: 6px 6px 0 0;
 
-  .rental-equipment-info {
-    margin: 15px 0;
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #e0f3fb 0%, #f0f9fd 100%);
-    border-radius: 16px;
-    border: 1px solid var(--progress-bar-bg);
-  }
+}
 
-  .equipment-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--dark-green);
-    opacity: 0.8;
-  }
+/* Блок с оборудованием в аренде */
+.rental-equipment-info {
+  margin: 12px 0 20px 0;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #e8f4f8 0%, #f0f9fc 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(74, 123, 167, 0.15);
+  box-shadow: 0 2px 8px rgba(74, 123, 167, 0.08);
+}
 
-  .equipment-label svg {
-    color: var(--icon-blue);
-  }
+.equipment-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dark-green);
+  opacity: 0.9;
+}
 
-  .battery-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+.equipment-label svg {
+  width: 16px;
+  height: 16px;
+  color: var(--icon-blue);
+  flex-shrink: 0;
+}
 
-  .battery-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 10px;
-    background: var(--white);
-    border: 1.5px solid var(--icon-blue);
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--dark-green);
-    box-shadow: 0 2px 4px rgba(74, 123, 167, 0.1);
-  }
+.battery-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 28px;
+}
 
-  .battery-chip svg {
-    width: 14px;
-    height: 14px;
-    color: var(--icon-blue);
-  }
+.battery-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--white);
+  border: 1.5px solid var(--icon-blue);
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dark-green);
+  box-shadow: 0 2px 6px rgba(74, 123, 167, 0.12);
+  transition: all 0.2s ease;
+}
+
+.battery-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(74, 123, 167, 0.18);
+}
+
+.battery-chip svg {
+  width: 16px;
+  height: 16px;
+  color: var(--icon-blue);
+  flex-shrink: 0;
+}
+
+.battery-chips .empty-message {
+  color: #7a9a95;
+  font-size: 0.8125rem;
+  font-style: italic;
+  padding: 4px 0;
 }

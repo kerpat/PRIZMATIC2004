@@ -117,7 +117,7 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
                     batteryList.appendChild(chip);
                 });
             } else {
-                batteryList.innerHTML = '<span style="color: #7a9a95; font-size: 0.85rem;">Информация недоступна</span>';
+                batteryList.innerHTML = '<span class="empty-message">Информация недоступна</span>';
             }
         }
     } catch (err) {
