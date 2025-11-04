@@ -11,6 +11,7 @@ const state = {
     detailOptions: [],
     detailOptionIndex: 0,
     processingTariff: false,
+    processingTopup: false,
 };
 
 const optionCache = new Map();
@@ -379,6 +380,91 @@ async function checkoutTariff(tariff, option, { trigger } = {}) {
     }
 }
 
+function showTopupSuccess(amount) {
+    const amountEl = document.getElementById('success-amount');
+    if (amountEl) {
+        amountEl.textContent = formatRub(amount);
+    }
+    showToast('success-toast', 3200);
+}
+
+async function handleTopup(event) {
+    event?.preventDefault();
+    if (!state.user || state.processingTopup) {
+        return;
+    }
+
+    const amountInput = document.getElementById('amount-input');
+    const trigger = event?.currentTarget || document.getElementById('pay-sbp-btn');
+    const rawValue = amountInput?.value?.replace(',', '.') ?? '';
+    const parsedAmount = Number.parseFloat(rawValue);
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        alert('Введите корректную сумму для пополнения.');
+        amountInput?.focus();
+        return;
+    }
+
+    state.processingTopup = true;
+    const amount = Math.round(parsedAmount * 100) / 100;
+    const originalText = trigger?.textContent;
+
+    if (trigger) {
+        trigger.disabled = true;
+        trigger.textContent = 'Создаём платёж...';
+    }
+
+    try {
+        const response = await createPayment(state.user.id, null, null, {
+            amount,
+            type: 'top-up',
+            return_url: `${window.location.origin}/?topup_success=true`,
+        });
+
+        if (response?.confirmation_url) {
+            window.location.href = response.confirmation_url;
+            return;
+        }
+
+        if (response?.status) {
+            const normalizedStatus = String(response.status).toLowerCase();
+
+            if (normalizedStatus === 'succeeded') {
+                showTopupSuccess(amount);
+                closeModalById('topup-modal');
+                if (amountInput) {
+                    amountInput.value = '';
+                }
+                await refreshUser();
+                return;
+            }
+
+            if (normalizedStatus === 'waiting_for_capture' || normalizedStatus === 'pending') {
+                alert('Платёж отправлен на обработку. Пополнение появится на балансе в течение нескольких минут.');
+                closeModalById('topup-modal');
+                await refreshUser();
+                return;
+            }
+
+            alert(`Платёж инициирован, текущий статус: ${response.status}. Проверьте историю операций позже.`);
+            closeModalById('topup-modal');
+            return;
+        }
+
+        alert('Платёж создан, но сервер не вернул статус. Проверьте баланс через пару минут.');
+        closeModalById('topup-modal');
+    } catch (error) {
+        console.error('[Main] Ошибка при пополнении баланса:', error);
+        alert(`Не удалось инициировать пополнение: ${error.message}`);
+    } finally {
+        if (trigger) {
+            trigger.disabled = false;
+            trigger.textContent = originalText || 'Пополнить';
+        }
+        state.processingTopup = false;
+    }
+}
+
 async function refreshUser() {
     if (!state.user) return null;
     try {
@@ -490,6 +576,12 @@ function attachStaticHandlers() {
     if (selectBtn && !selectBtn.dataset.bound) {
         selectBtn.dataset.bound = 'true';
         selectBtn.addEventListener('click', handleTariffSelection);
+    }
+
+    const payBtn = document.getElementById('pay-sbp-btn');
+    if (payBtn && !payBtn.dataset.bound) {
+        payBtn.dataset.bound = 'true';
+        payBtn.addEventListener('click', handleTopup);
     }
 }
 
