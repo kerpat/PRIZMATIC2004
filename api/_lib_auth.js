@@ -235,6 +235,49 @@ async function upsertClientByPhone({ phone, name, city, citizenship, country }) 
     return result.rows[0];
 }
 
+
+
+async function ensureTestClient(phone) {
+    const testPhone = '79129850281';
+    if (phone !== testPhone) {
+        return null;
+    }
+
+    let client = await findClientByPhone(phone);
+    if (!client) {
+        const testName = process.env.TEST_ACCOUNT_NAME || 'Тест Тестов';
+        const testCity = process.env.TEST_ACCOUNT_CITY || 'Москва';
+
+        await upsertClientByPhone({
+            phone,
+            name: testName,
+            city: testCity,
+            citizenship: 'RU',
+        });
+
+        await query(
+            `UPDATE clients
+             SET verification_status = 'approved',
+                 extra = COALESCE(extra, '{}'::jsonb) || $2::jsonb
+             WHERE phone = $1`,
+            [phone, safeJson({ test_account: true })]
+        );
+
+        client = await findClientByPhone(phone);
+    } else if (client.verification_status !== 'approved') {
+        await query(
+            `UPDATE clients
+             SET verification_status = 'approved',
+                 extra = COALESCE(extra, '{}'::jsonb) || $2::jsonb
+             WHERE id = $1`,
+            [client.id, safeJson({ test_account: true })]
+        );
+        client = await findClientByPhone(phone);
+    }
+
+    return client;
+}
+
 async function storeUploadedFiles(files, userId) {
     const entries = Object.entries(files || {});
     if (!entries.length) return [];
@@ -351,7 +394,10 @@ async function handleCheckUserExists(body, res) {
         res.status(400).json({ error: 'Phone is required.' });
         return;
     }
-    const client = await findClientByPhone(phone);
+    let client = await findClientByPhone(phone);
+    if (!client) {
+        client = await ensureTestClient(phone);
+    }
     res.status(200).json({ exists: !!client });
 }
 
@@ -367,7 +413,12 @@ async function handleLoginByPhone(body, res) {
         console.log('[auth] login-by-phone without skipCallCheck (assuming verification done upstream).');
     }
 
-    const client = await findClientByPhone(phone);
+    let client = await findClientByPhone(phone);
+
+    if (isTestPhone) {
+        client = await ensureTestClient(phone) || client;
+    }
+
     if (!client) {
         res.status(404).json({ error: 'Пользователь не найден' });
         return;
