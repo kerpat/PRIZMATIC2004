@@ -64,6 +64,30 @@ async function addToBalance(clientId, amount, dbClient) {
     await executor.query('SELECT add_to_balance($1::uuid, $2::numeric)', [clientId, amount]);
 }
 
+function toMoscowDate(value = new Date()) {
+    const source = value instanceof Date ? value : new Date(value);
+    if (!(source instanceof Date) || Number.isNaN(source.getTime())) {
+        return new Date();
+    }
+
+    const formatter = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
+
+    const formatted = formatter.format(source);
+    return new Date(`${formatted}+03:00`);
+}
+
+function getMoscowIsoString(value) {
+    return toMoscowDate(value).toISOString();
+}
+
 async function logPayment({
     clientId,
     rentalId = null,
@@ -109,7 +133,7 @@ async function logPayment({
     }
 
     if (columnsMetadata.created_at) {
-        const timestamp = createdAt instanceof Date ? createdAt.toISOString() : createdAt;
+        const timestamp = getMoscowIsoString(createdAt);
         columns.push('created_at');
         values.push(timestamp);
     }
@@ -128,4 +152,6 @@ module.exports = {
     getExecutor,
     addToBalance,
     logPayment,
+    toMoscowDate,
+    getMoscowIsoString,
 };

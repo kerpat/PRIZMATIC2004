@@ -90,7 +90,8 @@ export async function getPaymentsHistory({ userId, startDate, endDate, paymentTy
         paymentTypes,
         limit,
     };
-    return post('/api/data', payload);
+    const response = await post('/api/data', payload);
+    return Array.isArray(response) ? response : response?.data ?? [];
 }
 
 export async function getPaymentMethodDetails(userId) {
