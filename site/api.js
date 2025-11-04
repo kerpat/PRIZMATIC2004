@@ -15,15 +15,30 @@ async function post(endpoint, payload) {
     return data;
 }
 
+function logRequest(endpoint, payload, response) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    const stamp = new Date().toISOString();
+    console.groupCollapsed(`[api.js][${stamp}] POST ${endpoint}`);
+    console.log('Payload:', payload);
+    console.log('Response:', response);
+    console.groupEnd();
+}
+
 export async function getClient(userId) {
     if (!userId) return null;
-    const data = await post('/api/data', { action: 'get-client', userId });
+    const payload = { action: 'get-client', userId };
+    const data = await post('/api/data', payload);
+    logRequest('/api/data', payload, data);
     return data || null;
 }
 
 export async function getActiveRental(userId) {
     if (!userId) return null;
-    const data = await post('/api/data', { action: 'get-active-rental', userId });
+    const payload = { action: 'get-active-rental', userId };
+    const data = await post('/api/data', payload);
+    logRequest('/api/data', payload, data);
     if (!data || data.error) {
         return null;
     }
@@ -68,17 +83,24 @@ export async function getRentalBatteries(rentalId) {
 }
 
 export async function getAvailableBikes(city) {
-    const data = await post('/api/data', { action: 'get-available-bikes', city });
+    const payload = { action: 'get-available-bikes', city };
+    const data = await post('/api/data', payload);
+    logRequest('/api/data', payload, data);
     return Array.isArray(data) ? data : [];
 }
 
 export async function getTariffs(activeOnly = false) {
-    const data = await post('/api/data', { action: 'get-tariffs', activeOnly });
+    const payload = { action: 'get-tariffs', activeOnly };
+    const data = await post('/api/data', payload);
+    logRequest('/api/data', payload, data);
     return Array.isArray(data) ? data : [];
 }
 
 export async function getDashboardStats() {
-    return post('/api/data', { action: 'get-dashboard-stats' });
+    const payload = { action: 'get-dashboard-stats' };
+    const data = await post('/api/data', payload);
+    logRequest('/api/data', payload, data);
+    return data;
 }
 
 export async function getPaymentsHistory({ userId, startDate, endDate, paymentTypes, limit } = {}) {
@@ -91,6 +113,7 @@ export async function getPaymentsHistory({ userId, startDate, endDate, paymentTy
         limit,
     };
     const response = await post('/api/data', payload);
+    logRequest('/api/data', payload, response);
     return Array.isArray(response) ? response : response?.data ?? [];
 }
 
