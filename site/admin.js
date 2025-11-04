@@ -2321,11 +2321,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="7">Загрузка...</td></tr>';
         try {
-            const { data, error } = await supabase
-                .from('payments')
-                .select('id, yookassa_payment_id, amount_rub, payment_type, method, status, created_at, description, clients (name)')
-                .order('created_at', { ascending: false });
-            if (error) throw error;
+            const response = await fetch('/api/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get-all-payments', limit: 200 }),
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Не удалось загрузить платежи');
+            }
+            const data = Array.isArray(payload?.data) ? payload.data : [];
             console.groupCollapsed('[admin] loadPayments');
             console.log('rows:', data);
             console.groupEnd();
@@ -2365,8 +2370,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Build table row with separate payment_type and method columns
                 tr.innerHTML = `
-                    <td>${p.clients?.name || 'Н/Д'}</td>
-                    <td>${p.amount_rub ?? 0} ₽</td>
+                    <td>${p.client_name || 'Н/Д'}</td>
+                    <td>${Number(p.amount_rub ?? 0).toLocaleString('ru-RU')} ₽</td>
                     <td>${typeLabel}</td>
                     <td><span class="payment-method-badge ${p.method || ''}">${methodLabel}</span></td>
                     <td>${createStatusBadge(p.status, 'payment')}</td>
@@ -2501,7 +2506,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .eq('status', 'succeeded');
             if (error) throw error;
 
-            const total = (weekPayments || []).reduce((sum, p) => sum + (p.amount_rub || 0), 0);
+            const total = (weekPayments || []).reduce((sum, p) => sum + Number(p.amount_rub || 0), 0);
             const avgPayment = weekPayments.length > 0 ? Math.round(total / weekPayments.length) : 0;
             const rentalPayments = weekPayments.filter(p => p.payment_type === 'rental').length;
             
@@ -2520,19 +2525,19 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Для каждой аренды находим последний успешный платеж
             let expectedToday = 0;
-            if (todayRentals && todayRentals.length > 0) {
-                for (const rental of todayRentals) {
-                    const { data: lastPayment } = await supabase
-                        .from('payments')
-                        .select('amount_rub')
+                if (todayRentals && todayRentals.length > 0) {
+                    for (const rental of todayRentals) {
+                        const { data: lastPayment } = await supabase
+                            .from('payments')
+                            .select('amount_rub')
                         .eq('rental_id', rental.id)
                         .eq('status', 'succeeded')
                         .order('created_at', { ascending: false })
                         .limit(1)
                         .single();
-                    
-                    if (lastPayment) {
-                        expectedToday += Math.abs(lastPayment.amount_rub);
+
+                        if (lastPayment) {
+                        expectedToday += Math.abs(Number(lastPayment.amount_rub || 0));
                     }
                 }
             }
