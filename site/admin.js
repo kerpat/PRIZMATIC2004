@@ -4391,13 +4391,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Collect extensions data
                     const extensions = [];
+                    let hasInvalidExtension = false;
                     extensionsList.querySelectorAll('.extension-item').forEach(row => {
-                        const inputs = row.querySelectorAll('input');
+                        const [daysInput, priceInput] = row.querySelectorAll('input');
+                        const days = Number(String(daysInput.value).replace(',', '.'));
+                        const price = Number(String(priceInput.value).replace(',', '.'));
+
+                        if (!Number.isFinite(days) || days <= 0 || !Number.isFinite(price) || price < 0) {
+                            hasInvalidExtension = true;
+                            return;
+                        }
+
                         extensions.push({
-                            days: parseInt(inputs[0].value),
-                            price_rub: parseFloat(inputs[1].value)
+                            days,
+                            price_rub: price,
                         });
                     });
+
+                    if (hasInvalidExtension || extensions.length === 0) {
+                        throw new Error('Проверьте длительность и стоимость каждого периода — значения должны быть числовыми.');
+                    }
 
                     const tariffData = {
                         title: tariffTitleInput.value.trim(),
@@ -4445,7 +4458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 extensionsList.innerHTML = '';
                 if (data.extensions && data.extensions.length > 0) {
                     data.extensions.forEach(ext => {
-                        addExtensionRow(ext.days, ext.price_rub);
+                        addExtensionRow(ext.days ?? '', ext.price_rub ?? '');
                     });
                 } else {
                     addExtensionRow();
