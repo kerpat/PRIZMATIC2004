@@ -2981,14 +2981,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!assignmentsTableBody) return;
         assignmentsTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
         try {
-            const { data, error } = await window.dbClient
-                .from('rentals')
-                .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
-                // ИЗМЕНЕНИЕ: Ищем новый статус для выбора АКБ
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
-                .order('created_at', { ascending: true });
+            const response = await fetch('/api/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'select',
+                    table: 'rentals',
+                    select: 'id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)',
+                    filters: [
+                        { field: 'status', operator: 'in', value: ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'] },
+                    ],
+                    order: { field: 'created_at', direction: 'asc' },
+                }),
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Не удалось загрузить заявки');
+            }
 
-            if (error) throw error;
+            const data = Array.isArray(payload?.data) ? payload.data : [];
 
             if (!data || data.length === 0) {
                 assignmentsTableBody.innerHTML = '<tr><td colspan="5">Нет активных заявок.</td></tr>';
