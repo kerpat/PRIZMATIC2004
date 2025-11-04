@@ -5,6 +5,77 @@ const { query, transact } = require('./_lib_db');
 const { normalizePhone, addToBalance, logPayment } = require('./_lib_finance');
 const { listObjects } = require('./_lib_storage_backend');
 
+// Генерация HTML акта возврата
+function generateReturnActHTML(client, bike, defects = []) {
+    const now = new Date();
+    const batteryNumbers = Array.isArray(bike?.battery_numbers)
+        ? bike.battery_numbers.join(', ')
+        : (bike?.battery_numbers || 'N/A');
+    
+    const defectsList = defects.length > 0
+        ? defects.map((d, i) => `${i + 1}. ${d}`).join('<br>')
+        : 'Недостатков не выявлено';
+
+    return `
+        <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        h2, h4 { text-align: center; margin: 20px 0; }
+        .defects-block { margin: 20px 0; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+        </style></head><body>
+            <div style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 20px;">
+                Акт возврата оборудования<br>
+                (Приложение к Договору проката)
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.9em;">
+                <span>г. ${client?.city || 'Москва'}</span>
+                <span>${now.toLocaleDateString('ru-RU')} ${now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            
+            <h4>Возвращенное оборудование:</h4>
+            <table>
+                <tbody>
+                    <tr><th style="width: 40%;">Наименование</th><td>${bike?.model_name || 'N/A'}</td></tr>
+                    <tr><th>Номер рамы</th><td>${bike?.frame_number || 'N/A'}</td></tr>
+                    <tr><th>Номера аккумуляторов</th><td>${batteryNumbers}</td></tr>
+                    <tr><th>Рег. номер</th><td>${bike?.registration_number || 'N/A'}</td></tr>
+                    <tr><th>Номер IOT</th><td>${bike?.iot_device_id || 'N/A'}</td></tr>
+                    <tr><th>Доп. оборудование</th><td>${bike?.additional_equipment || 'N/A'}</td></tr>
+                </tbody>
+            </table>
+
+            <h4>Арендатор:</h4>
+            <table>
+                <tbody>
+                    <tr><th style="width: 40%;">ФИО</th><td>${client?.name || 'N/A'}</td></tr>
+                    <tr><th>Город</th><td>${client?.city || 'N/A'}</td></tr>
+                </tbody>
+            </table>
+
+            <div class="defects-block">
+                <h4 style="margin-top: 0;">Выявленные недостатки:</h4>
+                <p>${defectsList}</p>
+            </div>
+
+            <p style="margin-top: 30px;">
+                Оборудование принято, проверено. Арендатор подтверждает возврат оборудования в указанном выше состоянии.
+            </p>
+
+            <div class="no-print" style="margin-top: 30px; text-align: center;">
+                <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px;">Скачать PDF</button>
+            </div>
+        </body></html>
+    `;
+}
+
 const IDENTIFIER_REGEX = /^[a-zA-Z0-9_.]+$/;
 
 function getAdminSecret() {
@@ -885,8 +956,27 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
         return { status: 400, body: { error: 'rental_id and new_bike_status are required.' } };
     }
 
+    // Получаем данные для акта возврата
     const rentalResult = await query(
-        'SELECT bike_id, user_id, extra_data FROM rentals WHERE id = $1',
+        `SELECT 
+            r.bike_id, r.user_id, r.extra_data,
+            jsonb_build_object(
+                'name', c.name,
+                'city', c.city,
+                'recognized_passport_data', c.recognized_passport_data
+            ) as client,
+            jsonb_build_object(
+                'model_name', b.model_name,
+                'frame_number', b.frame_number,
+                'battery_numbers', b.battery_numbers,
+                'registration_number', b.registration_number,
+                'iot_device_id', b.iot_device_id,
+                'additional_equipment', b.additional_equipment
+            ) as bike
+         FROM rentals r
+         LEFT JOIN clients c ON r.user_id = c.id
+         LEFT JOIN bikes b ON r.bike_id = b.id
+         WHERE r.id = $1`,
         [rental_id]
     );
     const rental = rentalResult.rows[0];
@@ -895,10 +985,16 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
         throw new Error('Rental not found for finalization.');
     }
 
+    // Генерируем HTML акта возврата
+    const returnActHTML = generateReturnActHTML(rental.client, rental.bike, defects || []);
+    const returnActBase64 = Buffer.from(returnActHTML).toString('base64');
+    const generatedReturnActUrl = `data:text/html;base64,${returnActBase64}`;
+
     const updatedExtraData = {
         ...(rental.extra_data || {}),
-        return_act_url: return_act_url || null,
+        return_act_url: return_act_url || generatedReturnActUrl,
         defects: defects || [],
+        return_finalized_at: new Date().toISOString(),
     };
 
     await transact(async (dbClient) => {
