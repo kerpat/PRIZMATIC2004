@@ -182,7 +182,7 @@ async function handleInsert(params) {
     const values = [];
     const rowsPlaceholders = records.map((record) => {
         const placeholders = columns.map((column) => {
-            values.push(record[column]);
+            values.push(prepareValue(record[column]));
             return `$${values.length}`;
         });
         return `(${placeholders.join(', ')})`;
@@ -210,7 +210,7 @@ async function handleUpdate(params) {
 
     const values = [];
     const setClauses = columns.map((column) => {
-        values.push(data[column]);
+        values.push(prepareValue(data[column]));
         return `${quoteIdentifier(column)} = $${values.length}`;
     });
 
