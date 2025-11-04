@@ -343,7 +343,7 @@ function resolveTariffForRental(rental) {
     const fallback = rental.tariffs || {};
     return {
         id: rental.tariff_id ?? fallback.id ?? null,
-        title: fallback.title || '����',
+        title: fallback.title || 'Тариф',
         price_rub: fallback.price_rub ?? null,
         duration_days: fallback.duration_days ?? null,
         deposit_rub: fallback.deposit_rub ?? null,
@@ -363,7 +363,7 @@ function getExtensionOptions(tariff, rental) {
     if (fallbackPrice > 0 && fallbackDays > 0) {
         return [
             {
-                title: tariff.title || rental?.tariffs?.title || '����',
+                title: tariff.title || rental?.tariffs?.title || 'Тариф',
                 duration_days: fallbackDays,
                 price_rub: fallbackPrice,
                 deposit_rub: null,
@@ -400,7 +400,7 @@ function renderExtendOptionsList() {
 
     if (!Array.isArray(state.extensionOptions) || state.extensionOptions.length === 0) {
         const emptyItem = document.createElement('li');
-        emptyItem.textContent = '��� ����㯭�� �த�����.';
+        emptyItem.textContent = 'Нет доступных вариантов.';
         list.appendChild(emptyItem);
         return;
     }
@@ -408,7 +408,7 @@ function renderExtendOptionsList() {
     state.extensionOptions.forEach((option, index) => {
         const item = document.createElement('li');
         item.className = 'extend-option-item';
-        const durationText = formatDuration(option) || `${Number(option.duration_days || 0)} ��.`;
+        const durationText = formatDuration(option) || `${Number(option.duration_days || 0)} дн.`;
         item.innerHTML = `
             <label>
                 <input type="radio" name="extend-option" value="${index}" ${index === state.extensionSelectedIndex ? 'checked' : ''}>
@@ -462,13 +462,13 @@ async function handleExtendConfirm(event) {
     state.processingExtension = true;
     if (trigger) {
         trigger.disabled = true;
-        trigger.textContent = '��ࠡ�⪠...';
+        trigger.textContent = 'Обработка...';
     }
 
     try {
         const amount = Number(option.price_rub);
         if (!Number.isFinite(amount) || amount <= 0) {
-            throw new Error('�� 㤠���� ��।����� �⮨����� ���.');
+            throw new Error('Не удалось определить стоимость продления.');
         }
 
         const days = Number(option.duration_days);
@@ -488,42 +488,42 @@ async function handleExtendConfirm(event) {
         }
 
         if (response?.status === 'succeeded' || response?.status === 'pending') {
-            alert('������ ��ࠡ��뢠����. ������ ��࠭��� ����� �� ���� �ࢥ�.');
+            alert('Продление выполнено. Страница обновится автоматически.');
             closeModalById('extend-modal');
             await refreshUser();
             await refreshRentalView();
             return;
         }
 
-        alert('������ ��த����� ������. ���������� ��ࢥ� ᭮����� ࠡ���.');
+        alert('Продление не выполнено. Пополните баланс и попробуйте снова.');
         closeModalById('extend-modal');
         await refreshRentalView();
     } catch (error) {
         const message = String(error?.message || error);
         if (message.includes('Balance is sufficient')) {
-            alert('�� ��� ������ �����筮 ������, �������� ����஢���� ࠡ��� �⮬���᪨ �訡��. �� ⠪� �������, ����஢���� ��������, ��� ஹ᪠ �����ண���.');
+            alert('Баланс уже покрывает продление. Запрос будет обработан автоматически, как только предыдущая операция завершится.');
         } else {
-            alert(`�� 㤠���� �த���� �७��: ${message}`);
+            alert(`Не удалось выполнить операцию: ${message}`);
         }
     } finally {
         state.processingExtension = false;
         if (trigger) {
             trigger.disabled = false;
-            trigger.textContent = originalText || '�த����';
+            trigger.textContent = originalText || 'Продлить';
         }
     }
 }
 
 async function handleReturnBike(rental) {
     if (!rental?.id) return;
-    if (!confirm('�� 㢥७�, �� ��� ᤠ�� ����ᨯ��?')) return;
+    if (!confirm('Вы уверены, что хотите завершить аренду?')) return;
 
     try {
         await updateRentalStatus(rental.id, 'pending_return');
-        alert('�� ���᫨ ��ࠡ��� ����ᨯ��. ������ ��ࢥ� ᥢ ����� ���좮� ���ᥪ.');
+        alert('Заявка отправлена. Ожидайте подтверждения администратора.');
         await refreshRentalView();
     } catch (error) {
-        alert(`�� 㤠���� �������� �����: ${error.message}`);
+        alert(`Не удалось отправить запрос: ${error.message}`);
     }
 }
 
