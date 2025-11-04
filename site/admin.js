@@ -2326,6 +2326,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 .select('id, yookassa_payment_id, amount_rub, payment_type, method, status, created_at, description, clients (name)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
+            console.groupCollapsed('[admin] loadPayments');
+            console.log('rows:', data);
+            console.groupEnd();
             tbody.innerHTML = '';
             (data || []).forEach(p => {
                 // Get payment type label
@@ -2539,6 +2542,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (revenueContainer) {
+                console.groupCollapsed('[admin] dashboard revenue debug');
+                console.log('weekPayments:', weekPayments);
+                console.log('total:', total);
+                console.log('avgPayment:', avgPayment);
+                console.log('expectedToday:', expectedToday);
+                console.groupEnd();
                 revenueContainer.innerHTML = `
                     <div class="revenue-stat-item">
                         <div class="revenue-stat-label">Средний чек</div>
