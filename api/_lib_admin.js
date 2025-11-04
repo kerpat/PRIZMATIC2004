@@ -388,12 +388,12 @@ function appendOrderLimit(sqlParts, order, limit, offset, values) {
         sqlParts.push(`ORDER BY ${quoteIdentifier(order.field)} ${direction}`);
     }
     const offsetValue = Number(offset);
-    if (Number.isFinite(offsetValue) && offsetValue >= 0) {
+    if (Number.isFinite(offsetValue) && offsetValue > 0) {
         values.push(offsetValue);
         sqlParts.push(`OFFSET $${values.length}`);
     }
     const limitValue = Number(limit);
-    if (Number.isFinite(limitValue) && limitValue >= 0) {
+    if (Number.isFinite(limitValue) && limitValue > 0) {
         values.push(limitValue);
         sqlParts.push(`LIMIT $${values.length}`);
     }
