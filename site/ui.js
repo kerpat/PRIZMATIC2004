@@ -49,17 +49,8 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
             <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" width="1536" height="1024" decoding="async" fetchpriority="high">
         </div>
 
-        <!-- НОВЫЙ БЛОК С АКБ -->
-        <div class="rental-equipment-info">
-            <div class="equipment-label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                </svg>
-                <span>В комплекте:</span>
-            </div>
-            <div class="battery-chips" id="rental-batteries-list"></div>
-        </div>
+        <!-- БЛОК С АКБ -->
+        <div class="battery-chips" id="rental-batteries-list"></div>
 
         <div class="progress-section">
             <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%; background-color: ${progressBarColor};"></div></div>
@@ -112,7 +103,7 @@ export async function renderActiveRentalView(mainContent, rental, userBalance) {
                             <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
                             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
                         </svg>
-                        ${serial_number}
+                        <span>АКБ: ${serial_number}</span>
                     `;
                     batteryList.appendChild(chip);
                 });
