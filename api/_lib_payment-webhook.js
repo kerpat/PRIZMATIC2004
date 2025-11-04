@@ -149,6 +149,8 @@ async function processRentalPayment(payment, metadata) {
             paymentType: 'rental',
             method: paymentMethod,
             yookassaPaymentId,
+            paymentMethodTitle: payment.payment_method?.title || null,
+            createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
         }, dbClient);
 
         if (amountToDebit > 0) {
@@ -160,6 +162,7 @@ async function processRentalPayment(payment, metadata) {
                 paymentType: 'rental',
                 method: 'balance',
                 description: 'Частичная оплата с баланса',
+                createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
             }, dbClient);
         }
     });
@@ -201,6 +204,8 @@ async function processBookingPayment(payment, metadata) {
             paymentType: 'booking',
             method: paymentMethod,
             yookassaPaymentId,
+            paymentMethodTitle: payment.payment_method?.title || null,
+            createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
         }, dbClient);
     });
 }
@@ -247,6 +252,8 @@ async function processRenewalPayment(payment, metadata) {
             paymentType: 'renewal',
             method: paymentMethod,
             yookassaPaymentId: payment.id,
+            paymentMethodTitle: payment.payment_method?.title || null,
+            createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
         }, dbClient);
 
         if (amountToDebit > 0) {
@@ -258,6 +265,7 @@ async function processRenewalPayment(payment, metadata) {
                 paymentType: 'renewal',
                 method: 'balance',
                 description: 'Частичная оплата продления с баланса',
+                createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
             }, dbClient);
         }
     });
@@ -288,6 +296,8 @@ async function processTopUpPayment(payment, metadata) {
             paymentType: 'top-up',
             method: paymentMethod,
             yookassaPaymentId,
+            paymentMethodTitle: payment.payment_method?.title || null,
+            createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
         }, dbClient);
     });
 }

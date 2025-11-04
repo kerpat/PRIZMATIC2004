@@ -262,6 +262,7 @@ function attachPeriodPicker(defaultStart, defaultEnd) {
             alert('Дата окончания не может быть раньше даты начала.');
             return;
         }
+        start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
         loadHistory(start, end);
     };
@@ -318,12 +319,14 @@ async function init() {
     bindHistoryClick();
     bindModal();
 
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
 
-    attachPeriodPicker(startOfMonth, endOfMonth);
-    await loadHistory(startOfMonth, endOfMonth);
+    attachPeriodPicker(startDate, endDate);
+    await loadHistory(startDate, endDate);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

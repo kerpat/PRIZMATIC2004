@@ -62,6 +62,7 @@ async function processInstantTopUp({ userId, amount, payment }) {
             paymentMethodTitle: payment?.payment_method?.title || null,
             yookassaPaymentId: paymentId,
             method: getPaymentMethodFromYookassa(payment),
+            createdAt: payment?.created_at ? new Date(payment.created_at) : new Date(),
         }, dbClient);
     });
 

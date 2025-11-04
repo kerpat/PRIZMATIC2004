@@ -75,6 +75,7 @@ async function logPayment({
     description = null,
     method = null,
     bookingId = null,
+    createdAt = new Date(),
 }, dbClient) {
     const executor = getExecutor(dbClient);
     const columnsMetadata = await getPaymentsColumns(executor);
@@ -105,6 +106,12 @@ async function logPayment({
     if (bookingId != null && columnsMetadata.booking_id) {
         columns.push('booking_id');
         values.push(bookingId);
+    }
+
+    if (columnsMetadata.created_at) {
+        const timestamp = createdAt instanceof Date ? createdAt.toISOString() : createdAt;
+        columns.push('created_at');
+        values.push(timestamp);
     }
 
     const placeholders = columns.map((_, index) => `$${index + 1}`);
