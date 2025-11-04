@@ -1646,10 +1646,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 'rejected': 'Отклонена'
             };
 
-            const { data, error } = await window.dbClient
+            const query = window.dbClient
                 .from('rentals')
                 .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone), rental_batteries(batteries(serial_number))')
                 .order('starts_at', { ascending: false });
+
+            const { data, error } = await query;
 
             if (error) {
                 throw new Error(error?.message || 'Не удалось загрузить аренды');
@@ -1659,6 +1661,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('total:', rentals.length);
             console.log('rows:', rentals);
             console.groupEnd();
+
+            if (rentals.length === 0) {
+                const { data: rawRentals, error: rawError } = await window.dbClient
+                    .from('rentals')
+                    .select('id, status, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                console.groupCollapsed('[admin] loadRentals raw fallback');
+                console.log('rawError:', rawError);
+                console.log('rawRentals:', rawRentals);
+                console.groupEnd();
+            }
 
             tbody.innerHTML = '';
             rentals.forEach(r => {
@@ -2989,11 +3003,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!assignmentsTableBody) return;
         assignmentsTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
         try {
-            const { data, error } = await window.dbClient
+            const query = window.dbClient
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
                 .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
                 .order('created_at', { ascending: true });
+
+            const { data, error } = await query;
 
             if (error) {
                 throw new Error(error?.message || 'Не удалось загрузить заявки');
@@ -3001,11 +3017,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rentals = Array.isArray(data) ? data : [];
             console.groupCollapsed('[admin] loadAssignments debug');
-            console.log('total:', rentals.length);
             console.log('rows:', rentals);
             console.groupEnd();
 
             if (rentals.length === 0) {
+                const { data: rawRentals, error: rawError } = await window.dbClient
+                    .from('rentals')
+                    .select('id, status, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                console.groupCollapsed('[admin] loadAssignments raw fallback');
+                console.log('rawError:', rawError);
+                console.log('rawRentals:', rawRentals);
+                console.groupEnd();
                 assignmentsTableBody.innerHTML = '<tr><td colspan="5">Нет активных заявок.</td></tr>';
                 return;
             }
