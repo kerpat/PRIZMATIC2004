@@ -1933,7 +1933,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Ссылки на документы
                 if (contractUrl) {
                     const contractLink = document.createElement('a');
-                    contractLink.href = contractUrl;
+                    // Используем endpoint для просмотра документа
+                    contractLink.href = `/api/router?endpoint=view-document&rental=${rentalId}&type=contract`;
                     contractLink.target = '_blank';
                     contractLink.className = 'btn btn-secondary';
                     contractLink.style.width = '100%';
@@ -1944,7 +1945,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (returnUrl) {
                     const returnLink = document.createElement('a');
-                    returnLink.href = returnUrl;
+                    // Используем endpoint для просмотра документа
+                    returnLink.href = `/api/router?endpoint=view-document&rental=${rentalId}&type=return_act`;
                     returnLink.target = '_blank';
                     returnLink.className = 'btn btn-secondary';
                     returnLink.style.width = '100%';

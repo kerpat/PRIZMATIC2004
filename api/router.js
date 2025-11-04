@@ -20,6 +20,7 @@ const storageHandler = require('./_lib_storage');
 const notifyHandler = require('./_lib_notify');
 const dataHandler = require('./_lib_data');
 const callVerifyHandler = require('./_lib_call_verify');
+const viewDocumentHandler = require('./_lib_view-document');
 
 module.exports = async (req, res) => {
     // CORS
@@ -113,6 +114,9 @@ module.exports = async (req, res) => {
 
             case 'call-verify':
                 return callVerifyHandler(req, res);
+
+            case 'view-document':
+                return viewDocumentHandler(req, res);
 
             default:
                 return res.status(404).json({
