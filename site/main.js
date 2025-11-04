@@ -1,4 +1,4 @@
-import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance } from './api.js';
+import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js';
 import {
     renderDefaultView,
     renderActiveRentalView,
@@ -17,8 +17,13 @@ const state = {
     detailTariff: null,
     detailOptions: [],
     detailOptionIndex: 0,
+    extensionTariff: null,
+    extensionOptions: [],
+    extensionSelectedIndex: 0,
+    extensionRental: null,
     processingTariff: false,
     processingTopup: false,
+    processingExtension: false,
     rentalRefreshTimer: null,
 };
 
@@ -322,6 +327,242 @@ function selectDetailOption(index) {
     });
 }
 
+function findTariffById(tariffId) {
+    if (!tariffId) return null;
+    const tariffs = Array.isArray(state.tariffs) ? state.tariffs : [];
+    return tariffs.find((tariff) => Number(tariff.id) === Number(tariffId)) || null;
+}
+
+function resolveTariffForRental(rental) {
+    if (!rental) return null;
+    const knownTariff = findTariffById(rental.tariff_id);
+    if (knownTariff) {
+        return knownTariff;
+    }
+
+    const fallback = rental.tariffs || {};
+    return {
+        id: rental.tariff_id ?? fallback.id ?? null,
+        title: fallback.title || '����',
+        price_rub: fallback.price_rub ?? null,
+        duration_days: fallback.duration_days ?? null,
+        deposit_rub: fallback.deposit_rub ?? null,
+        extensions: fallback.extensions ?? null,
+    };
+}
+
+function getExtensionOptions(tariff, rental) {
+    if (!tariff) return [];
+    const options = mapTariffOptions(tariff);
+    if (options.length > 0) {
+        return options;
+    }
+
+    const fallbackPrice = Number(rental?.tariffs?.price_rub ?? tariff.price_rub ?? 0);
+    const fallbackDays = Number(rental?.tariffs?.duration_days ?? tariff.duration_days ?? 0);
+    if (fallbackPrice > 0 && fallbackDays > 0) {
+        return [
+            {
+                title: tariff.title || rental?.tariffs?.title || '����',
+                duration_days: fallbackDays,
+                price_rub: fallbackPrice,
+                deposit_rub: null,
+                raw: null,
+            },
+        ];
+    }
+
+    return [];
+}
+
+function selectExtensionOption(index) {
+    if (!Array.isArray(state.extensionOptions)) return;
+    if (index < 0 || index >= state.extensionOptions.length) return;
+    state.extensionSelectedIndex = index;
+
+    const list = document.getElementById('extend-options');
+    if (!list) return;
+
+    list.querySelectorAll('input[name="extend-option"]').forEach((input, idx) => {
+        input.checked = idx === index;
+        const parent = input.closest('li');
+        if (parent) {
+            parent.classList.toggle('selected', idx === index);
+        }
+    });
+}
+
+function renderExtendOptionsList() {
+    const list = document.getElementById('extend-options');
+    if (!list) return;
+
+    list.innerHTML = '';
+
+    if (!Array.isArray(state.extensionOptions) || state.extensionOptions.length === 0) {
+        const emptyItem = document.createElement('li');
+        emptyItem.textContent = '��� ����㯭�� �த�����.';
+        list.appendChild(emptyItem);
+        return;
+    }
+
+    state.extensionOptions.forEach((option, index) => {
+        const item = document.createElement('li');
+        item.className = 'extend-option-item';
+        const durationText = formatDuration(option) || `${Number(option.duration_days || 0)} ��.`;
+        item.innerHTML = `
+            <label>
+                <input type="radio" name="extend-option" value="${index}" ${index === state.extensionSelectedIndex ? 'checked' : ''}>
+                <span>${durationText}</span>
+                <span style="margin-left:auto;font-weight:600;">${formatRub(option.price_rub)}</span>
+            </label>
+        `;
+        item.addEventListener('click', () => selectExtensionOption(index));
+        const radio = item.querySelector('input[type="radio"]');
+        if (radio) {
+            radio.addEventListener('change', () => selectExtensionOption(index));
+        }
+        list.appendChild(item);
+    });
+}
+
+async function openExtendModalForRental(rental) {
+    if (!rental) return;
+    await fetchTariffs().catch(() => {});
+
+    const modal = document.getElementById('extend-modal');
+    if (!modal) return;
+
+    state.extensionRental = rental;
+    state.extensionTariff = resolveTariffForRental(rental);
+    state.extensionOptions = getExtensionOptions(state.extensionTariff, rental);
+    state.extensionSelectedIndex = 0;
+
+    renderExtendOptionsList();
+    modal.classList.remove('hidden');
+}
+
+async function handleExtendConfirm(event) {
+    event?.preventDefault();
+    if (state.processingExtension) return;
+
+    const rental = state.extensionRental;
+    const tariff = state.extensionTariff;
+    const option = Array.isArray(state.extensionOptions)
+        ? state.extensionOptions[state.extensionSelectedIndex]
+        : null;
+
+    if (!state.user || !rental || !tariff || !option) {
+        closeModalById('extend-modal');
+        return;
+    }
+
+    const trigger = event?.currentTarget || document.getElementById('extend-select-btn');
+    const originalText = trigger?.textContent;
+
+    state.processingExtension = true;
+    if (trigger) {
+        trigger.disabled = true;
+        trigger.textContent = '��ࠡ�⪠...';
+    }
+
+    try {
+        const amount = Number(option.price_rub);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error('�� 㤠���� ��।����� �⮨����� ���.');
+        }
+
+        const days = Number(option.duration_days);
+        const normalizedDays = Number.isFinite(days) && days > 0 ? days : undefined;
+
+        const response = await createPayment(state.user.id, null, tariff.id, {
+            amount,
+            days: normalizedDays,
+            type: 'renewal',
+            rentalId: rental.id,
+            extension: option.raw ?? null,
+        });
+
+        if (response?.confirmation_url) {
+            window.location.href = response.confirmation_url;
+            return;
+        }
+
+        if (response?.status === 'succeeded' || response?.status === 'pending') {
+            alert('������ ��ࠡ��뢠����. ������ ��࠭��� ����� �� ���� �ࢥ�.');
+            closeModalById('extend-modal');
+            await refreshUser();
+            await refreshRentalView();
+            return;
+        }
+
+        alert('������ ��த����� ������. ���������� ��ࢥ� ᭮����� ࠡ���.');
+        closeModalById('extend-modal');
+        await refreshRentalView();
+    } catch (error) {
+        const message = String(error?.message || error);
+        if (message.includes('Balance is sufficient')) {
+            alert('�� ��� ������ �����筮 ������, �������� ����஢���� ࠡ��� �⮬���᪨ �訡��. �� ⠪� �������, ����஢���� ��������, ��� ஹ᪠ �����ண���.');
+        } else {
+            alert(`�� 㤠���� �த���� �७��: ${message}`);
+        }
+    } finally {
+        state.processingExtension = false;
+        if (trigger) {
+            trigger.disabled = false;
+            trigger.textContent = originalText || '�த����';
+        }
+    }
+}
+
+async function handleReturnBike(rental) {
+    if (!rental?.id) return;
+    if (!confirm('�� 㢥७�, �� ��� ᤠ�� ����ᨯ��?')) return;
+
+    try {
+        await updateRentalStatus(rental.id, 'pending_return');
+        alert('�� ���᫨ ��ࠡ��� ����ᨯ��. ������ ��ࢥ� ᥢ ����� ���좮� ���ᥪ.');
+        await refreshRentalView();
+    } catch (error) {
+        alert(`�� 㤠���� �������� �����: ${error.message}`);
+    }
+}
+
+function bindActiveRentalEvents(rental) {
+    const extendBtn = document.getElementById('extend-active-rental-btn');
+    if (extendBtn) {
+        extendBtn.addEventListener('click', () => openExtendModalForRental(rental));
+    }
+
+    const reportBtn = document.getElementById('report-problem-btn');
+    if (reportBtn) {
+        reportBtn.addEventListener('click', () => {
+            window.location.href = 'profile.html#support';
+        });
+    }
+
+    const returnBtn = document.getElementById('return-bike-btn');
+    if (returnBtn) {
+        returnBtn.addEventListener('click', () => handleReturnBike(rental));
+    }
+
+    const balanceCard = document.getElementById('balance-card');
+    if (balanceCard) {
+        balanceCard.addEventListener('click', () => openModalById('topup-modal'));
+    }
+}
+
+function bindOverdueRentalEvents(rental) {
+    const retryBtn = document.getElementById('retry-payment-btn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', () => openModalById('topup-modal'));
+    }
+
+    const returnBtn = document.getElementById('return-bike-btn');
+    if (returnBtn) {
+        returnBtn.addEventListener('click', () => handleReturnBike(rental));
+    }
+}
+
 async function handleTariffSelection() {
     if (!state.detailTariff || !state.detailOptions.length || state.processingTariff) {
         return;
@@ -592,10 +833,23 @@ function attachStaticHandlers() {
             openModalById('tariff-modal');
         }
     });
+    setupModalClose(document.getElementById('extend-modal'), () => closeModalById('extend-modal'));
 
     ['topup-modal', 'id-input-modal', 'booking-list-modal', 'post-rental-prompt-modal'].forEach((id) => {
         setupModalClose(document.getElementById(id), () => closeModalById(id));
     });
+
+    const extendCancelBtn = document.getElementById('extend-cancel-btn');
+    if (extendCancelBtn && !extendCancelBtn.dataset.bound) {
+        extendCancelBtn.dataset.bound = 'true';
+        extendCancelBtn.addEventListener('click', () => closeModalById('extend-modal'));
+    }
+
+    const extendCloseBtn = document.getElementById('extend-close-btn');
+    if (extendCloseBtn && !extendCloseBtn.dataset.bound) {
+        extendCloseBtn.dataset.bound = 'true';
+        extendCloseBtn.addEventListener('click', () => closeModalById('extend-modal'));
+    }
 
     const selectBtn = document.getElementById('select-tariff-btn');
     if (selectBtn && !selectBtn.dataset.bound) {
@@ -607,6 +861,12 @@ function attachStaticHandlers() {
     if (payBtn && !payBtn.dataset.bound) {
         payBtn.dataset.bound = 'true';
         payBtn.addEventListener('click', handleTopup);
+    }
+
+    const extendSelectBtn = document.getElementById('extend-select-btn');
+    if (extendSelectBtn && !extendSelectBtn.dataset.bound) {
+        extendSelectBtn.dataset.bound = 'true';
+        extendSelectBtn.addEventListener('click', handleExtendConfirm);
     }
 }
 
@@ -628,6 +888,7 @@ async function refreshRentalView() {
             switch (rental.status) {
                 case 'active':
                     await renderActiveRentalView(mainContent, rental, state.user.balance_rub);
+                    bindActiveRentalEvents(rental);
                     break;
                 case 'awaiting_battery_assignment':
                     renderAwaitingEquipmentView(mainContent);
@@ -639,6 +900,7 @@ async function refreshRentalView() {
                     break;
                 case 'overdue':
                     renderOverdueRentalView(mainContent, rental);
+                    bindOverdueRentalEvents(rental);
                     break;
                 case 'pending_return':
                     renderPendingReturnView(mainContent, rental);

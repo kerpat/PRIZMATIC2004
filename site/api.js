@@ -156,3 +156,26 @@ export async function getContractDetails(userId, rentalId) {
 export async function confirmContractSignature({ userId, rentalId, signatureData, action = 'confirm-contract' }) {
     return post('/api/user', { action, userId, rentalId, signatureData });
 }
+
+export async function updateRentalStatus(rentalId, status) {
+    if (!rentalId || !status) {
+        throw new Error('Both rentalId and status are required to update rental status.');
+    }
+
+    const response = await post('/api/data', {
+        action: 'update',
+        table: 'rentals',
+        data: { status },
+        filters: [
+            {
+                field: 'id',
+                operator: 'eq',
+                value: rentalId,
+            },
+        ],
+        returning: '*',
+    });
+
+    const rows = Array.isArray(response?.data) ? response.data : [];
+    return rows.length > 0 ? rows[0] : null;
+}

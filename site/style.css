@@ -1691,6 +1691,20 @@ select.form-control:focus {
   font-size: 0.9rem;
 }
 
+.extend-options-list li {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(64, 164, 223, 0.06);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.extend-options-list li.selected {
+  border: 1.5px solid var(--icon-blue);
+  background: rgba(64, 164, 223, 0.16);
+}
+
 .tariff-detail-ext-list input[type="radio"],
 .extend-options-list input[type="radio"] {
   margin-right: 8px;
@@ -1865,6 +1879,7 @@ body:has(.map-page-container) .app-screen {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  justify-content: center;
   margin: 12px 0 20px 0;
 }
 
