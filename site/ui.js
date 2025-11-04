@@ -146,3 +146,70 @@ export function renderPendingReturnView(mainContent, rental) {
         <h2 style="text-align: center;">Ожидание сдачи</h2>
         <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
 }
+
+export function renderAwaitingEquipmentView(mainContent) {
+    mainContent.innerHTML = `
+        <div class="pending-screen">
+            <div class="pending-content">
+                <div class="pending-spinner"></div>
+                <h2>Ожидаем оборудование</h2>
+                <p>Администратор подбирает велосипед и аккумуляторы. Мы обновим экран автоматически.</p>
+            </div>
+        </div>
+        <style>
+            .pending-screen {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                padding: 24px;
+                text-align: center;
+            }
+            .pending-content h2 {
+                margin-top: 18px;
+                margin-bottom: 8px;
+                font-size: 1.5rem;
+                color: var(--dark-green);
+            }
+            .pending-content p {
+                color: #3f4d49;
+                line-height: 1.5;
+                max-width: 320px;
+                margin: 0 auto;
+            }
+            .pending-spinner {
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                border: 4px solid rgba(64, 164, 223, 0.2);
+                border-top-color: var(--icon-green);
+                animation: pending-spin 1.2s linear infinite;
+                margin: 0 auto;
+            }
+            @keyframes pending-spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+}
+
+export function renderAwaitingContractView(mainContent) {
+    mainContent.innerHTML = `
+        <div class="pending-screen">
+            <div class="pending-content">
+                <img src="bike-delivery.png" alt="Electric bike" class="bike-image" style="max-width:240px;">
+                <h2>Осталось подписать договор</h2>
+                <p>Администратор уже подготовил оборудование. Подпишите договор, чтобы начать поездку.</p>
+                <button class="btn btn-primary" id="go-to-contract-btn">Перейти к подписанию</button>
+            </div>
+        </div>
+    `;
+
+    const button = document.getElementById('go-to-contract-btn');
+    if (button) {
+        button.addEventListener('click', () => {
+            window.location.href = 'profile.html?open=notifications#notifications';
+        });
+    }
+}

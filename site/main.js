@@ -1,5 +1,12 @@
 import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance } from './api.js';
-import { renderDefaultView, renderActiveRentalView, renderOverdueRentalView, renderPendingReturnView } from './ui.js';
+import {
+    renderDefaultView,
+    renderActiveRentalView,
+    renderOverdueRentalView,
+    renderPendingReturnView,
+    renderAwaitingEquipmentView,
+    renderAwaitingContractView,
+} from './ui.js';
 
 const state = {
     user: null,
@@ -12,10 +19,12 @@ const state = {
     detailOptionIndex: 0,
     processingTariff: false,
     processingTopup: false,
+    rentalRefreshTimer: null,
 };
 
 const optionCache = new Map();
 const toastTimers = new Map();
+const RENTAL_STATUS_POLL_INTERVAL = 6000;
 
 function formatRub(value) {
     const numeric = Number(value || 0);
@@ -74,6 +83,24 @@ function updateBalanceDisplay(balance) {
     if (balanceEl) {
         balanceEl.textContent = formatRub(balance);
     }
+}
+
+function clearRentalRefreshTimer() {
+    if (state.rentalRefreshTimer) {
+        clearTimeout(state.rentalRefreshTimer);
+        state.rentalRefreshTimer = null;
+    }
+}
+
+function scheduleRentalRefresh(delay = RENTAL_STATUS_POLL_INTERVAL) {
+    clearRentalRefreshTimer();
+    state.rentalRefreshTimer = setTimeout(async () => {
+        try {
+            await refreshRentalView();
+        } catch (error) {
+            console.warn('[Main] Не удалось обновить статус аренды:', error);
+        }
+    }, delay);
 }
 
 function updateTariffLabel() {
@@ -590,6 +617,8 @@ async function refreshRentalView() {
     const mainContent = document.querySelector('.app-main');
     if (!mainContent) return;
 
+    clearRentalRefreshTimer();
+
     try {
         const rental = await getActiveRental(state.user.id);
         state.activeRental = rental;
@@ -602,6 +631,14 @@ async function refreshRentalView() {
                 case 'active':
                     await renderActiveRentalView(mainContent, rental, state.user.balance_rub);
                     break;
+                case 'awaiting_battery_assignment':
+                    renderAwaitingEquipmentView(mainContent);
+                    scheduleRentalRefresh();
+                    break;
+                case 'awaiting_contract_signing':
+                    renderAwaitingContractView(mainContent, rental);
+                    scheduleRentalRefresh(10000);
+                    break;
                 case 'overdue':
                     renderOverdueRentalView(mainContent, rental);
                     break;
@@ -613,6 +650,7 @@ async function refreshRentalView() {
                     bindDefaultViewEvents();
             }
             await refreshAvailableBikes();
+            updateBalanceDisplay(state.user.balance_rub);
         } else {
             renderDefaultView(mainContent);
             bindDefaultViewEvents();
