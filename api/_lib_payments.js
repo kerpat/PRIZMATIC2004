@@ -17,6 +17,57 @@ function parseRequestBody(body) {
     return body;
 }
 
+function getPaymentMethodFromYookassa(paymentObject) {
+    const type = paymentObject?.payment_method?.type;
+    switch (type) {
+        case 'bank_card':
+            return 'card';
+        case 'sbp':
+            return 'sbp';
+        case 'yoo_money':
+            return 'yoo_money';
+        default:
+            return type || 'card';
+    }
+}
+
+async function processInstantTopUp({ userId, amount, payment }) {
+    if (!userId) {
+        throw new Error('userId is required to process top-up.');
+    }
+
+    const normalizedAmount = Number.parseFloat(amount);
+    if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+        throw new Error('Invalid top-up amount.');
+    }
+
+    const paymentId = payment?.id || null;
+    if (paymentId) {
+        const existing = await query(
+            'SELECT 1 FROM payments WHERE yookassa_payment_id = $1 LIMIT 1',
+            [paymentId]
+        );
+        if (existing.rowCount > 0) {
+            return false;
+        }
+    }
+
+    await transact(async (dbClient) => {
+        await addToBalance(userId, normalizedAmount, dbClient);
+        await logPayment({
+            clientId: userId,
+            amountRub: normalizedAmount,
+            status: 'succeeded',
+            paymentType: 'top-up',
+            paymentMethodTitle: payment?.payment_method?.title || null,
+            yookassaPaymentId: paymentId,
+            method: getPaymentMethodFromYookassa(payment),
+        }, dbClient);
+    });
+
+    return true;
+}
+
 async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, days }) {
     if (!userId || !tariffId) {
         return { status: 400, body: { error: 'userId and tariffId are required' } };
@@ -328,6 +379,11 @@ async function handleCreatePayment(body) {
     if (!response.ok) {
         console.error('[payments] YooKassa API error:', paymentResult);
         throw new Error(paymentResult.description || 'Unknown YooKassa error');
+    }
+
+    if (paymentResult.status === 'succeeded' && paymentType === 'top-up') {
+        await processInstantTopUp({ userId, amount, payment: paymentResult });
+        return { status: 200, body: { status: paymentResult.status } };
     }
 
     if (paymentResult.confirmation?.confirmation_url) {

@@ -1,5 +1,8 @@
 const { query } = require('./_lib_db');
 
+let paymentsColumnsCache = null;
+let paymentsColumnsPromise = null;
+
 function normalizePhone(phone) {
     if (!phone) return '';
     let digits = String(phone).replace(/\D/g, '');
@@ -23,6 +26,39 @@ function getExecutor(dbClient) {
     return { query };
 }
 
+async function getPaymentsColumns(executor) {
+    if (paymentsColumnsCache) {
+        return paymentsColumnsCache;
+    }
+    if (paymentsColumnsPromise) {
+        return paymentsColumnsPromise;
+    }
+
+    paymentsColumnsPromise = executor
+        .query(
+            `SELECT column_name 
+             FROM information_schema.columns 
+             WHERE table_schema = 'public' AND table_name = 'payments'`
+        )
+        .then((result) => {
+            paymentsColumnsCache = result.rows.reduce((acc, row) => {
+                acc[row.column_name] = true;
+                return acc;
+            }, {});
+            return paymentsColumnsCache;
+        })
+        .catch((error) => {
+            console.error('[finance] Failed to fetch payments columns metadata:', error);
+            paymentsColumnsCache = {};
+            return paymentsColumnsCache;
+        })
+        .finally(() => {
+            paymentsColumnsPromise = null;
+        });
+
+    return paymentsColumnsPromise;
+}
+
 async function addToBalance(clientId, amount, dbClient) {
     const executor = getExecutor(dbClient);
     await executor.query('SELECT add_to_balance($1::uuid, $2::numeric)', [clientId, amount]);
@@ -41,31 +77,42 @@ async function logPayment({
     bookingId = null,
 }, dbClient) {
     const executor = getExecutor(dbClient);
+    const columnsMetadata = await getPaymentsColumns(executor);
+
+    const columns = [
+        'client_id',
+        'rental_id',
+        'amount_rub',
+        'status',
+        'payment_type',
+        'payment_method_title',
+        'yookassa_payment_id',
+        'description',
+        'method',
+    ];
+    const values = [
+        clientId,
+        rentalId,
+        amountRub,
+        status,
+        paymentType,
+        paymentMethodTitle,
+        yookassaPaymentId,
+        description,
+        method,
+    ];
+
+    if (bookingId != null && columnsMetadata.booking_id) {
+        columns.push('booking_id');
+        values.push(bookingId);
+    }
+
+    const placeholders = columns.map((_, index) => `$${index + 1}`);
+
     await executor.query(
-        `INSERT INTO payments (
-            client_id,
-            rental_id,
-            amount_rub,
-            status,
-            payment_type,
-            payment_method_title,
-            yookassa_payment_id,
-            description,
-            method,
-            booking_id
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [
-            clientId,
-            rentalId,
-            amountRub,
-            status,
-            paymentType,
-            paymentMethodTitle,
-            yookassaPaymentId,
-            description,
-            method,
-            bookingId,
-        ]
+        `INSERT INTO payments (${columns.join(', ')})
+         VALUES (${placeholders.join(', ')})`,
+        values
     );
 }
 

@@ -274,6 +274,11 @@ async function processTopUpPayment(payment, metadata) {
     const paymentMethod = getPaymentMethodFromYookassa(payment);
     const yookassaPaymentId = payment.id;
 
+    if (await paymentExists(yookassaPaymentId)) {
+        console.log(`[payment-webhook] Top-up payment ${yookassaPaymentId} already processed.`);
+        return;
+    }
+
     await transact(async (dbClient) => {
         await addToBalance(userId, cardPaymentAmount, dbClient);
         await logPayment({
