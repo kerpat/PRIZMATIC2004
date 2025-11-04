@@ -2321,16 +2321,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="7">Загрузка...</td></tr>';
         try {
-            const response = await fetch('/api/data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'get-all-payments', limit: 200 }),
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload?.error || 'Не удалось загрузить платежи');
-            }
-            const data = Array.isArray(payload?.data) ? payload.data : [];
+            const { data, error } = await window.dbClient
+                .from('payments')
+                .select('id, client_id, amount_rub, payment_type, method, status, created_at, description, clients(name), yookassa_payment_id')
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (error) throw new Error(error?.message || 'Не удалось загрузить платежи');
             console.groupCollapsed('[admin] loadPayments');
             console.log('rows:', data);
             console.groupEnd();
@@ -2370,7 +2366,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Build table row with separate payment_type and method columns
                 tr.innerHTML = `
-                    <td>${p.client_name || 'Н/Д'}</td>
+                    <td>${p.clients?.name || 'Н/Д'}</td>
                     <td>${Number(p.amount_rub ?? 0).toLocaleString('ru-RU')} ₽</td>
                     <td>${typeLabel}</td>
                     <td><span class="payment-method-badge ${p.method || ''}">${methodLabel}</span></td>
