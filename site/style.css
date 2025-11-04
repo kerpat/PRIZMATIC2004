@@ -67,27 +67,28 @@ body {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px 28px;
+  padding: 0 28px;
   padding-bottom: 100px;
   /* Account for fixed bottom nav */
   gap: 16px;
   overflow-y: auto;
   overflow-x: hidden;
   /* Дополнительно: Нет горизонтального скролла внутри */
+  /* Убрали верхний отступ - фото начинается сверху */
 }
 
 /* Общие стили */
+.app-header {
+  display: none !important;
+  /* Полностью скрываем хедер - место займет фото велосипеда */
+}
+
 .app-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-dark);
-  line-height: 1.2;
-  margin: 0;
-  padding: 0;
+  display: none !important;
 }
 
 .app-header.header-centered h1 {
-  text-align: center;
+  display: none !important;
 }
 
 /* Hide brand title on pages with no-brand */
@@ -96,8 +97,7 @@ body.no-brand .app-header h1 {
 }
 
 body.no-brand .app-header {
-  flex: 0 0 var(--no-brand-header-space);
-  min-height: var(--no-brand-header-space);
+  display: none !important;
 }
 
 /* Center the secondary title on Telegram WebApp */
@@ -114,11 +114,12 @@ body.tg-webapp .app-main h2,
   /* Сохраняет пропорции изображения */
   display: block;
   margin: 0;
+  padding: 0;
   transition: opacity 0.3s ease-in-out;
   max-width: 100%;
-  /* Увеличиваем изображение - убрали верхний отступ */
-  min-height: 280px;
-  /* Минимальная высота для большей видимости */
+  /* Увеличиваем изображение - занимает место хедера */
+  min-height: 320px;
+  /* Увеличенная минимальная высота */
 }
 
 
@@ -126,6 +127,12 @@ body.tg-webapp .app-main h2,
 /* Контейнер для изображения велосипеда и динамической подписи. Делаем его позиционированным, чтобы можно было располагать текст поверх картинки. */
 .bike-image-wrapper {
   position: relative;
+  margin-top: 0;
+  margin-left: -28px;
+  margin-right: -28px;
+  /* Выводим фото за пределы боковых отступов контента - на всю ширину */
+  width: calc(100% + 56px);
+  /* Компенсируем боковые отступы app-content */
 }
 
 
