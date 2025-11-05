@@ -1136,4 +1136,22 @@ function hideNotificationIndicator() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', bootstrap);
+// Проверяем, возвращаемся ли из оплаты, и обрабатываем соответствующим образом
+function handlePaymentReturn() {
+    if (window.appBridge && window.appBridge.isInApp) {
+        // Если мы возвращаемся из оплаты, предотвращаем стандартную загрузку
+        if (window.appBridge.isReturnFromPayment()) {
+            console.log('Обнаружен возврат из оплаты в приложении');
+            // Устанавливаем небольшую задержку, чтобы обработать возврат
+            setTimeout(() => {
+                // Загружаем состояние пользователя и обновляем интерфейс
+                bootstrap();
+            }, 1000);
+            return;
+        }
+    }
+    // Стандартная загрузка приложения
+    bootstrap();
+}
+
+document.addEventListener('DOMContentLoaded', handlePaymentReturn);

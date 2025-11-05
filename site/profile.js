@@ -1058,7 +1058,23 @@ function disconnectProfileSSE() {
     }
 }
 
+// Проверяем, возвращаемся ли из оплаты, и обрабатываем соответствующим образом
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.appBridge && window.appBridge.isInApp) {
+        // Если мы возвращаемся из оплаты, предотвращаем стандартную загрузку
+        if (window.appBridge.isReturnFromPayment()) {
+            console.log('Обнаружен возврат из оплаты в профиле');
+            // Устанавливаем небольшую задержку, чтобы обработать возврат
+            setTimeout(() => {
+                // Загружаем страницу профиля
+                initElements();
+                setupModals();
+                bootstrap();
+            }, 1000);
+            return;
+        }
+    }
+    // Стандартная загрузка страницы профиля
     initElements();
     setupModals();
     bootstrap();
