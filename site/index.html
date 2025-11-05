@@ -23,6 +23,8 @@
     <!-- ⚡ КРИТИЧНАЯ КОНФИГУРАЦИЯ - Загружается СИНХРОННО -->
     <script src="/api/config?v=11.3"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
     <!-- ⚡ НЕ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются АСИНХРОННО -->
     <script src="https://telegram.org/js/telegram-web-app.js?59" defer></script>
     <script src="transitions.js?v=11.3" defer></script>
@@ -306,6 +308,18 @@
     </div>
     <div id="renewal-success-toast" class="toast-container toast-success hidden">
         <p class="toast-message">Аренда успешно продлена!</p>
+    </div>
+
+    <div id="qr-scanner-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close" id="qr-scanner-close-btn">&times;</button>
+            <h2>Сканировать QR-код</h2>
+            <div class="qr-scanner-container">
+                <video id="qr-video" playsinline></video>
+                <div class="qr-scanner-overlay"></div>
+            </div>
+            <p class="disclaimer-text">Наведите камеру на QR-код велосипеда</p>
+        </div>
     </div>
 
 

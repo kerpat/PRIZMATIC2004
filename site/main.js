@@ -8,6 +8,9 @@ import {
     renderAwaitingContractView,
 } from './ui.js';
 import './sse-client.js';
+import { createQrScanner } from './qr-scanner.js';
+
+let qrScanner = null;
 
 const state = {
     user: null,
@@ -823,17 +826,11 @@ function bindDefaultViewEvents() {
         idInputBtn.addEventListener('click', () => openModalById('id-input-modal'));
     }
 
-    const bookingBtn = document.getElementById('scan-btn');
-    if (bookingBtn) {
-        bookingBtn.addEventListener('click', () => {
-            if (window.Telegram?.WebApp?.showScanQrPopup) {
-                window.Telegram.WebApp.showScanQrPopup({ text: 'Наведите камеру на QR-код велосипеда' }, (data) => {
-                    console.log('QR scanned:', data);
-                    // TODO: Handle bike ID from QR code
-                    return true; // close scanner
-                });
-            } else {
-                alert('QR-сканер доступен только в приложении Telegram.');
+    const scanBtn = document.getElementById('scan-btn');
+    if (scanBtn) {
+        scanBtn.addEventListener('click', () => {
+            if (qrScanner) {
+                qrScanner.startScan();
             }
         });
     }
@@ -1003,7 +1000,15 @@ async function refreshRentalView() {
     }
 }
 
+function handleScannedQrCode(data) {
+    console.log('Scanned QR Code:', data);
+    alert(`Scanned QR Code: ${data}`);
+    // TODO: Implement logic to handle the bike ID, e.g., open tariff modal
+}
+
 async function bootstrap() {
+    qrScanner = createQrScanner(handleScannedQrCode);
+
     if (localStorage.getItem('isRegistered') !== 'true') {
         window.location.replace('registration.html');
         return;
