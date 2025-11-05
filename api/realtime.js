@@ -1,12 +1,10 @@
 // Server-Sent Events для PRIZMATIC
 // API endpoint: /api/realtime
 
-import { query } from './_lib_db.js';
+const { query } = require('./_lib_db');
+const { connections, notifyUserUpdate: internalNotifyUserUpdate } = require('./_lib_sse_helpers');
 
-// Маппинг для хранения соединений по userId
-const connections = new Map();
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Для SSE используем HTTP методы GET
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -196,5 +194,8 @@ export function notifyUserUpdate(userId, updateType, data) {
   }
 }
 
-// Экспортируем также для использования в других файлах
-export { connections };
+// В Vercel API Routes экспорт модуля должен быть один
+// Для использования в других файлах создадим отдельную функцию и экспортируем в отдельном файле
+// В Vercel API Routes экспорт модуля должен быть один
+// Доступ к вспомогательным функциям через отдельный файл
+module.exports.connections = connections;

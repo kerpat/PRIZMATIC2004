@@ -151,23 +151,11 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 
         // Отправляем SSE уведомление пользователю о смене баланса
         try {
-            await fetch('http://localhost:3000/api/notify-sse', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-internal-secret': process.env.INTERNAL_SECRET
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    type: 'balance_update',
-                    data: {
-                        balance: userBalance - rentalCost,
-                        change: -rentalCost,
-                        timestamp: new Date().toISOString()
-                    }
-                })
-            }).catch(error => {
-                console.error('Error sending SSE notification:', error.message);
+            const { notifyUserUpdate } = require('./_lib_sse_helpers');
+            notifyUserUpdate(userId, 'balance_update', {
+                balance: userBalance - rentalCost,
+                change: -rentalCost,
+                timestamp: new Date().toISOString()
             });
         } catch (error) {
             console.error('Error sending SSE notification:', error.message);
@@ -243,23 +231,11 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
 
         // Отправляем SSE уведомление пользователю о смене баланса
         try {
-            await fetch('http://localhost:3000/api/notify-sse', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-internal-secret': process.env.INTERNAL_SECRET
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    type: 'balance_update',
-                    data: {
-                        balance: userBalance - rentalCost,
-                        change: -rentalCost,
-                        timestamp: new Date().toISOString()
-                    }
-                })
-            }).catch(error => {
-                console.error('Error sending SSE notification:', error.message);
+            const { notifyUserUpdate } = require('./_lib_sse_helpers');
+            notifyUserUpdate(userId, 'balance_update', {
+                balance: userBalance - rentalCost,
+                change: -rentalCost,
+                timestamp: new Date().toISOString()
             });
         } catch (error) {
             console.error('Error sending SSE notification:', error.message);

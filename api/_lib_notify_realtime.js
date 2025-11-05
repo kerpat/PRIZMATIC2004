@@ -1,6 +1,6 @@
 // Функции для отправки уведомлений через SSE
-// Импортируем функцию из realtime.js
-import { notifyUserUpdate } from './realtime.js';
+// Используем CommonJS для Vercel совместимости
+const { notifyUserUpdate } = require('./_lib_sse_helpers');
 
 // Экспортируем функции для использования в других модулях
-export { notifyUserUpdate };
+module.exports = { notifyUserUpdate };

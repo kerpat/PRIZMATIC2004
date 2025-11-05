@@ -249,23 +249,11 @@ async function handleUpdate(params) {
         if (updatedRental.user_id) {
             // Отправляем SSE уведомление пользователю
             try {
-                await fetch('http://localhost:3000/api/notify-sse', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-internal-secret': process.env.INTERNAL_SECRET
-                    },
-                    body: JSON.stringify({
-                        userId: updatedRental.user_id,
-                        type: 'rental_update',
-                        data: {
-                            rentalId: updatedRental.id,
-                            status: updatedRental.status,
-                            timestamp: new Date().toISOString()
-                        }
-                    })
-                }).catch(error => {
-                    console.error('Error sending SSE notification:', error.message);
+                const { notifyUserUpdate } = require('./_lib_sse_helpers');
+                notifyUserUpdate(updatedRental.user_id, 'rental_update', {
+                    rentalId: updatedRental.id,
+                    status: updatedRental.status,
+                    timestamp: new Date().toISOString()
                 });
             } catch (error) {
                 console.error('Error sending SSE notification:', error.message);

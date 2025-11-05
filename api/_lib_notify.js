@@ -23,23 +23,14 @@ async function handler(req, res) {
                 return res.status(400).json({ error: 'userId, rentalId, and newStatus are required for rental_status_change.' });
             }
             
-            // Отправляем мгновенное уведомление через SSE endpoint
+            // Отправляем мгновенное уведомление через SSE
             try {
-                await axios.post('http://localhost:3000/api/notify-sse', {
-                    userId,
-                    type: 'rental_update',
-                    data: {
-                        rentalId,
-                        status: newStatus,
-                        rental: rentalData,
-                        timestamp: new Date().toISOString()
-                    }
-                }, {
-                    headers: {
-                        'x-internal-secret': process.env.INTERNAL_SECRET,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 2000 // 2 секунды таймаут
+                const { notifyUserUpdate } = require('./_lib_sse_helpers');
+                notifyUserUpdate(userId, 'rental_update', {
+                    rentalId,
+                    status: newStatus,
+                    rental: rentalData,
+                    timestamp: new Date().toISOString()
                 });
                 
                 console.log(`Rental status change notification sent via SSE: user=${userId}, rental=${rentalId}, status=${newStatus}`);
@@ -70,21 +61,12 @@ async function handler(req, res) {
                 return res.status(400).json({ error: 'userId and newBalance are required for balance_update.' });
             }
             
-            // Отправляем мгновенное уведомление через SSE endpoint
+            // Отправляем мгновенное уведомление через SSE
             try {
-                await axios.post('http://localhost:3000/api/notify-sse', {
-                    userId,
-                    type: 'balance_update',
-                    data: {
-                        balance: newBalance,
-                        timestamp: new Date().toISOString()
-                    }
-                }, {
-                    headers: {
-                        'x-internal-secret': process.env.INTERNAL_SECRET,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 2000
+                const { notifyUserUpdate } = require('./_lib_sse_helpers');
+                notifyUserUpdate(userId, 'balance_update', {
+                    balance: newBalance,
+                    timestamp: new Date().toISOString()
                 });
                 
                 console.log(`Balance update notification sent via SSE: user=${userId}, balance=${newBalance}`);

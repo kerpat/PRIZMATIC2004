@@ -1,9 +1,9 @@
 // API endpoint для мгновенных уведомлений через SSE
 // Этот endpoint может быть вызван из других функций для отправки уведомлений
 
-import { notifyUserUpdate } from './realtime.js';
+const { notifyUserUpdate } = require('./_lib_sse_helpers');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Проверяем секретный ключ
   const internalSecret = req.headers['x-internal-secret'];
   if (internalSecret !== process.env.INTERNAL_SECRET) {
