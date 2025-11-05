@@ -983,20 +983,6 @@ async function refreshRentalView() {
             updateTariffLabel();
             switch (rental.status) {
                 case 'active':
-                    await renderActiveRentalView(mainContent, rental, state.user.balance_rub);
-                    bindActiveRentalEvents(rental);
-                    break;
-                case 'awaiting_battery_assignment':
-                    renderAwaitingEquipmentView(mainContent);
-                    scheduleRentalRefresh();
-                    break;
-                case 'awaiting_contract_signing':
-                    renderAwaitingContractView(mainContent);
-                    // Показываем индикатор уведомления в профиле
-                    showNotificationIndicator();
-                    scheduleRentalRefresh(10000);
-                    break;
-                case 'active':
                     // Скрываем индикатор уведомления, если аренда активна
                     hideNotificationIndicator();
                     await renderActiveRentalView(mainContent, rental, state.user.balance_rub);
@@ -1007,6 +993,12 @@ async function refreshRentalView() {
                     hideNotificationIndicator();
                     renderAwaitingEquipmentView(mainContent);
                     scheduleRentalRefresh();
+                    break;
+                case 'awaiting_contract_signing':
+                    // Показываем индикатор уведомления в профиле
+                    showNotificationIndicator();
+                    renderAwaitingContractView(mainContent);
+                    scheduleRentalRefresh(10000);
                     break;
                 case 'overdue':
                     // Скрываем индикатор уведомления
@@ -1019,12 +1011,9 @@ async function refreshRentalView() {
                     hideNotificationIndicator();
                     renderPendingReturnView(mainContent, rental);
                     break;
-                case 'overdue':
-                    renderOverdueRentalView(mainContent, rental);
-                    bindOverdueRentalEvents(rental);
-                    break;
                 case 'awaiting_return_signature':
-                case 'pending_return':
+                    // Показываем индикатор уведомления в профиле при ожидании подписания акта возврата
+                    showNotificationIndicator();
                     renderPendingReturnView(mainContent, rental);
                     bindPendingReturnEvents(rental);
                     break;
