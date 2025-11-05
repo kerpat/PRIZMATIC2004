@@ -28,8 +28,12 @@ module.exports = async function handler(req, res) {
 
   // Проверяем существование пользователя
   try {
+    console.log(`[Realtime] Verifying user with ID: ${userId}`);
     const userQuery = await query('SELECT id FROM clients WHERE id = $1', [userId]);
+    console.log(`[Realtime] User query found ${userQuery.rowCount} rows.`);
+
     if (userQuery.rowCount === 0) {
+      console.log(`[Realtime] User not found for ID: ${userId}. Returning 404.`);
       return res.status(404).json({ error: 'User not found' });
     }
   } catch (error) {
