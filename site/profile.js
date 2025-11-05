@@ -279,6 +279,12 @@ function setupSignatureCanvas(rentalId, action) {
                 alert(action === 'confirm-return-act' ? 'Акт сдачи подписан!' : 'Договор подписан!');
                 closeModal(elements.contractModal);
                 await updateNotifications();
+                // Удаляем индикатор уведомлений после подписания
+                const profileNav = document.querySelector('a[href="profile.html"]') || 
+                                  document.querySelector('.nav-item a[href$="profile.html"]');
+                if (profileNav) {
+                    profileNav.classList.remove('has-notification');
+                }
             } catch (error) {
                 alert(`Ошибка: ${error.message}`);
             } finally {
@@ -674,6 +680,30 @@ function setupModals() {
                 updatePaymentSettingsView();
                 break;
             case 'notifications-modal':
+                // При открытии модального окна уведомлений удаляем индикатор с навигации
+                // Сначала проверяем локальный элемент, затем обновляем в родительской странице
+                const profileNav = document.querySelector('nav .nav-item.active');
+                if (profileNav) {
+                    profileNav.classList.remove('has-notification');
+                }
+                // Также пробуем обновить в родительском окне (на главной странице)
+                if (window.parent && window.parent !== window) {
+                    try {
+                        const parentProfileNav = window.parent.document.querySelector('a[href="profile.html"]');
+                        if (parentProfileNav) {
+                            parentProfileNav.classList.remove('has-notification');
+                        }
+                    } catch(e) {
+                        // Если доступ к родительскому окну запрещен, игнорируем
+                    }
+                } else {
+                    // В обычном контексте (не в iframe)
+                    const mainProfileNav = document.querySelector('a[href="profile.html"]') || 
+                                          document.querySelector('.nav-item a[href$="profile.html"]');
+                    if (mainProfileNav) {
+                        mainProfileNav.classList.remove('has-notification');
+                    }
+                }
                 updateNotifications();
                 break;
             case 'support-modal':

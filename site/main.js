@@ -910,7 +910,32 @@ async function refreshRentalView() {
                     break;
                 case 'awaiting_contract_signing':
                     renderAwaitingContractView(mainContent);
+                    // Показываем индикатор уведомления в профиле
+                    showNotificationIndicator();
                     scheduleRentalRefresh(10000);
+                    break;
+                case 'active':
+                    // Скрываем индикатор уведомления, если аренда активна
+                    hideNotificationIndicator();
+                    await renderActiveRentalView(mainContent, rental, state.user.balance_rub);
+                    bindActiveRentalEvents(rental);
+                    break;
+                case 'awaiting_battery_assignment':
+                    // Скрываем индикатор уведомления
+                    hideNotificationIndicator();
+                    renderAwaitingEquipmentView(mainContent);
+                    scheduleRentalRefresh();
+                    break;
+                case 'overdue':
+                    // Скрываем индикатор уведомления
+                    hideNotificationIndicator();
+                    renderOverdueRentalView(mainContent, rental);
+                    bindOverdueRentalEvents(rental);
+                    break;
+                case 'pending_return':
+                    // Скрываем индикатор уведомления
+                    hideNotificationIndicator();
+                    renderPendingReturnView(mainContent, rental);
                     break;
                 case 'overdue':
                     renderOverdueRentalView(mainContent, rental);
@@ -920,12 +945,16 @@ async function refreshRentalView() {
                     renderPendingReturnView(mainContent, rental);
                     break;
                 default:
+                    // Скрываем индикатор уведомления для других статусов
+                    hideNotificationIndicator();
                     renderDefaultView(mainContent);
                     bindDefaultViewEvents();
             }
             await refreshAvailableBikes();
             updateBalanceDisplay(state.user.balance_rub);
         } else {
+            // Скрываем индикатор уведомления, если нет активной аренды, требующей подписания
+            hideNotificationIndicator();
             renderDefaultView(mainContent);
             bindDefaultViewEvents();
             await refreshAvailableBikes();
@@ -934,6 +963,8 @@ async function refreshRentalView() {
         }
     } catch (error) {
         console.error('[Main] Не удалось обновить состояние аренды:', error);
+        // Скрываем индикатор уведомлений при ошибке
+        hideNotificationIndicator();
         renderDefaultView(mainContent);
         bindDefaultViewEvents();
         updateBalanceDisplay(state.user.balance_rub);
@@ -997,6 +1028,32 @@ function initializePostRentalPrompt() {
             window.location.href = 'profile.html#notifications';
             closeModalByElement(promptModal);
         });
+    }
+}
+
+// Функция для показа индикатора уведомлений в профиле
+function showNotificationIndicator() {
+    // Добавляем класс для анимации колокольчика в навигации
+    const profileNav = document.querySelector('a[href="profile.html"]');
+    if (profileNav) {
+        // Проверяем, есть ли уже класс уведомлений
+        if (!profileNav.classList.contains('has-notification')) {
+            profileNav.classList.add('has-notification');
+            // Запускаем анимацию колокольчика
+            profileNav.classList.add('bell-animation');
+            // Убираем класс анимации через короткое время
+            setTimeout(() => {
+                profileNav.classList.remove('bell-animation');
+            }, 500);
+        }
+    }
+}
+
+// Функция для скрытия индикатора уведомлений
+function hideNotificationIndicator() {
+    const profileNav = document.querySelector('a[href="profile.html"]');
+    if (profileNav) {
+        profileNav.classList.remove('has-notification');
     }
 }
 

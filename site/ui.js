@@ -195,7 +195,7 @@ export function renderAwaitingContractView(mainContent) {
                         <div class="signature-line"></div>
                     </div>
                 </div>
-                <h2>Осталось подписать договор</h2>
+                <h2>Необходимо подписать договор аренды для велосипеда.</h2>
                 <p>Администратор уже подготовил оборудование. Подпишите договор, чтобы начать поездку.</p>
                 <button class="btn btn-primary" id="go-to-contract-btn">Перейти к подписанию</button>
             </div>
