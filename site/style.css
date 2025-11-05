@@ -393,7 +393,7 @@ body.tg-webapp .app-main h2,
   margin-top: 15px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px; /* Reduced gap between items */
 }
 
 .history-item {
@@ -401,10 +401,18 @@ body.tg-webapp .app-main h2,
   align-items: center;
   justify-content: space-between;
   background-color: var(--white);
-  padding: 15px;
+  padding: 12px 15px; /* Adjusted padding */
   border-radius: 20px;
-  border: 2px solid var(--progress-bar-bg);
-  flex-shrink: 0;
+  border: 1px solid var(--progress-bar-bg); /* Lighter border */
+  gap: 10px; /* Gap between info and cost */
+}
+
+.history-info {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Space between icon and text */
+    flex-grow: 1;
+    min-width: 0;
 }
 
 .history-item-left {
@@ -483,12 +491,18 @@ body.tg-webapp .app-main h2,
   font-weight: 600;
   color: var(--text-dark);
   font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .history-subtitle {
   font-weight: 500;
   color: #556f6b;
   font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .history-cost {

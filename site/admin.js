@@ -2304,12 +2304,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                             label: 'Доход',
                             data: chartData,
-                            backgroundColor: 'rgba(28, 181, 224, 0.1)',  // --primary-blue with opacity
-                            borderColor: 'rgba(28, 181, 224, 1)',         // --primary-blue
+                            backgroundColor: 'rgba(13, 115, 119, 0.1)',   // --accent (dark-green) with opacity
+                            borderColor: 'rgba(13, 115, 119, 1)',         // --accent (dark-green)
                             borderWidth: 3,
                             tension: 0.4,
                             fill: true,
-                            pointBackgroundColor: 'rgba(28, 181, 224, 1)', // --primary-blue
+                            pointBackgroundColor: 'rgba(13, 115, 119, 1)', // --accent (dark-green)
                 }]
             },
             options: {
