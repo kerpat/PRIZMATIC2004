@@ -1052,6 +1052,72 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
     return { status: 200, body: { message: 'Rental successfully completed.' } };
 }
 
+async function handleGenerateReturnActHTML({ userId, rentalId, defects }) {
+    if (!userId || !rentalId) {
+        return { status: 400, body: { error: 'userId and rentalId are required.' } };
+    }
+
+    // Получаем данные для акта возврата (аналогично handleFinalizeReturn)
+    const rentalResult = await query(
+        `SELECT 
+            r.bike_id, r.user_id, r.extra_data,
+            c.name as "client_name",
+            c.city as "client_city",
+            c.recognized_passport_data as "client_recognized_passport_data",
+            b.model_name as "bike_model_name",
+            b.frame_number as "bike_frame_number",
+            b.battery_numbers as "bike_battery_numbers",
+            b.registration_number as "bike_registration_number",
+            b.iot_device_id as "bike_iot_device_id",
+            b.additional_equipment as "bike_additional_equipment"
+         FROM rentals r
+         LEFT JOIN clients c ON r.user_id = c.id
+         LEFT JOIN bikes b ON r.bike_id = b.id
+         WHERE r.id = $1`,
+        [rentalId]
+    );
+    
+    const rental = rentalResult.rows[0];
+    if (!rental) {
+        return { status: 404, body: { error: 'Rental not found.' } };
+    }
+    
+    // Создаем объекты клиента и велосипеда вручную
+    const processedRental = {
+        bike_id: rental.bike_id,
+        user_id: rental.user_id,
+        extra_data: rental.extra_data,
+        client: {
+            name: rental.client_name,
+            city: rental.client_city,
+            recognized_passport_data: rental.client_recognized_passport_data
+        },
+        bike: {
+            model_name: rental.bike_model_name,
+            frame_number: rental.bike_frame_number,
+            battery_numbers: rental.bike_battery_numbers,
+            registration_number: rental.bike_registration_number,
+            iot_device_id: rental.bike_iot_device_id,
+            additional_equipment: rental.bike_additional_equipment
+        }
+    };
+
+    // Генерируем HTML акта возврата
+    const returnActHTML = generateReturnActHTML(processedRental.client, processedRental.bike, defects || []);
+    const returnActBase64 = Buffer.from(returnActHTML).toString('base64');
+    const generatedReturnActUrl = `data:text/html;base64,${returnActBase64}`;
+
+    return { 
+        status: 200, 
+        body: { 
+            html: returnActHTML,
+            base64: returnActBase64,
+            publicUrl: generatedReturnActUrl,
+            message: 'Return act HTML generated successfully.' 
+        } 
+    };
+}
+
 async function handleChargeForDamages({ userId, rentalId, amount, description, defects }) {
     if (!userId || !rentalId || !amount || !description) {
         return { status: 400, body: { error: 'userId, rentalId, amount, and description are required.' } };
@@ -1386,6 +1452,9 @@ async function handler(req, res) {
                 break;
             case 'notify-overdue':
                 result = await handleNotifyOverdue(body);
+                break;
+            case 'generate-return-act-html':
+                result = await handleGenerateReturnActHTML(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

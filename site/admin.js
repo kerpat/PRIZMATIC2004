@@ -4170,12 +4170,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Ошибка списания средств');
                 }
 
-                // Step 2: Generate return act PDF
-                const pdfServerUrl = window.CONFIG.CONTRACTS_API_URL + '/api/user';
-                const pdfResponse = await fetch(pdfServerUrl, {
+                // Step 2: Generate return act PDF using our local admin API
+                const pdfResponse = await authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'generate-return-act', userId, rentalId, defects })
+                    body: JSON.stringify({
+                        action: 'generate-return-act-html',
+                        userId,
+                        rentalId,
+                        defects
+                    })
                 });
                 const pdfResult = await pdfResponse.json();
                 if (!pdfResponse.ok) throw new Error(pdfResult.error || 'Ошибка генерации PDF акта.');
