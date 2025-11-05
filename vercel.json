@@ -85,6 +85,10 @@
       "destination": "/api/router?endpoint=call-verify"
     },
     {
+      "source": "/api/realtime",
+      "destination": "/api/realtime.js"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/site/$1"
     }
