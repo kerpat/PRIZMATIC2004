@@ -187,9 +187,14 @@ export function renderAwaitingEquipmentView(mainContent) {
 
 export function renderAwaitingContractView(mainContent) {
     mainContent.innerHTML = `
-        <div class="pending-screen">
-            <div class="pending-content">
-                <img src="bike-delivery.png" alt="Electric bike" class="bike-image" style="max-width:240px;">
+        <div class="contract-signing-screen">
+            <div class="contract-content">
+                <div class="contract-animation">
+                    <div class="contract-document"></div>
+                    <div class="signature-animation">
+                        <div class="signature-line"></div>
+                    </div>
+                </div>
                 <h2>Осталось подписать договор</h2>
                 <p>Администратор уже подготовил оборудование. Подпишите договор, чтобы начать поездку.</p>
                 <button class="btn btn-primary" id="go-to-contract-btn">Перейти к подписанию</button>

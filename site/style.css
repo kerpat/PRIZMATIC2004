@@ -1916,3 +1916,88 @@ body:has(.map-page-container) .app-screen {
   font-style: italic;
   padding: 4px 0;
 }
+
+/* Стили для экрана подписания договора */
+.contract-signing-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+}
+
+.contract-content h2 {
+  margin-top: 18px;
+  margin-bottom: 8px;
+  font-size: 1.5rem;
+  color: var(--dark-green);
+}
+
+.contract-content p {
+  color: #3f4d49;
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 auto 20px auto;
+}
+
+.contract-animation {
+  position: relative;
+  width: 120px;
+  height: 160px;
+  margin: 0 auto 20px;
+}
+
+.contract-document {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--card-bg) 0%, var(--light-blue-bg) 100%);
+  border: 2px solid var(--icon-blue);
+  border-radius: 8px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.contract-document::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  background-color: var(--icon-blue);
+  border-radius: 4px;
+}
+
+.contract-document::after {
+  content: "";
+  position: absolute;
+  top: 30px;
+  left: 10px;
+  right: 10px;
+  height: 4px;
+  background-color: var(--icon-blue);
+  border-radius: 2px;
+}
+
+.signature-animation {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  right: 10px;
+}
+
+.signature-line {
+  height: 3px;
+  background-color: var(--dark-green);
+  border-radius: 2px;
+  width: 0;
+  animation: signatureDraw 2.5s infinite;
+}
+
+@keyframes signatureDraw {
+  0% { width: 0; }
+  50% { width: 100%; }
+  70% { width: 100%; }
+  100% { width: 100%; }
+}

@@ -909,7 +909,7 @@ async function refreshRentalView() {
                     scheduleRentalRefresh();
                     break;
                 case 'awaiting_contract_signing':
-                    renderAwaitingContractView(mainContent, rental);
+                    renderAwaitingContractView(mainContent);
                     scheduleRentalRefresh(10000);
                     break;
                 case 'overdue':
