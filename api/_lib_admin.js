@@ -960,38 +960,58 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
     const rentalResult = await query(
         `SELECT 
             r.bike_id, r.user_id, r.extra_data,
-            jsonb_build_object(
-                'name', c.name,
-                'city', c.city,
-                'recognized_passport_data', c.recognized_passport_data
-            ) as client,
-            jsonb_build_object(
-                'model_name', b.model_name,
-                'frame_number', b.frame_number,
-                'battery_numbers', b.battery_numbers,
-                'registration_number', b.registration_number,
-                'iot_device_id', b.iot_device_id,
-                'additional_equipment', b.additional_equipment
-            ) as bike
+            c.name as "client_name",
+            c.city as "client_city",
+            c.recognized_passport_data as "client_recognized_passport_data",
+            b.model_name as "bike_model_name",
+            b.frame_number as "bike_frame_number",
+            b.battery_numbers as "bike_battery_numbers",
+            b.registration_number as "bike_registration_number",
+            b.iot_device_id as "bike_iot_device_id",
+            b.additional_equipment as "bike_additional_equipment"
          FROM rentals r
          LEFT JOIN clients c ON r.user_id = c.id
          LEFT JOIN bikes b ON r.bike_id = b.id
          WHERE r.id = $1`,
         [rental_id]
     );
+    
     const rental = rentalResult.rows[0];
-
     if (!rental) {
+        throw new Error('Rental not found for finalization.');
+    }
+    
+    // Создаем объекты клиента и велосипеда вручную
+    const processedRental = {
+        bike_id: rental.bike_id,
+        user_id: rental.user_id,
+        extra_data: rental.extra_data,
+        client: {
+            name: rental.client_name,
+            city: rental.client_city,
+            recognized_passport_data: rental.client_recognized_passport_data
+        },
+        bike: {
+            model_name: rental.bike_model_name,
+            frame_number: rental.bike_frame_number,
+            battery_numbers: rental.bike_battery_numbers,
+            registration_number: rental.bike_registration_number,
+            iot_device_id: rental.bike_iot_device_id,
+            additional_equipment: rental.bike_additional_equipment
+        }
+    };
+
+    if (!processedRental) {
         throw new Error('Rental not found for finalization.');
     }
 
     // Генерируем HTML акта возврата
-    const returnActHTML = generateReturnActHTML(rental.client, rental.bike, defects || []);
+    const returnActHTML = generateReturnActHTML(processedRental.client, processedRental.bike, defects || []);
     const returnActBase64 = Buffer.from(returnActHTML).toString('base64');
     const generatedReturnActUrl = `data:text/html;base64,${returnActBase64}`;
 
     const updatedExtraData = {
-        ...(rental.extra_data || {}),
+        ...(processedRental.extra_data || {}),
         return_act_url: return_act_url || generatedReturnActUrl,
         defects: defects || [],
         return_finalized_at: new Date().toISOString(),
@@ -1003,7 +1023,7 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
             [
                 new_bike_status,
                 new_bike_status === 'in_service' ? service_reason || null : null,
-                rental.bike_id,
+                processedRental.bike_id,
             ]
         );
 
@@ -1016,7 +1036,7 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
     try {
         const clientResult = await query(
             'SELECT telegram_user_id FROM clients WHERE id = $1',
-            [rental.user_id]
+            [processedRental.user_id]
         );
         const telegramUserId = clientResult.rows[0]?.telegram_user_id;
         if (telegramUserId) {
