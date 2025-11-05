@@ -71,7 +71,16 @@ async function triggerOCRProcessing(userId, fileDescriptors) {
 
 function parseMultipartForm(req) {
     return new Promise((resolve, reject) => {
-        const bb = busboy({ headers: req.headers });
+        // Добавляем дополнительные параметры для лучшей совместимости с мобильными устройствами
+        const bb = busboy({ 
+            headers: req.headers,
+            // Увеличиваем лимиты для обработки больших файлов с камеры
+            limits: {
+                fileSize: 10 * 1024 * 1024, // 10MB
+                files: 10,
+                fields: 50
+            }
+        });
         const fields = {};
         const files = {};
 
@@ -83,18 +92,67 @@ function parseMultipartForm(req) {
             const { filename, mimeType } = info;
             const chunks = [];
 
-            file.on('data', (chunk) => chunks.push(chunk));
+            // Обработка ошибок при чтении данных файла
+            file.on('error', (err) => {
+                console.error(`[auth] Error reading file ${fieldname}:`, err);
+                // Пропускаем этот файл, но не прерываем обработку остальных
+                file.resume();
+            });
+
+            file.on('data', (chunk) => {
+                if (chunk && chunk.length > 0) {
+                    chunks.push(chunk);
+                }
+            });
+            
             file.on('end', () => {
+                // Проверяем, что данные файла существуют
+                if (chunks.length === 0) {
+                    console.warn(`[auth] File ${fieldname} has no data`);
+                    return;
+                }
+                
+                const buffer = Buffer.concat(chunks);
+                
+                // Проверяем минимальный размер буфера для изображений
+                if (buffer.length < 1024) {
+                    console.warn(`[auth] File ${fieldname} is very small (${buffer.length} bytes), might be invalid`);
+                }
+                
+                // Проверяем формат mimeType и при необходимости корректируем
+                let normalizedMimeType = mimeType || 'application/octet-stream';
+                
+                // Пытаемся определить MIME-тип по содержимому буфера, если неизвестен или ненадежен
+                if (!mimeType || mimeType === 'application/octet-stream' || mimeType === 'image/*' || mimeType === 'application/*') {
+                    const magicBytes = buffer.subarray(0, 4);
+                    const magicHex = magicBytes.toString('hex').toLowerCase();
+                    
+                    if (magicHex.startsWith('ffd8ffe0') || magicHex.startsWith('ffd8ffe1') || magicHex.startsWith('ffd8ffe2')) {
+                        normalizedMimeType = 'image/jpeg';
+                    } else if (magicHex.startsWith('89504e47')) {
+                        normalizedMimeType = 'image/png';
+                    } else if (magicHex.startsWith('47494638')) {
+                        normalizedMimeType = 'image/gif';
+                    } else if (magicHex.startsWith('52494646')) {
+                        normalizedMimeType = 'image/webp';
+                    }
+                }
+                
                 files[fieldname] = {
-                    filename: filename || `${fieldname}.bin`,
-                    buffer: Buffer.concat(chunks),
-                    mimeType: mimeType || 'application/octet-stream',
+                    filename: filename || `${fieldname}_${Date.now()}.bin`,
+                    buffer: buffer,
+                    mimeType: normalizedMimeType,
                 };
             });
         });
 
+        bb.on('error', (err) => {
+            console.error('[auth] Busboy error:', err);
+            // Вместо полного отказа, возвращаем частичные данные если есть
+            resolve({ fields, files });
+        });
+
         bb.on('finish', () => resolve({ fields, files }));
-        bb.on('error', reject);
 
         req.pipe(bb);
     });
@@ -284,7 +342,51 @@ async function storeUploadedFiles(files, userId) {
 
     const saved = [];
     for (const [fieldName, fileData] of entries) {
-        if (!fileData?.buffer?.length) continue;
+        // Проверяем, что у нас есть валидные данные файла
+        if (!fileData?.buffer || !Buffer.isBuffer(fileData.buffer) || !fileData.buffer.length) {
+            console.warn(`[auth] Skipping invalid file data for field ${fieldName}`);
+            continue;
+        }
+        
+        // Проверяем, что это действительно изображение по содержимому
+        const buffer = fileData.buffer;
+        if (buffer.length < 1024) { // Слишком маленький файл для изображения
+            console.warn(`[auth] Skipping too small file for field ${fieldName}: ${buffer.length} bytes`);
+            continue;
+        }
+        
+        // Проверяем сигнатуру файла для подтверждения типа
+        const magicBytes = buffer.subarray(0, 4);
+        const magicHex = magicBytes.toString('hex').toLowerCase();
+        
+        let isValidImage = false;
+        if (fileData.mimeType.startsWith('image/')) {
+            // Если MIME-тип уже определен как изображение, проверяем соответствие
+            if (fileData.mimeType === 'image/jpeg' && 
+                (magicHex.startsWith('ffd8ffe0') || magicHex.startsWith('ffd8ffe1') || magicHex.startsWith('ffd8ffe2'))) {
+                isValidImage = true;
+            } else if (fileData.mimeType === 'image/png' && magicHex.startsWith('89504e47')) {
+                isValidImage = true;
+            } else if (fileData.mimeType === 'image/gif' && magicHex.startsWith('47494638')) {
+                isValidImage = true;
+            } else if (fileData.mimeType === 'image/webp' && magicHex.startsWith('52494646')) {
+                isValidImage = true;
+            } else if (!fileData.mimeType.includes('image')) {
+                // Если MIME-тип не определен как изображение, но данные выглядят как изображение
+                if (magicHex.startsWith('ffd8ffe0') || magicHex.startsWith('ffd8ffe1') || 
+                    magicHex.startsWith('ffd8ffe2') || magicHex.startsWith('89504e47') ||
+                    magicHex.startsWith('47494638') || magicHex.startsWith('52494646')) {
+                    isValidImage = true;
+                }
+            }
+        }
+        
+        // Если файл не является валидным изображением, пропускаем его
+        if (!isValidImage) {
+            console.warn(`[auth] Skipping non-image file for field ${fieldName}, magic bytes: ${magicHex}`);
+            continue;
+        }
+
         try {
             const stored = await saveBuffer({
                 bucket: 'passports',
