@@ -472,23 +472,45 @@ function renderNotifications(rentals) {
     elements.notificationsList.innerHTML = '';
     rentals.forEach((rental) => {
         const item = document.createElement('div');
-        item.className = 'notification-item';
         if (rental.status === 'awaiting_contract_signing') {
+            item.className = 'notification-item';
             item.innerHTML = `
-                <p>Необходимо подписать договор аренды для велосипеда.</p>
-                <button class="btn btn-primary sign-initial-contract-btn" data-rental-id="${rental.id}">
-                    Подписать
-                </button>
+                <svg class="notification-bell-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div class="notification-content">
+                    <p>Необходимо подписать договор аренды для велосипеда.</p>
+                    <button class="btn btn-primary sign-initial-contract-btn" data-rental-id="${rental.id}">
+                        Подписать
+                    </button>
+                </div>
             `;
         } else if (rental.status === 'awaiting_return_signature') {
+            item.className = 'notification-item-alt'; // Для элементов без анимации
             item.innerHTML = `
-                <p>Акт сдачи-приемки готов к подписанию.</p>
-                <button class="btn btn-primary sign-return-act-btn" data-rental-id="${rental.id}">
-                    Подписать акт
-                </button>
+                <svg class="notification-bell-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div class="notification-content">
+                    <p>Акт сдачи-приемки готов к подписанию.</p>
+                    <button class="btn btn-primary sign-return-act-btn" data-rental-id="${rental.id}">
+                        Подписать акт
+                    </button>
+                </div>
             `;
         } else {
-            item.innerHTML = `<p>Ожидается действие по аренде #${rental.id}.</p>`;
+            item.className = 'notification-item-alt'; // Для элементов без анимации
+            item.innerHTML = `
+                <svg class="notification-bell-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div class="notification-content">
+                    <p>Ожидается действие по аренде #${rental.id}.</p>
+                </div>
+            `;
         }
         elements.notificationsList.appendChild(item);
     });
