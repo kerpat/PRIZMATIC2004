@@ -781,6 +781,13 @@ function handleDeepLinks() {
     if (query.get('open') === 'notifications') {
         setTimeout(() => window.openProfileModal?.('notifications-modal'), 250);
     }
+    if (query.get('open') === 'return_act') {
+        // Открытие акта возврата с указанным rentalId
+        const rentalId = query.get('rental');
+        if (rentalId) {
+            setTimeout(() => openReturnActModal(rentalId), 250);
+        }
+    }
     if (query.get('card_saved') === 'true') {
         showToast('card-saved-toast');
         query.delete('card_saved');
