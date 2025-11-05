@@ -150,12 +150,24 @@ export function renderOverdueRentalView(mainContent, rental) {
 }
 
 export function renderPendingReturnView(mainContent, rental) {
+    let title = "Ожидание сдачи";
+    let message = "Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.";
+    
+    if (rental.status === 'awaiting_return_signature') {
+        title = "Подписание акта сдачи";
+        message = "Администратор подтвердил приемку велосипеда. Подпишите акт сдачи-приемки.";
+    }
+
     mainContent.innerHTML = `
         <div class="bike-image-wrapper">
             <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" style="opacity: 0.7;">
         </div>
-        <h2 style="text-align: center;">Ожидание сдачи</h2>
-        <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
+        <h2 style="text-align: center;">${title}</h2>
+        <p style="text-align: center; color: var(--dark-green);">${message}</p>
+        ${rental.status === 'awaiting_return_signature' ? `
+        <button class="btn btn-primary" style="margin-top: 20px;" id="sign-return-act-btn" data-rental-id="${rental.id}">
+            Подписать акт
+        </button>` : ''}`;
 }
 
 export function renderAwaitingEquipmentView(mainContent) {

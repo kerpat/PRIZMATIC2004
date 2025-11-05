@@ -1027,6 +1027,18 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
             ]
         );
 
+        // Освобождаем аккумуляторы, привязанные к этой аренде
+        await dbClient.query(
+            `UPDATE batteries 
+             SET status = 'available' 
+             WHERE id IN (
+                 SELECT battery_id 
+                 FROM rental_batteries 
+                 WHERE rental_id = $1
+             )`,
+            [rental_id]
+        );
+
         await dbClient.query(
             'UPDATE rentals SET status = $1, extra_data = $2::jsonb WHERE id = $3',
             ['awaiting_return_signature', jsonStringify(updatedExtraData), rental_id]

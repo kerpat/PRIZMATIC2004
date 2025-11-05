@@ -478,5 +478,73 @@ async function handler(req, res) {
     }
 }
 
+async function handleConfirmReturnAct({ userId, rentalId, signatureData }) {
+    if (!userId || !rentalId) {
+        return { status: 400, body: { error: 'userId and rentalId are required' } };
+    }
+
+    if (!signatureData) {
+        return { status: 400, body: { error: 'signatureData is required' } };
+    }
+
+    try {
+        // Проверяем, что аренда принадлежит пользователю и имеет правильный статус
+        const rentalResult = await query(
+            'SELECT id, user_id, status, extra_data FROM rentals WHERE id = $1',
+            [rentalId]
+        );
+        
+        if (rentalResult.rows.length === 0) {
+            return { status: 404, body: { error: 'Аренда не найдена' } };
+        }
+        
+        const rental = rentalResult.rows[0];
+        if (rental.user_id !== userId) {
+            return { status: 403, body: { error: 'Эта аренда не принадлежит пользователю' } };
+        }
+        
+        if (rental.status !== 'awaiting_return_signature') {
+            return { status: 400, body: { error: 'Аренда не ожидает подписания акта возврата' } };
+        }
+
+        // Обновляем статус аренды на "завершена" после подписания акта
+        await query(
+            `UPDATE rentals 
+             SET status = $1, 
+                 extra_data = jsonb_set(
+                     COALESCE(extra_data, '{}'),
+                     '{return_act_signed_at}',
+                     to_jsonb(NOW()),
+                     true
+                 )
+             WHERE id = $2`,
+            ['returned', rentalId]
+        );
+
+        // Сохраняем подпись в extra_data для истории
+        const updatedExtraData = {
+            ...rental.extra_data,
+            return_act_signature_data: signatureData,
+            return_act_signed_at: new Date().toISOString()
+        };
+
+        await query(
+            'UPDATE rentals SET extra_data = $1::jsonb WHERE id = $2',
+            [JSON.stringify(updatedExtraData), rentalId]
+        );
+
+        return { 
+            status: 200, 
+            body: { 
+                success: true, 
+                message: 'Акт возврата успешно подписан. Аренда завершена.' 
+            } 
+        };
+    } catch (error) {
+        console.error('[user] Error confirming return act:', error);
+        return { status: 500, body: { error: error.message } };
+    }
+}
+
 module.exports = handler;
 module.exports.default = handler;

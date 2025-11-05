@@ -579,6 +579,86 @@ function bindOverdueRentalEvents(rental) {
     }
 }
 
+function bindPendingReturnEvents(rental) {
+    const signReturnActBtn = document.getElementById('sign-return-act-btn');
+    if (signReturnActBtn) {
+        signReturnActBtn.addEventListener('click', () => openReturnActForSigning(rental.id));
+    }
+}
+
+async function openReturnActForSigning(rentalId) {
+    try {
+        // Открываем модальное окно с актом сдачи для подписания
+        const modal = document.getElementById('contract-modal');
+        if (!modal) {
+            throw new Error('Modal for signing return act not found');
+        }
+
+        // Загружаем акт сдачи
+        const response = await fetch(`/api/view-document?rental=${rentalId}&type=return_act`);
+        if (!response.ok) {
+            throw new Error('Не удалось загрузить акт сдачи');
+        }
+
+        const htmlContent = await response.text();
+        const contractContent = document.getElementById('contract-content');
+        if (contractContent) {
+            contractContent.innerHTML = htmlContent;
+        }
+
+        // Показываем модальное окно
+        modal.classList.remove('hidden');
+        
+        // Привязываем обработчик подписания
+        const signBtn = document.getElementById('sign-contract-btn');
+        if (signBtn) {
+            signBtn.textContent = 'Подписать акт';
+            signBtn.onclick = async () => {
+                try {
+                    signBtn.disabled = true;
+                    signBtn.textContent = 'Обработка...';
+
+                    // Загружаем подпись с canvas
+                    const canvas = document.getElementById('signature-canvas');
+                    if (!canvas) throw new Error('Canvas для подписи не найден');
+
+                    const signatureData = canvas.toDataURL('image/png');
+                    
+                    const confirmResponse = await fetch('/api/user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'confirm-return-act',
+                            userId: state.user.id,
+                            rentalId,
+                            signatureData
+                        })
+                    });
+
+                    const result = await confirmResponse.json();
+                    if (!confirmResponse.ok) {
+                        throw new Error(result.error || 'Ошибка при подтверждении акта сдачи');
+                    }
+
+                    alert('Акт сдачи успешно подписан!');
+                    closeModalById('contract-modal');
+                    await refreshRentalView();
+                } catch (error) {
+                    alert(`Ошибка подписания акта сдачи: ${error.message}`);
+                } finally {
+                    if (signBtn) {
+                        signBtn.disabled = false;
+                        signBtn.textContent = 'Подписать акт';
+                    }
+                }
+            };
+        }
+    } catch (error) {
+        console.error('[Main] Error opening return act for signing:', error);
+        alert(`Не удалось открыть акт сдачи: ${error.message}`);
+    }
+}
+
 async function handleTariffSelection() {
     if (!state.detailTariff || !state.detailOptions.length || state.processingTariff) {
         return;
@@ -943,8 +1023,10 @@ async function refreshRentalView() {
                     renderOverdueRentalView(mainContent, rental);
                     bindOverdueRentalEvents(rental);
                     break;
+                case 'awaiting_return_signature':
                 case 'pending_return':
                     renderPendingReturnView(mainContent, rental);
+                    bindPendingReturnEvents(rental);
                     break;
                 default:
                     // Скрываем индикатор уведомления для других статусов
