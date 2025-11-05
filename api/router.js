@@ -21,6 +21,7 @@ const notifyHandler = require('./_lib_notify');
 const dataHandler = require('./_lib_data');
 const callVerifyHandler = require('./_lib_call_verify');
 const viewDocumentHandler = require('./_lib_view-document');
+const realtimeHandler = require('./_lib_realtime');
 
 module.exports = async (req, res) => {
     // CORS
@@ -117,6 +118,9 @@ module.exports = async (req, res) => {
 
             case 'view-document':
                 return viewDocumentHandler(req, res);
+
+            case 'realtime':
+                return realtimeHandler(req, res);
 
             default:
                 return res.status(404).json({

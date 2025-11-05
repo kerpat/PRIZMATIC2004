@@ -86,7 +86,7 @@
     },
     {
       "source": "/api/realtime",
-      "destination": "/api/realtime.js"
+      "destination": "/api/router?endpoint=realtime"
     },
     {
       "source": "/((?!api/).*)",
