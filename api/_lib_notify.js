@@ -25,7 +25,7 @@ async function handler(req, res) {
             
             // Отправляем уведомление на VPS WebSocket сервер
             try {
-                const vpsResponse = await axios.post('http://51.250.17.150:8080/api/notify', {
+                const vpsResponse = await axios.post('http://51.250.17.150:8081/api/notify', {
                     userId,
                     type: 'rental_status_change',
                     data: {
@@ -72,7 +72,7 @@ async function handler(req, res) {
             
             // Отправляем уведомление на VPS WebSocket сервер
             try {
-                const vpsResponse = await axios.post('http://51.250.17.150:8080/api/notify', {
+                const vpsResponse = await axios.post('http://51.250.17.150:8081/api/notify', {
                     userId,
                     type: 'balance_update',
                     data: {
