@@ -363,10 +363,42 @@ function generateReturnActHTML(rental, defects = []) {
     const client = rental?.clients || {};
     const bike = rental?.bikes || {};
     const passport = client?.recognized_passport_data || {};
+    const extraData = rental?.extra_data || {};
     const defectsMarkup = Array.isArray(defects) && defects.length > 0
         ? `<h4 style="margin-top: 20px; margin-bottom: 10px;">Выявленные неисправности</h4>
            <ul style="padding-left: 18px; font-size: 0.9em;">${defects.map((item) => `<li>${item}</li>`).join('')}</ul>`
         : '<p style="font-size: 0.9em; margin-top: 20px;">Неисправности на момент сдачи не выявлены.</p>';
+
+    // Проверяем, есть ли подпись в данных аренды
+    const returnActSignatureData = extraData?.return_act_signature_data;
+    const returnActSignedAt = extraData?.return_act_signed_at;
+    
+    let signatureSection = '';
+    if (returnActSignatureData) {
+        // Подпись уже была проставлена
+        const signedAt = returnActSignedAt ? new Date(returnActSignedAt).toLocaleString('ru-RU') : now.toLocaleString('ru-RU');
+        signatureSection = `
+            <div style="margin-top: 20px; page-break-inside: avoid;">
+                <h4>Подпись Арендатора:</h4>
+                <div style="border: 1px solid #ddd; padding: 10px; max-width: 300px; margin: 10px auto;">
+                    <img src="${returnActSignatureData}" alt="Подпись при возврате" style="max-width: 100%; height: auto; display: block;"/>
+                </div>
+                <p style="text-align: center; font-size: 0.9em; margin-top: 10px;">
+                    <small>Дата подписания: ${signedAt}</small>
+                </p>
+            </div>
+        `;
+    } else {
+        // Подпись еще не проставлена
+        signatureSection = `
+            <div style="margin-top: 20px;">
+                <h4>Подпись Арендатора:</h4>
+                <div style="border: 1px solid #ddd; padding: 20px; text-align: center; background-color: #f9f9f9; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                    <p style="color: #888; margin: 0;">Подпись будет размещена здесь после подтверждения</p>
+                </div>
+            </div>
+        `;
+    }
 
     return `
         <div style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 20px;">
@@ -398,6 +430,7 @@ function generateReturnActHTML(rental, defects = []) {
             </tbody>
         </table>
         ${defectsMarkup}
+        ${signatureSection}
     `;
 }
 

@@ -94,7 +94,7 @@ async function handleGetContractDetails({ userId, rentalId }) {
     }
     
     const result = await query(
-        `SELECT r.id,
+        `SELECT r.id, r.status,
             jsonb_build_object(
                 'name', c.name,
                 'city', c.city,
@@ -108,7 +108,8 @@ async function handleGetContractDetails({ userId, rentalId }) {
                 'registration_number', b.registration_number,
                 'iot_device_id', b.iot_device_id,
                 'additional_equipment', b.additional_equipment
-            ) as bikes
+            ) as bikes,
+            r.extra_data
          FROM rentals r
          LEFT JOIN clients c ON r.user_id = c.id
          LEFT JOIN tariffs t ON r.tariff_id = t.id

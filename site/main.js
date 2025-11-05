@@ -666,8 +666,17 @@ async function checkoutTariff(tariff, option, { trigger } = {}) {
             window.location.href = response.confirmation_url;
             return;
         }
+        
+        // Если статус платежа "succeeded" или "pending", аренда может быть уже создана
+        if (response?.status === 'succeeded' || response?.status === 'pending') {
+            showToast('rent-success-toast');
+            closeModalById('tariff-detail-modal');
+            closeModalById('tariff-modal');
+            await refreshRentalView();
+            return;
+        }
 
-        throw new Error('Не удалось получить ссылку на оплату.');
+        throw new Error(`Не удалось получить ссылку на оплату. Статус: ${response?.status || 'unknown'}`);
     } catch (error) {
         console.error('[Main] Ошибка оформления тарифа:', error);
         alert(`Ошибка оформления аренды: ${error.message}`);
