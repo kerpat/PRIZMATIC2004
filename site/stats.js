@@ -174,8 +174,15 @@ function updateWeeklyGraph() {
     elements.bars.forEach((bar, index) => {
         const value = totals[index];
         const percent = Math.round((value / maxValue) * 100);
-        bar.style.setProperty('height', `${percent}%`);
+        
+        bar.style.setProperty('height', `${Math.max(percent, 5)}%`);
         bar.title = `${value.toLocaleString('ru-RU')} ₽`;
+
+        if (value === 0) {
+            bar.classList.add('zero-value');
+        } else {
+            bar.classList.remove('zero-value');
+        }
     });
 }
 

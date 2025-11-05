@@ -2303,7 +2303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: labels,
                 datasets: [{
                             label: 'Доход',
-                            data: values,
+                            data: chartData,
                             backgroundColor: 'rgba(28, 181, 224, 0.1)',  // --primary-blue with opacity
                             borderColor: 'rgba(28, 181, 224, 1)',         // --primary-blue
                             borderWidth: 3,

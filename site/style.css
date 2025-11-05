@@ -774,6 +774,44 @@ body:has(.map-page-container) #map {
   padding-bottom: calc(12px + var(--safe-bottom));
 }
 
+/* stats.html bar chart zero value */
+.stats-graph .bar.zero-value {
+    background-color: var(--progress-bar-bg);
+}
+
+/* stats.html calendar */
+.period-picker {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.period-picker input[type="date"] {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--card-bg);
+    border: 1px solid transparent;
+    border-radius: 16px;
+    font-size: 1rem;
+    color: var(--dark-green);
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.period-picker input[type="date"]:focus {
+    outline: none;
+    border-color: var(--icon-blue);
+    background-color: var(--white);
+    box-shadow: 0 0 0 3px rgba(74, 123, 167, 0.2);
+}
+
+.period-separator {
+    font-weight: 600;
+    color: var(--dark-green);
+}
+
+
 .nav-item {
   cursor: pointer;
   padding: 8px;
