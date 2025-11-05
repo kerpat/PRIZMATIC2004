@@ -239,10 +239,26 @@ async function processRenewalPayment(payment, metadata) {
         newEndDate.setDate(newEndDate.getDate() + daysToAdd);
         const totalPaid = Number(rental.total_paid_rub || 0) + cardPaymentAmount + amountToDebit;
 
-        await dbClient.query(
-            'UPDATE rentals SET current_period_ends_at = $1, total_paid_rub = $2 WHERE id = $3',
-            [newEndDate.toISOString(), totalPaid, rentalId]
+        // Обновляем дату окончания аренды и проверяем, нужно ли изменить статус аренды
+        const rentalResultBeforeUpdate = await dbClient.query(
+            'SELECT status FROM rentals WHERE id = $1 FOR UPDATE',
+            [rentalId]
         );
+        const currentStatus = rentalResultBeforeUpdate.rows[0]?.status || 'active';
+
+        if (currentStatus === 'awaiting_battery_assignment' || currentStatus === 'awaiting_contract_signing') {
+            // Если аренда была в состоянии ожидания, меняем статус на 'active' при продлении
+            await dbClient.query(
+                'UPDATE rentals SET current_period_ends_at = $1, total_paid_rub = $2, status = $3 WHERE id = $4',
+                [newEndDate.toISOString(), totalPaid, 'active', rentalId]
+            );
+        } else {
+            // Иначе просто обновляем дату окончания
+            await dbClient.query(
+                'UPDATE rentals SET current_period_ends_at = $1, total_paid_rub = $2 WHERE id = $3',
+                [newEndDate.toISOString(), totalPaid, rentalId]
+            );
+        }
 
         await logPayment({
             clientId: userId,
