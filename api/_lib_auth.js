@@ -90,12 +90,11 @@ function parseMultipartForm(req) {
 
         bb.on('file', (fieldname, file, info) => {
             const { filename, mimeType } = info;
+            console.log(`[auth] Receiving file: ${filename}, field: ${fieldname}, mimeType: ${mimeType}`); // Added logging
             const chunks = [];
 
-            // Обработка ошибок при чтении данных файла
             file.on('error', (err) => {
-                console.error(`[auth] Error reading file ${fieldname}:`, err);
-                // Пропускаем этот файл, но не прерываем обработку остальных
+                console.error(`[auth] Error reading file stream for ${fieldname}:`, err);
                 file.resume();
             });
 
@@ -106,35 +105,44 @@ function parseMultipartForm(req) {
             });
             
             file.on('end', () => {
-                // Проверяем, что данные файла существуют
                 if (chunks.length === 0) {
-                    console.warn(`[auth] File ${fieldname} has no data`);
+                    console.warn(`[auth] File ${fieldname} has no data chunks.`);
                     return;
                 }
                 
                 const buffer = Buffer.concat(chunks);
-                
-                // Проверяем минимальный размер буфера для изображений
-                if (buffer.length < 1024) {
-                    console.warn(`[auth] File ${fieldname} is very small (${buffer.length} bytes), might be invalid`);
+
+                if (!buffer || buffer.length === 0) {
+                    console.warn(`[auth] File ${fieldname} resulted in an empty buffer.`);
+                    return;
                 }
                 
-                // Проверяем формат mimeType и при необходимости корректируем
-                let normalizedMimeType = mimeType || 'application/octet-stream';
+                if (buffer.length < 100) { // Lowered threshold to catch tiny invalid files
+                    console.warn(`[auth] File ${fieldname} is very small (${buffer.length} bytes), might be invalid.`);
+                }
                 
-                // Пытаемся определить MIME-тип по содержимому буфера, если неизвестен или ненадежен
-                if (!mimeType || mimeType === 'application/octet-stream' || mimeType === 'image/*' || mimeType === 'application/*') {
+                let normalizedMimeType = mimeType || 'application/octet-stream';
+                const isGenericMimeType = !mimeType || mimeType === 'application/octet-stream' || mimeType.includes('*');
+
+                if (isGenericMimeType) {
+                    console.log(`[auth] MimeType for ${filename} is generic (${mimeType}), attempting magic byte detection.`);
                     const magicBytes = buffer.subarray(0, 4);
                     const magicHex = magicBytes.toString('hex').toLowerCase();
                     
-                    if (magicHex.startsWith('ffd8ffe0') || magicHex.startsWith('ffd8ffe1') || magicHex.startsWith('ffd8ffe2')) {
+                    if (magicHex.startsWith('ffd8ffe')) { // More general JPEG check
                         normalizedMimeType = 'image/jpeg';
+                        console.log(`[auth] Detected JPEG for ${filename}`);
                     } else if (magicHex.startsWith('89504e47')) {
                         normalizedMimeType = 'image/png';
+                        console.log(`[auth] Detected PNG for ${filename}`);
                     } else if (magicHex.startsWith('47494638')) {
                         normalizedMimeType = 'image/gif';
+                        console.log(`[auth] Detected GIF for ${filename}`);
                     } else if (magicHex.startsWith('52494646')) {
                         normalizedMimeType = 'image/webp';
+                        console.log(`[auth] Detected WEBP for ${filename}`);
+                    } else {
+                        console.warn(`[auth] Could not detect image type for ${filename} from magic bytes: ${magicHex}`);
                     }
                 }
                 
