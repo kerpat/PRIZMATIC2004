@@ -81,7 +81,7 @@ async function handleGetPendingContracts({ userId }) {
          FROM rentals r
          LEFT JOIN tariffs t ON r.tariff_id = t.id
          LEFT JOIN bikes b ON r.bike_id = b.id
-         WHERE r.user_id = $1 AND r.status = 'awaiting_contract_signing'`,
+         WHERE r.user_id = $1 AND r.status IN ('awaiting_contract_signing', 'awaiting_return_signature')`,
         [userId]
     );
 
@@ -466,6 +466,9 @@ async function handler(req, res) {
                 break;
             case 'mark-support-read':
                 result = await handleMarkSupportRead(body);
+                break;
+            case 'confirm-return-act':
+                result = await handleConfirmReturnAct(body);
                 break;
             default:
                 result = { status: 400, body: { error: 'Invalid action' } };

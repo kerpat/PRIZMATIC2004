@@ -589,7 +589,8 @@ function bindPendingReturnEvents(rental) {
 async function openReturnActForSigning(rentalId) {
     try {
         // Перенаправляем пользователя на страницу профиля с параметрами для открытия модального окна подписания акта возврата
-        window.location.href = `profile.html?open=return_act&rental=${rentalId}`;
+        // Добавляем хэш #notifications, чтобы открылась вкладка уведомлений
+        window.location.href = `profile.html?open=return_act&rental=${rentalId}#notifications`;
     } catch (error) {
         console.error('[Main] Error redirecting to return act signing:', error);
         alert(`Не удалось открыть страницу подписания акта: ${error.message}`);
