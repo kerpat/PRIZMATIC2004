@@ -465,12 +465,14 @@ async function handleExtendConfirm(event) {
         trigger.textContent = 'Обработка...';
     }
 
+    let amount = null;
     let normalizedDays;
     try {
-        const amount = Number(option.price_rub);
-        if (!Number.isFinite(amount) || amount <= 0) {
+        const amountValue = Number(option.price_rub);
+        if (!Number.isFinite(amountValue) || amountValue <= 0) {
             throw new Error('Не удалось определить стоимость продления.');
         }
+        amount = amountValue;
 
         const days = Number(option.duration_days);
         normalizedDays = Number.isFinite(days) && days > 0 ? days : undefined;
@@ -501,7 +503,7 @@ async function handleExtendConfirm(event) {
         await refreshRentalView();
     } catch (error) {
         const message = String(error?.message || error);
-        if (message.includes('Balance is sufficient')) {
+        if (message.includes('Balance is sufficient') && amount !== null) {
             try {
                 await chargeFromBalance(state.user.id, tariff.id, {
                     rentalId: rental.id,
