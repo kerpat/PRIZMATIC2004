@@ -149,6 +149,30 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
             }, dbClient);
         });
 
+        // Отправляем SSE уведомление пользователю о смене баланса
+        try {
+            await fetch('http://localhost:3000/api/notify-sse', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-secret': process.env.INTERNAL_SECRET
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    type: 'balance_update',
+                    data: {
+                        balance: userBalance - rentalCost,
+                        change: -rentalCost,
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            }).catch(error => {
+                console.error('Error sending SSE notification:', error.message);
+            });
+        } catch (error) {
+            console.error('Error sending SSE notification:', error.message);
+        }
+
         return { status: 200, body: { success: true, message: 'Аренда успешно продлена с баланса.', rentalId } };
     } else {
         // Это обычная аренда - создаем новую запись
@@ -216,6 +240,30 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
                 description: bikeId ? `Аренда велосипеда #${bikeId}` : 'Аренда велосипеда',
             }, dbClient);
         });
+
+        // Отправляем SSE уведомление пользователю о смене баланса
+        try {
+            await fetch('http://localhost:3000/api/notify-sse', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-secret': process.env.INTERNAL_SECRET
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    type: 'balance_update',
+                    data: {
+                        balance: userBalance - rentalCost,
+                        change: -rentalCost,
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            }).catch(error => {
+                console.error('Error sending SSE notification:', error.message);
+            });
+        } catch (error) {
+            console.error('Error sending SSE notification:', error.message);
+        }
 
         return { status: 200, body: { success: true, message: 'Аренда успешно оформлена с баланса.', rentalId: newRentalId } };
     }

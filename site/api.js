@@ -75,22 +75,8 @@ export async function chargeFromBalance(userId, tariffId, extra = {}) {
 
     const result = await post('/api/payments', payload);
     
-    // Отправляем уведомление об обновлении баланса
-    if (result && result.new_balance !== undefined) {
-        try {
-            await fetch('/api/notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'balance_update',
-                    userId: userId,
-                    newBalance: result.new_balance
-                })
-            });
-        } catch (error) {
-            console.error('Ошибка отправки уведомления об обновлении баланса:', error);
-        }
-    }
+    // Обновление баланса будет получено через SSE автоматически
+    // Сервер проверяет обновления каждые 5 секунд и отправляет их клиенту
     
     return result;
 }
@@ -198,25 +184,8 @@ export async function updateRentalStatus(rentalId, status) {
     const rows = Array.isArray(response?.data) ? response.data : [];
     const updatedRental = rows.length > 0 ? rows[0] : null;
     
-    // Отправляем уведомление о изменении статуса аренды
-    if (updatedRental && updatedRental.user_id) {
-        // Отправляем запрос на сервер для уведомления пользователя
-        try {
-            await fetch('/api/notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'rental_status_change',
-                    userId: updatedRental.user_id,
-                    rentalId: updatedRental.id,
-                    newStatus: status,
-                    rentalData: updatedRental
-                })
-            });
-        } catch (error) {
-            console.error('Ошибка отправки уведомления о статусе аренды:', error);
-        }
-    }
+    // Обновление будет получено через SSE автоматически
+    // Сервер проверяет обновления каждые 5 секунд и отправляет их клиенту
     
     return updatedRental;
 }

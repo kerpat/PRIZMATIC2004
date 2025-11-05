@@ -1045,6 +1045,30 @@ async function handleFinalizeReturn({ rental_id, new_bike_status, service_reason
         );
     });
 
+    // Отправляем SSE уведомление пользователю
+    try {
+        await fetch('http://localhost:3000/api/notify-sse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-internal-secret': process.env.INTERNAL_SECRET
+            },
+            body: JSON.stringify({
+                userId: processedRental.user_id,
+                type: 'rental_update',
+                data: {
+                    rentalId: rental_id,
+                    status: 'awaiting_return_signature',
+                    timestamp: new Date().toISOString()
+                }
+            })
+        }).catch(error => {
+            console.error('Error sending SSE notification:', error.message);
+        });
+    } catch (error) {
+        console.error('Error sending SSE notification:', error.message);
+    }
+
     try {
         const clientResult = await query(
             'SELECT telegram_user_id FROM clients WHERE id = $1',

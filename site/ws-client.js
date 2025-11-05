@@ -18,9 +18,9 @@ class WebSocketClient {
     }
     
     getDefaultServerUrl() {
-        // Подключаемся к VPS серверу на порту 8081
+        // Подключаемся к VPS серверу на порту 8081, используя wss для HTTPS сайтов
         const url = new URL(window.location.href);
-        const protocol = url.protocol === 'https:' ? 'ws:' : 'ws:'; // для внешнего сервера используем ws:, даже если сайт на https
+        const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
         return `${protocol}//51.250.17.150:8081/websocket?userId=${this.userId}`;
     }
     

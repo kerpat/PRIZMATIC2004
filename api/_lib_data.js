@@ -243,6 +243,36 @@ async function handleUpdate(params) {
     const sql = `UPDATE ${quoteIdentifier(table)} SET ${setClauses.join(', ')} WHERE ${whereClause} RETURNING ${validateSelectClause(returning)}`;
     const { rows, count } = await executeQuery(sql, values);
 
+    // Если обновляется таблица аренды и есть обновление статуса, отправляем SSE уведомление
+    if (table === 'rentals' && data.status && rows && rows.length > 0) {
+        const updatedRental = rows[0];
+        if (updatedRental.user_id) {
+            // Отправляем SSE уведомление пользователю
+            try {
+                await fetch('http://localhost:3000/api/notify-sse', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-internal-secret': process.env.INTERNAL_SECRET
+                    },
+                    body: JSON.stringify({
+                        userId: updatedRental.user_id,
+                        type: 'rental_update',
+                        data: {
+                            rentalId: updatedRental.id,
+                            status: updatedRental.status,
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                }).catch(error => {
+                    console.error('Error sending SSE notification:', error.message);
+                });
+            } catch (error) {
+                console.error('Error sending SSE notification:', error.message);
+            }
+        }
+    }
+
     return { data: rows, error: null, count, wrapResponse: true };
 }
 

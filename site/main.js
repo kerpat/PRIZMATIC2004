@@ -7,7 +7,7 @@ import {
     renderAwaitingEquipmentView,
     renderAwaitingContractView,
 } from './ui.js';
-import './ws-client.js';
+import './sse-client.js';
 
 const state = {
     user: null,
@@ -1020,8 +1020,8 @@ async function bootstrap() {
         attachStaticHandlers();
         initializePostRentalPrompt();
 
-        // Подключаемся к WebSocket
-        connectWebSocket(userId);
+        // Подключаемся к SSE
+        connectSSE(userId);
 
         // Прогреваем список тарифов для мгновенного открытия модалки
         fetchTariffs().catch((error) => {
@@ -1073,44 +1073,43 @@ function showNotificationIndicator() {
     }
 }
 
-// WebSocket клиент
-let wsClient = null;
+// SSE клиент
+let sseClient = null;
 
-// Функция для подключения к WebSocket
-function connectWebSocket(userId) {
-    if (typeof window.WebSocketClient !== 'undefined') {
-        wsClient = new window.WebSocketClient(userId);
+// Функция для подключения к SSE
+function connectSSE(userId) {
+    if (typeof window.SSEClient !== 'undefined') {
+        sseClient = new window.SSEClient(userId);
         
-        // Обработчики WebSocket событий
-        wsClient.on('rental-status-change', async (data) => {
-            console.log('Получено обновление статуса аренды:', data);
-            await refreshRentalView();
-        });
-        
-        wsClient.on('balance-update', (data) => {
-            console.log('Получено обновление баланса:', data);
-            if (state.user) {
-                state.user.balance_rub = data.balance;
-                updateBalanceDisplay(data.balance);
-            }
-        });
-        
-        wsClient.on('rental-update', async (data) => {
+        // Обработчики SSE событий
+        sseClient.on('rental_update', async (data) => {
             console.log('Получено обновление аренды:', data);
             await refreshRentalView();
         });
         
-        wsClient.connect();
+        sseClient.on('balance_update', (data) => {
+            console.log('Получено обновление баланса:', data);
+            if (state.user) {
+                state.user.balance_rub = data.data.balance;
+                updateBalanceDisplay(data.data.balance);
+            }
+        });
+        
+        sseClient.on('connected', (data) => {
+            console.log('SSE соединение установлено:', data);
+        });
+        
+        sseClient.connect();
     } else {
-        console.warn('WebSocketClient не доступен');
+        console.warn('SSEClient не доступен');
     }
 }
 
-// Функция для отключения от WebSocket
-function disconnectWebSocket() {
-    if (wsClient) {
-        wsClient.disconnect();
-        wsClient = null;
+// Функция для отключения от SSE
+function disconnectSSE() {
+    if (sseClient) {
+        sseClient.disconnect();
+        sseClient = null;
     }
 }
 

@@ -23,11 +23,11 @@ async function handler(req, res) {
                 return res.status(400).json({ error: 'userId, rentalId, and newStatus are required for rental_status_change.' });
             }
             
-            // Отправляем уведомление на VPS WebSocket сервер
+            // Отправляем мгновенное уведомление через SSE endpoint
             try {
-                const vpsResponse = await axios.post('http://51.250.17.150:8081/api/notify', {
+                await axios.post('http://localhost:3000/api/notify-sse', {
                     userId,
-                    type: 'rental_status_change',
+                    type: 'rental_update',
                     data: {
                         rentalId,
                         status: newStatus,
@@ -39,13 +39,13 @@ async function handler(req, res) {
                         'x-internal-secret': process.env.INTERNAL_SECRET,
                         'Content-Type': 'application/json'
                     },
-                    timeout: 5000 // 5 секунд таймаут
+                    timeout: 2000 // 2 секунды таймаут
                 });
                 
-                console.log(`Rental status change notification sent to VPS: user=${userId}, rental=${rentalId}, status=${newStatus}`);
-            } catch (wsError) {
-                console.error('Error sending WebSocket notification to VPS:', wsError.message);
-                // Продолжаем выполнение, даже если WebSocket уведомление не отправлено
+                console.log(`Rental status change notification sent via SSE: user=${userId}, rental=${rentalId}, status=${newStatus}`);
+            } catch (sseError) {
+                console.error('Error sending SSE notification:', sseError.message);
+                // Продолжаем выполнение, даже если SSE уведомление не отправлено
             }
             
             // Также можно отправить уведомление в Telegram, если нужно
@@ -70,9 +70,9 @@ async function handler(req, res) {
                 return res.status(400).json({ error: 'userId and newBalance are required for balance_update.' });
             }
             
-            // Отправляем уведомление на VPS WebSocket сервер
+            // Отправляем мгновенное уведомление через SSE endpoint
             try {
-                const vpsResponse = await axios.post('http://51.250.17.150:8081/api/notify', {
+                await axios.post('http://localhost:3000/api/notify-sse', {
                     userId,
                     type: 'balance_update',
                     data: {
@@ -84,12 +84,12 @@ async function handler(req, res) {
                         'x-internal-secret': process.env.INTERNAL_SECRET,
                         'Content-Type': 'application/json'
                     },
-                    timeout: 5000
+                    timeout: 2000
                 });
                 
-                console.log(`Balance update notification sent to VPS: user=${userId}, balance=${newBalance}`);
-            } catch (wsError) {
-                console.error('Error sending balance update notification to VPS:', wsError.message);
+                console.log(`Balance update notification sent via SSE: user=${userId}, balance=${newBalance}`);
+            } catch (sseError) {
+                console.error('Error sending SSE balance notification:', sseError.message);
             }
             
             res.status(200).json({ success: true, message: 'Balance update notification processed.', sentToWs: true });

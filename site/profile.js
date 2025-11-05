@@ -11,7 +11,7 @@ import {
     sendSupportMessage,
     markSupportMessagesRead,
 } from './api.js';
-import './ws-client.js';
+import './sse-client.js';
 
 const state = {
     userId: null,
@@ -873,8 +873,8 @@ async function bootstrap() {
         return;
     }
 
-    // Подключаемся к WebSocket
-    connectProfileWebSocket(state.userId);
+    // Подключаемся к SSE
+    connectProfileSSE(state.userId);
     
     updateCardView();
     bindCitySelection();
@@ -884,46 +884,40 @@ async function bootstrap() {
     updateNotifications();
 }
 
-// WebSocket клиент для профиля
-let profileWsClient = null;
+// SSE клиент для профиля
+let profileSSEClient = null;
 
-// Функция для подключения к WebSocket в профиле
-function connectProfileWebSocket(userId) {
-    if (typeof window.WebSocketClient !== 'undefined') {
-        profileWsClient = new window.WebSocketClient(userId);
+// Функция для подключения к SSE в профиле
+function connectProfileSSE(userId) {
+    if (typeof window.SSEClient !== 'undefined') {
+        profileSSEClient = new window.SSEClient(userId);
         
-        // Обработчики WebSocket событий для профиля
-        profileWsClient.on('rental-status-change', async (data) => {
-            console.log('Получено обновление статуса аренды в профиле:', data);
-            await updateNotifications();
-        });
-        
-        profileWsClient.on('balance-update', (data) => {
-            console.log('Получено обновление баланса в профиле:', data);
-            // Обновление баланса на странице профиля может реализоваться позже
-        });
-        
-        profileWsClient.on('rental-update', async (data) => {
+        // Обработчики SSE событий для профиля
+        profileSSEClient.on('rental_update', async (data) => {
             console.log('Получено обновление аренды в профиле:', data);
             await updateNotifications();
         });
         
-        profileWsClient.on('notification', (data) => {
-            console.log('Получено уведомление в профиле:', data);
-            // Здесь можно показывать специальные уведомления
+        profileSSEClient.on('balance_update', (data) => {
+            console.log('Получено обновление баланса в профиле:', data);
+            // Обновление баланса на странице профиля может реализоваться позже
         });
         
-        profileWsClient.connect();
+        profileSSEClient.on('connected', (data) => {
+            console.log('SSE соединение установлено в профиле:', data);
+        });
+        
+        profileSSEClient.connect();
     } else {
-        console.warn('WebSocketClient не доступен в профиле');
+        console.warn('SSEClient не доступен в профиле');
     }
 }
 
-// Функция для отключения от WebSocket в профиле
-function disconnectProfileWebSocket() {
-    if (profileWsClient) {
-        profileWsClient.disconnect();
-        profileWsClient = null;
+// Функция для отключения от SSE в профиле
+function disconnectProfileSSE() {
+    if (profileSSEClient) {
+        profileSSEClient.disconnect();
+        profileSSEClient = null;
     }
 }
 
