@@ -8,6 +8,7 @@
 
     <!-- ⚡ КРИТИЧНЫЕ РЕСУРСЫ - Загружаются СРАЗУ -->
     <link rel="stylesheet" href="style.css?v=11.3">
+    <link rel="stylesheet" href="blend.css?v=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Шрифты загружаются асинхронно для ускорения -->
@@ -66,24 +67,27 @@
     <div class="app-screen">
         <div class="app-content">
             <header class="app-header">
-                <h1></h1>
+                <h1>PRIZMATIC</h1>
             </header>
             <main class="app-main">
+                <h2>Добро пожаловать в PRIZMATIC</h2>
+                
                 <div class="bike-image-wrapper">
                     <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image"
                         width="1536" height="1024" decoding="async" fetchpriority="high">
                     <div id="bike-label" class="bike-label"></div>
                 </div>
+                
                 <div class="progress-section">
                     <div class="progress-bar-container">
                         <div class="progress-bar" id="progress-bar-fill"></div>
                     </div>
                     <div class="progress-labels">
-                        <span id="progress-start-label"></span>
-                        <span id="progress-end-label"></span>
+                        <span id="progress-start-label">Заряжен</span>
+                        <span id="progress-end-label">Разряжен</span>
                     </div>
                 </div>
-                <h2></h2>
+                
                 <div class="info-cards">
                     <div class="card">
                         <div class="icon-wrapper">
@@ -95,8 +99,8 @@
                             </svg>
                         </div>
                         <div class="text-content">
-                            <span></span>
-                            <strong id="available-bikes-count"></strong>
+                            <span>Доступные велосипеды</span>
+                            <strong id="available-bikes-count">0</strong>
                         </div>
                     </div>
                     <div class="card" id="balance-card">
@@ -109,29 +113,39 @@
                             </svg>
                         </div>
                         <div class="text-content">
-                            <span></span>
-                            <strong id="balance-amount"></strong>
+                            <span>Ваш баланс</span>
+                            <strong id="balance-amount">0 ₽</strong>
                         </div>
                     </div>
                 </div>
+                
                 <div class="action-buttons">
-                    <button class="btn btn-primary" id="scan-qr-btn"></button>
+                    <button class="btn btn-primary btn-accent" id="scan-qr-btn">Сканировать QR-код</button>
                     <div class="secondary-actions">
-                        <button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg"
-                                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <button class="btn btn-secondary" id="scan-icon-btn" title="Сканировать QR">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 7V5a2 2 0 0 1 2-2h2" />
                                 <path d="M17 3h2a2 2 0 0 1 2 2v2" />
                                 <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
                                 <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                            </svg></button>
-                        <button class="btn btn-secondary text-btn" id="id-input-btn"></button>
-                        <button class="btn btn-secondary text-btn" id="extend-row-btn"></button>
-                        <button class="btn btn-secondary text-btn" id="booking-btn"></button>
+                            </svg>
+                        </button>
+                        <button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button>
+                        <button class="btn btn-secondary text-btn" id="extend-row-btn">Продлить</button>
+                        <button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button>
                     </div>
                 </div>
+                
                 <div id="extend-container" class="hidden extend-container">
-                    <button id="extend-rental-btn" class="btn btn-primary"></button>
+                    <button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button>
+                </div>
+                
+                <!-- Additional visual elements -->
+                <div class="promo-section">
+                    <div class="promo-card">
+                        <h3>Специальное предложение!</h3>
+                        <p>Первая аренда со скидкой 50%</p>
+                    </div>
                 </div>
             </main>
         </div>
