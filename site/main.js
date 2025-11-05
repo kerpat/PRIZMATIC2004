@@ -809,9 +809,9 @@ async function refreshAvailableBikes() {
 }
 
 function bindDefaultViewEvents() {
-    const scanBtn = document.getElementById('scan-qr-btn');
-    if (scanBtn) {
-        scanBtn.addEventListener('click', async () => {
+    const tariffsBtn = document.getElementById('scan-qr-btn');
+    if (tariffsBtn) {
+        tariffsBtn.addEventListener('click', async () => {
             await openTariffModal();
         });
     }
