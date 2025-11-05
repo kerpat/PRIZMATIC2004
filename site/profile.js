@@ -661,19 +661,156 @@ function initializeSupportChat() {
                     elements.chatInput.value = '';
                     sendChatMessage(text);
                 }
-            });
-        }
+                        });
+                    }
+            
+                    if (elements.chatAttachBtn && elements.chatFileInput) {
+                        elements.chatAttachBtn.addEventListener('click', () => {
+                            elements.chatFileInput.click();
+                        });
+            
+                        elements.chatFileInput.addEventListener('change', (event) => {
+                            handleFileUpload(event.target.files);
+                            event.target.value = ''; // Allow re-selecting the same file
+                        });
+                    }
+                }
+            
+                loadSupportMessages();
+}
 
-        // Attach menu is not supported yet – hide controls to avoid confusion
-        if (elements.chatAttachBtn) {
-            elements.chatAttachBtn.style.display = 'none';
-        }
-        if (elements.chatAttachMenu) {
-            elements.chatAttachMenu.style.display = 'none';
+async function handleFileUpload(files) {
+    if (!files || files.length === 0) return;
+    
+    for (const file of files) {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            if (state.userId) {
+                formData.append('clientId', state.userId);
+            } else {
+                formData.append('anonymousChatId', state.anonymousChatId);
+            }
+            
+            const response = await fetch('/api/upload-support-attachment', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to upload file');
+            }
+            
+            const result = await response.json();
+            // Send the file URL as a message
+            await sendChatMessage(result.publicUrl);
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            showNotification('Ошибка загрузки файла: ' + error.message);
         }
     }
+}
 
-    loadSupportMessages();
+// Modified sendChatMessage to handle file URLs
+async function sendChatMessage(text) {
+    if (!text.trim() && !text.startsWith('http')) return; // Allow file URLs to be sent even if they appear empty
+    
+    const timestamp = new Date().toISOString();
+    const messageData = {
+        text: text,
+        timestamp: timestamp,
+        isFromUser: true
+    };
+    
+    // Add to UI immediately for better UX
+    addChatMessage(messageData);
+    
+    try {
+        // Send to support backend
+        const response = await fetch('/api/send-support-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clientId: state.userId || null,
+                anonymousChatId: state.anonymousChatId || null,
+                message: text,
+                timestamp: timestamp
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+        // TODO: Handle error (remove sent message or mark as failed)
+    }
+}
+
+// Modified addChatMessage to handle different file types
+function addChatMessage(messageData) {
+    if (!elements.chatMessagesContainer) return;
+    
+    const isFromUser = messageData.isFromUser;
+    const messageElement = document.createElement('div');
+    messageElement.className = `chat-message ${isFromUser ? 'user-message' : 'support-message'}`;
+    
+    // Check if the message is a file URL
+    if (messageData.text.startsWith('http')) {
+        const fileUrl = messageData.text;
+        const fileExtension = fileUrl.split('.').pop().toLowerCase();
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
+        const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileExtension);
+        
+        if (isImage) {
+            messageElement.innerHTML = `
+                <div class="chat-file-content">
+                    <a href="${fileUrl}" target="_blank">
+                        <img src="${fileUrl}" alt="Вложение" class="chat-image-preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                    </a>
+                    <div class="chat-file-name">Изображение</div>
+                </div>
+            `;
+        } else if (isVideo) {
+            messageElement.innerHTML = `
+                <div class="chat-file-content">
+                    <video controls class="chat-video-preview" style="max-width: 200px; border-radius: 8px;">
+                        <source src="${fileUrl}" type="video/${fileExtension}">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                    <div class="chat-file-name">Видео</div>
+                </div>
+            `;
+        } else {
+            // For other file types, show a download link
+            const fileName = fileUrl.split('/').pop() || 'Файл';
+            messageElement.innerHTML = `
+                <div class="chat-file-content">
+                    <a href="${fileUrl}" target="_blank" class="chat-file-link" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f9fd; border-radius: 8px; text-decoration: none; color: #1CB5E0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>${fileName}</span>
+                    </a>
+                </div>
+            `;
+        }
+    } else {
+        // Regular text message
+        messageElement.textContent = messageData.text;
+    }
+    
+    // Add timestamp
+    const timestampElement = document.createElement('div');
+    timestampElement.className = 'chat-timestamp';
+    timestampElement.textContent = formatTime(messageData.timestamp);
+    messageElement.appendChild(timestampElement);
+    
+    elements.chatMessagesContainer.appendChild(messageElement);
+    elements.chatMessagesContainer.scrollTop = elements.chatMessagesContainer.scrollHeight;
 }
 
 async function updatePaymentSettingsView() {
