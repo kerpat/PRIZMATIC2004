@@ -5,6 +5,16 @@ class AppBridge {
         this.isIOSApp = this.detectIOSApp();
         this.isInApp = this.isAndroidApp || this.isIOSApp;
         
+        // Добавляем логирование для отладки
+        console.log('AppBridge initialized:', {
+            isAndroidApp: this.isAndroidApp,
+            isIOSApp: this.isIOSApp,
+            isInApp: this.isInApp,
+            userAgent: navigator.userAgent,
+            capacitor: typeof window.Capacitor !== 'undefined',
+            capacitorPlugins: !!(window.Capacitor && window.Capacitor.Plugins)
+        });
+        
         if (this.isInApp) {
             this.setupAppNavigation();
         }
@@ -12,11 +22,11 @@ class AppBridge {
 
     // Определение Android приложения
     detectAndroidApp() {
-        // Проверяем наличие специфических признаков Android WebView
-        return window.Capacitor || 
-               (window.webkit && window.webkit.messageHandlers) || 
-               /wv|WebView|Mobile Safari/i.test(navigator.userAgent) && 
-               /Android/i.test(navigator.userAgent);
+        // Проверяем наличие специфических признаков Android WebView в вашем приложении
+        return typeof window.Capacitor !== 'undefined' || // Capacitor framework (используется в вашем приложении)
+               (window.Capacitor && window.Capacitor.Plugins) || // Дополнительная проверка для Capacitor
+               navigator.userAgent.includes('wv') || // WebView marker
+               (navigator.userAgent.includes('Android') && navigator.userAgent.toLowerCase().includes('chrome') && navigator.userAgent.includes('safari')); // Android WebView
     }
 
     // Определение iOS приложения (на всякий случай)
@@ -42,7 +52,10 @@ class AppBridge {
     isReturnFromPayment() {
         // Проверяем URL на признаки возврата из оплаты
         const searchParams = new URLSearchParams(window.location.search);
-        const returnFromPaymentParams = ['payment_success', 'payment_id', 'payment_status', 'payment_complete', 'return_url'];
+        const returnFromPaymentParams = [
+            'payment_success', 'payment_id', 'payment_status', 'payment_complete', 'return_url',
+            'success', 'result', 'status', 'token', 'payment_token', 'checkout', 'paid'
+        ];
         
         for (const param of returnFromPaymentParams) {
             if (searchParams.has(param)) {
@@ -50,9 +63,17 @@ class AppBridge {
             }
         }
         
+        // Проверяем хэш в URL, который может содержать параметры оплаты
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        for (const param of returnFromPaymentParams) {
+            if (hashParams.has(param)) {
+                return true;
+            }
+        }
+        
         // Проверяем, содержит ли URL ключевые слова, связанные с оплатой
-        const url = window.location.href;
-        return /payment|checkout|pay|success|return|callback|result/i.test(url);
+        const url = window.location.href.toLowerCase();
+        return /payment|checkout|pay|success|return|callback|result|yookassa|sbp|sber|tinkoff/i.test(url);
     }
 
     // Обработка возврата из оплаты
@@ -217,46 +238,45 @@ class AppBridge {
         }
     }
     
-    // Настройка обработки кнопок возврата из оплаты
+    // Настройка обработки кнопок возврата из оплаты (только когда возвращаемся из оплаты)
     setupPaymentReturnHandling() {
-        // Ищем кнопки с текстом, связанным с возвратом в магазин
-        const returnButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
-        
-        returnButtons.forEach(button => {
-            const buttonText = (button.textContent || button.value || button.innerText || '').toLowerCase();
-            const buttonId = (button.id || '').toLowerCase();
-            const buttonClass = (button.className || '').toLowerCase();
+        // Обрабатываем кнопки только если мы возвращаемся из оплаты
+        if (this.isReturnFromPayment()) {
+            // Ищем кнопки с текстом, связанным с возвратом в магазин
+            const returnButtons = document.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
             
-            // Проверяем, содержит ли кнопка ключевые слова для возврата
-            if (this.isReturnButton(buttonText, buttonId, buttonClass)) {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.handlePaymentReturnButton();
-                });
-            }
-        });
-        
-        // Также проверяем на наличие специфических id или классов
-        const specificSelectors = [
-            '.back-to-shop', '.return-to-shop', '.back-to-store', '.return-btn',
-            '#back-to-shop', '#return-to-shop', '#back-btn', '#return-btn',
-            '[data-return]', '[data-back]'
-        ];
-        
-        specificSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                el.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.handlePaymentReturnButton();
-                });
+            returnButtons.forEach(button => {
+                const buttonText = (button.textContent || button.value || button.innerText || '').toLowerCase();
+                const buttonId = (button.id || '').toLowerCase();
+                const buttonClass = (button.className || '').toLowerCase();
+                
+                // Проверяем, содержит ли кнопка ключевые слова для возврата
+                if (this.isReturnButton(buttonText, buttonId, buttonClass)) {
+                    // Сохраняем оригинальное поведение, чтобы не сломать другие функции
+                    const originalHandler = button.onclick;
+                    if (originalHandler) {
+                        button.dataset.originalClick = originalHandler.toString();
+                    }
+                    
+                    button.addEventListener('click', (e) => {
+                        // Если это кнопка возврата из оплаты, используем наше поведение
+                        if (this.isReturnFromPayment()) {
+                            e.preventDefault();
+                            this.handlePaymentReturnButton();
+                        } else if (originalHandler) {
+                            // Иначе используем оригинальное поведение
+                            originalHandler.call(button, e);
+                        }
+                    }, { once: false }); // Убираем once, чтобы обработчик работал постоянно
+                }
             });
-        });
+        }
     }
     
     // Проверяем, является ли кнопка кнопкой возврата из оплаты
     isReturnButton(text, id, className) {
         const returnKeywords = [
+            'вернуться в магазин', 'вернуться в приложение', 'назад в магазин', 
             'вернуться', 'назад', 'магазин', 'shop', 'store', 'return', 'back', 'в магазин',
             'вернуться в', 'назад в', 'на главную', 'home', 'главная', 'ок', 'готово'
         ];

@@ -1137,21 +1137,21 @@ function hideNotificationIndicator() {
 }
 
 // Проверяем, возвращаемся ли из оплаты, и обрабатываем соответствующим образом
-function handlePaymentReturn() {
+async function handlePaymentReturn() {
     if (window.appBridge && window.appBridge.isInApp) {
         // Если мы возвращаемся из оплаты, предотвращаем стандартную загрузку
         if (window.appBridge.isReturnFromPayment()) {
             console.log('Обнаружен возврат из оплаты в приложении');
             // Устанавливаем небольшую задержку, чтобы обработать возврат
-            setTimeout(() => {
+            setTimeout(async () => {
                 // Загружаем состояние пользователя и обновляем интерфейс
-                bootstrap();
+                await bootstrap();
             }, 1000);
             return;
         }
     }
     // Стандартная загрузка приложения
-    bootstrap();
+    await bootstrap();
 }
 
 document.addEventListener('DOMContentLoaded', handlePaymentReturn);
