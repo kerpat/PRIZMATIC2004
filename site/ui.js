@@ -152,7 +152,7 @@ export function renderOverdueRentalView(mainContent, rental) {
 export function renderPendingReturnView(mainContent, rental) {
     mainContent.innerHTML = `
         <div class="bike-image-wrapper">
-            <img src="bike00001.png" alt="Rented Electric bike" class="bike-image" style="opacity: 0.7;">
+            <img src="bike-delivery.png" alt="Rented Electric bike" class="bike-image" style="opacity: 0.7;">
         </div>
         <h2 style="text-align: center;">Ожидание сдачи</h2>
         <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
