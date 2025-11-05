@@ -2000,6 +2000,21 @@ body:has(.map-page-container) .app-screen {
   right: 10px;
 }
 
+.secondary-actions-split {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+.secondary-actions-split #id-input-btn {
+  flex: 0 0 auto; /* Don't grow, don't shrink, base size on content */
+}
+
+.secondary-actions-split #scan-btn {
+  flex: 1 1 auto; /* Grow to fill space */
+}
+}
+
 .signature-line {
   height: 3px;
   background-color: var(--dark-green);

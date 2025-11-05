@@ -823,9 +823,19 @@ function bindDefaultViewEvents() {
         idInputBtn.addEventListener('click', () => openModalById('id-input-modal'));
     }
 
-    const bookingBtn = document.getElementById('booking-btn');
+    const bookingBtn = document.getElementById('scan-btn');
     if (bookingBtn) {
-        bookingBtn.addEventListener('click', () => openModalById('booking-list-modal'));
+        bookingBtn.addEventListener('click', () => {
+            if (window.Telegram?.WebApp?.showScanQrPopup) {
+                window.Telegram.WebApp.showScanQrPopup({ text: 'Наведите камеру на QR-код велосипеда' }, (data) => {
+                    console.log('QR scanned:', data);
+                    // TODO: Handle bike ID from QR code
+                    return true; // close scanner
+                });
+            } else {
+                alert('QR-сканер доступен только в приложении Telegram.');
+            }
+        });
     }
 
     const rentBtn = document.getElementById('rent-btn');

@@ -28,9 +28,9 @@ export function renderDefaultView(mainContent) {
         </div>
         <div class="action-buttons">
             <button class="btn btn-primary" id="scan-qr-btn">Тарифы</button>
-            <div class="secondary-actions">
+            <div class="secondary-actions-split">
                 <button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button>
-                <button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button>
+                <button class="btn btn-secondary text-btn" id="scan-btn">Сканировать</button>
             </div>
         </div>
         <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
