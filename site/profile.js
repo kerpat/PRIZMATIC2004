@@ -11,6 +11,7 @@ import {
     sendSupportMessage,
     markSupportMessagesRead,
 } from './api.js';
+import './ws-client.js';
 
 const state = {
     userId: null,
@@ -872,12 +873,58 @@ async function bootstrap() {
         return;
     }
 
+    // Подключаемся к WebSocket
+    connectProfileWebSocket(state.userId);
+    
     updateCardView();
     bindCitySelection();
     bindNotificationActions();
     bindLogout();
     handleDeepLinks();
     updateNotifications();
+}
+
+// WebSocket клиент для профиля
+let profileWsClient = null;
+
+// Функция для подключения к WebSocket в профиле
+function connectProfileWebSocket(userId) {
+    if (typeof window.WebSocketClient !== 'undefined') {
+        profileWsClient = new window.WebSocketClient(userId);
+        
+        // Обработчики WebSocket событий для профиля
+        profileWsClient.on('rental-status-change', async (data) => {
+            console.log('Получено обновление статуса аренды в профиле:', data);
+            await updateNotifications();
+        });
+        
+        profileWsClient.on('balance-update', (data) => {
+            console.log('Получено обновление баланса в профиле:', data);
+            // Обновление баланса на странице профиля может реализоваться позже
+        });
+        
+        profileWsClient.on('rental-update', async (data) => {
+            console.log('Получено обновление аренды в профиле:', data);
+            await updateNotifications();
+        });
+        
+        profileWsClient.on('notification', (data) => {
+            console.log('Получено уведомление в профиле:', data);
+            // Здесь можно показывать специальные уведомления
+        });
+        
+        profileWsClient.connect();
+    } else {
+        console.warn('WebSocketClient не доступен в профиле');
+    }
+}
+
+// Функция для отключения от WebSocket в профиле
+function disconnectProfileWebSocket() {
+    if (profileWsClient) {
+        profileWsClient.disconnect();
+        profileWsClient = null;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

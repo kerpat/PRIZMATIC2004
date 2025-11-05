@@ -7,6 +7,7 @@ import {
     renderAwaitingEquipmentView,
     renderAwaitingContractView,
 } from './ui.js';
+import './ws-client.js';
 
 const state = {
     user: null,
@@ -1019,6 +1020,9 @@ async function bootstrap() {
         attachStaticHandlers();
         initializePostRentalPrompt();
 
+        // Подключаемся к WebSocket
+        connectWebSocket(userId);
+
         // Прогреваем список тарифов для мгновенного открытия модалки
         fetchTariffs().catch((error) => {
             console.warn('[Main] Предзагрузка тарифов не удалась:', error);
@@ -1066,6 +1070,47 @@ function showNotificationIndicator() {
                 profileNav.classList.remove('bell-animation');
             }, 500);
         }
+    }
+}
+
+// WebSocket клиент
+let wsClient = null;
+
+// Функция для подключения к WebSocket
+function connectWebSocket(userId) {
+    if (typeof window.WebSocketClient !== 'undefined') {
+        wsClient = new window.WebSocketClient(userId);
+        
+        // Обработчики WebSocket событий
+        wsClient.on('rental-status-change', async (data) => {
+            console.log('Получено обновление статуса аренды:', data);
+            await refreshRentalView();
+        });
+        
+        wsClient.on('balance-update', (data) => {
+            console.log('Получено обновление баланса:', data);
+            if (state.user) {
+                state.user.balance_rub = data.balance;
+                updateBalanceDisplay(data.balance);
+            }
+        });
+        
+        wsClient.on('rental-update', async (data) => {
+            console.log('Получено обновление аренды:', data);
+            await refreshRentalView();
+        });
+        
+        wsClient.connect();
+    } else {
+        console.warn('WebSocketClient не доступен');
+    }
+}
+
+// Функция для отключения от WebSocket
+function disconnectWebSocket() {
+    if (wsClient) {
+        wsClient.disconnect();
+        wsClient = null;
     }
 }
 
