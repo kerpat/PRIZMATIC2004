@@ -38,10 +38,30 @@ export function renderDefaultView(mainContent) {
 }
 
 export async function renderActiveRentalView(mainContent, rental, userBalance) {
+    const startDate = new Date(rental.starts_at);
     const endsDate = new Date(rental.current_period_ends_at);
-    const daysLeft = Math.ceil((endsDate - new Date()) / (1000 * 60 * 60 * 24));
-    const durationDays = rental.tariffs?.duration_days || 7;
-    const progress = Math.max(0, 100 - (daysLeft / durationDays * 100));
+    const now = new Date();
+    
+    // Общая продолжительность аренды в днях
+    const totalDurationMs = endsDate.getTime() - startDate.getTime();
+    const totalDurationDays = totalDurationMs / (1000 * 60 * 60 * 24);
+    
+    // Прошедшее время с начала аренды в днях
+    const elapsedMs = now.getTime() - startDate.getTime();
+    const elapsedDays = elapsedMs / (1000 * 60 * 60 * 24);
+    
+    // Процент выполнения (от 0 до 100)
+    let progress = 0;
+    if (totalDurationDays > 0) {
+        progress = Math.min(100, Math.max(0, (elapsedDays / totalDurationDays) * 100));
+    }
+    
+    // Если аренда истекла, показываем 100%
+    if (now > endsDate) {
+        progress = 100;
+    }
+    
+    const daysLeft = Math.ceil((endsDate - now) / (1000 * 60 * 60 * 24));
     const progressBarColor = getProgressColor(progress);
 
     mainContent.innerHTML = `
