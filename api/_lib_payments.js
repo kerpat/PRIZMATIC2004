@@ -69,7 +69,7 @@ async function processInstantTopUp({ userId, amount, payment }) {
     return true;
 }
 
-async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, days }) {
+async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, days, rentalId }) {
     if (!userId || !tariffId) {
         return { status: 400, body: { error: 'userId and tariffId are required' } };
     }
@@ -104,72 +104,121 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         return { status: 400, body: { error: 'Client has insufficient balance.' } };
     }
 
-    let bikeId = null;
-    if (bikeCode) {
-        const bikeResult = await query(
-            'SELECT id, status, tariff_id FROM bikes WHERE bike_code = $1',
-            [bikeCode]
-        );
-        const bike = bikeResult.rows[0];
+    // Проверяем, является ли это продлением существующей аренды
+    if (rentalId) {
+        // Это продление аренды
+        let rentalResult;
+        try {
+            rentalResult = await query(
+                'SELECT current_period_ends_at, total_paid_rub FROM rentals WHERE id = $1 FOR UPDATE',
+                [rentalId]
+            );
+        } catch (error) {
+            throw new Error(`Rental #${rentalId} not found for renewal.`);
+        }
+        
+        const existingRental = rentalResult.rows[0];
+        if (!existingRental) {
+            throw new Error(`Rental #${rentalId} not found for renewal.`);
+        }
 
-        if (!bike) {
-            return { status: 400, body: { error: 'Велосипед не найден.' } };
-        }
-        if (bike.status !== 'available') {
-            return { status: 400, body: { error: 'Велосипед недоступен для аренды.' } };
-        }
-        if (bike.tariff_id !== Number(tariffId)) {
-            return { status: 400, body: { error: 'Велосипед не соответствует выбранному тарифу.' } };
+        const startDate = new Date(existingRental.current_period_ends_at || new Date());
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + Number(duration || 0));
+        const totalPaid = Number(existingRental.total_paid_rub || 0) + rentalCost;
+
+        await transact(async (dbClient) => {
+            await addToBalance(userId, -rentalCost, dbClient);
+
+            // Обновляем существующую аренду, а не создаем новую
+            await dbClient.query(
+                `UPDATE rentals 
+                SET current_period_ends_at = $1, total_paid_rub = $2 
+                WHERE id = $3`,
+                [endDate.toISOString(), totalPaid, rentalId]
+            );
+
+            await logPayment({
+                clientId: userId,
+                rentalId,
+                amountRub: rentalCost,
+                status: 'succeeded',
+                paymentType: 'renewal',
+                method: 'balance',
+                description: 'Продление аренды с баланса',
+            }, dbClient);
+        });
+
+        return { status: 200, body: { success: true, message: 'Аренда успешно продлена с баланса.', rentalId } };
+    } else {
+        // Это обычная аренда - создаем новую запись
+        let bikeId = null;
+        if (bikeCode) {
+            const bikeResult = await query(
+                'SELECT id, status, tariff_id FROM bikes WHERE bike_code = $1',
+                [bikeCode]
+            );
+            const bike = bikeResult.rows[0];
+
+            if (!bike) {
+                return { status: 400, body: { error: 'Велосипед не найден.' } };
+            }
+            if (bike.status !== 'available') {
+                return { status: 400, body: { error: 'Велосипед недоступен для аренды.' } };
+            }
+            if (bike.tariff_id !== Number(tariffId)) {
+                return { status: 400, body: { error: 'Велосипед не соответствует выбранному тарифу.' } };
+            }
+
+            bikeId = bike.id;
         }
 
-        bikeId = bike.id;
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + Number(duration || 0));
+
+        let newRentalId;
+        await transact(async (dbClient) => {
+            await addToBalance(userId, -rentalCost, dbClient);
+
+            const rentalInsert = await dbClient.query(
+                `INSERT INTO rentals (
+                    user_id,
+                    bike_id,
+                    tariff_id,
+                    starts_at,
+                    current_period_ends_at,
+                    status,
+                    total_paid_rub
+                )
+                VALUES ($1,$2,$3,$4,$5,$6,$7)
+                RETURNING id`,
+                [
+                    userId,
+                    bikeId,
+                    tariffId,
+                    startDate.toISOString(),
+                    endDate.toISOString(),
+                    'awaiting_battery_assignment',
+                    rentalCost,
+                ]
+            );
+
+            newRentalId = rentalInsert.rows[0].id;
+
+            await logPayment({
+                clientId: userId,
+                rentalId: newRentalId,
+                amountRub: rentalCost,
+                status: 'succeeded',
+                paymentType: 'rental',
+                method: 'balance',
+                description: bikeId ? `Аренда велосипеда #${bikeId}` : 'Аренда велосипеда',
+            }, dbClient);
+        });
+
+        return { status: 200, body: { success: true, message: 'Аренда успешно оформлена с баланса.', rentalId: newRentalId } };
     }
-
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + Number(duration || 0));
-
-    let rentalId;
-    await transact(async (dbClient) => {
-        await addToBalance(userId, -rentalCost, dbClient);
-
-        const rentalInsert = await dbClient.query(
-            `INSERT INTO rentals (
-                user_id,
-                bike_id,
-                tariff_id,
-                starts_at,
-                current_period_ends_at,
-                status,
-                total_paid_rub
-            )
-            VALUES ($1,$2,$3,$4,$5,$6,$7)
-            RETURNING id`,
-            [
-                userId,
-                bikeId,
-                tariffId,
-                startDate.toISOString(),
-                endDate.toISOString(),
-                'awaiting_battery_assignment',
-                rentalCost,
-            ]
-        );
-
-        rentalId = rentalInsert.rows[0].id;
-
-        await logPayment({
-            clientId: userId,
-            rentalId,
-            amountRub: rentalCost,
-            status: 'succeeded',
-            paymentType: 'rental',
-            method: 'balance',
-            description: bikeId ? `Аренда велосипеда #${bikeId}` : 'Аренда велосипеда',
-        }, dbClient);
-    });
-
-    return { status: 200, body: { success: true, message: 'Аренда успешно оформлена с баланса.', rentalId } };
 }
 
 async function handleSaveCard({ userId }) {
