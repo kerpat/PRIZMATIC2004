@@ -1998,6 +1998,28 @@ select:focus::placeholder {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+#admin-nav button {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Increased gap for better spacing */
+    font-size: 15px; /* Slightly larger font */
+    padding: 14px 16px; /* Adjusted padding */
+}
+
+#admin-nav button svg {
+    width: 20px; /* Icon size */
+    height: 20px;
+    stroke-width: 2.5; /* Bolder stroke */
+    color: var(--accent); /* Icon color */
+    transition: color 0.15s ease;
+}
+
+#admin-nav button:hover svg,
+#admin-nav button.active svg {
+    color: var(--accent-2); /* Darker icon color on hover/active */
+}
   margin-bottom: 24px;
 }
 
