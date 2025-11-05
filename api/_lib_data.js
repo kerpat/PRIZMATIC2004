@@ -354,7 +354,7 @@ module.exports = async (req, res) => {
                     LEFT JOIN tariffs t ON r.tariff_id = t.id
                     LEFT JOIN bikes b ON r.bike_id = b.id
                     WHERE r.user_id = $1 
-                    AND r.status IN ('active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing')
+                    AND r.status IN ('active', 'overdue', 'pending_return', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'awaiting_return_signature')
                     ORDER BY r.created_at DESC
                     LIMIT 1`,
                     [params.userId]
