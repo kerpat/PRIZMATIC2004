@@ -480,7 +480,7 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             vpsFormData.append('files', f.file, f.file.name);
         });
 
-        const vpsResponse = await fetch('https://prizmaticupliad.duckdns.org/upload', {
+        const vpsResponse = await fetch('https://xn----7sbudcwsigrzv.space/upload', {
             method: 'POST',
             body: vpsFormData
         });

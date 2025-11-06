@@ -1,18 +1,13 @@
 server {
-    server_name prizmaticupliad.duckdns.org;
+    listen 80;
+    server_name xn----7sbudcwsigrzv.space;
 
-    # SSL configuration is managed by Certbot and should be included below
-
-    # Root directory for serving uploaded files
     root /var/www/prismatic-uploads;
 
     location / {
-        # First, try to serve the requested file directly from the root directory.
-        # If the file is not found, pass the request to the @proxy named location.
         try_files $uri @proxy;
     }
 
-    # Named location for proxying requests to the Node.js application
     location @proxy {
         proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
@@ -21,20 +16,4 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 25M;
     }
-
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/prizmaticupliad.duckdns.org/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/prizmaticupliad.duckdns.org/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-}
-
-server {
-    if ($host = prizmaticupliad.duckdns.org) {
-        return 301 https://$host$request_uri;
-    }
-
-    listen 80;
-    server_name prizmaticupliad.duckdns.org;
-    return 404; # managed by Certbot
 }
