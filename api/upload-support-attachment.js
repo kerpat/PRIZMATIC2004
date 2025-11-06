@@ -51,6 +51,7 @@ function parseMultipartForm(req) {
     });
 }
 
+// Handles multipart uploads for support chat attachments
 async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
