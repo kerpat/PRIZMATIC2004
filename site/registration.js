@@ -478,31 +478,42 @@ function generateDocumentInputs(citizenship) {
 const originalFormSubmit = document.getElementById('documents-form');
 originalFormSubmit.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    const passportMain = document.getElementById('passport-main').files[0];
-    const passportReg = document.getElementById('passport-reg')?.files[0];
-    const passportVisa = document.getElementById('passport-visa')?.files[0];
-
-    if (!passportMain) {
-        showError('reg-4', 'Загрузите фотографию паспорта');
-        return;
-    }
-
-    if (registrationData.citizenship !== 'other' && !passportReg) {
-        showError('reg-4', 'Загрузите все необходимые фотографии');
-        return;
-    }
-
-    if (registrationData.citizenship === 'other' && !passportVisa) {
-        showError('reg-4', 'Загрузите визу или разрешение');
-        return;
-    }
-
-    const finishBtn = document.getElementById('finish-btn');
-    finishBtn.disabled = true;
-    finishBtn.textContent = 'Загрузка...';
+    console.log('[Registration] Form submission initiated.');
+    alert('[DEBUG] Form submission initiated.'); // Use alert for mobile debugging
 
     try {
+        const finishBtn = document.getElementById('finish-btn');
+        finishBtn.disabled = true;
+        finishBtn.textContent = 'Загрузка...';
+
+        const passportMain = document.getElementById('passport-main').files[0];
+        const passportReg = document.getElementById('passport-reg')?.files[0];
+        const passportVisa = document.getElementById('passport-visa')?.files[0];
+
+        if (!passportMain) {
+            showError('reg-4', 'Загрузите фотографию паспорта');
+            finishBtn.disabled = false;
+            finishBtn.textContent = 'Завершить регистрацию';
+            return;
+        }
+
+        if (registrationData.citizenship !== 'other' && !passportReg) {
+            showError('reg-4', 'Загрузите все необходимые фотографии');
+            finishBtn.disabled = false;
+            finishBtn.textContent = 'Завершить регистрацию';
+            return;
+        }
+
+        if (registrationData.citizenship === 'other' && !passportVisa) {
+            showError('reg-4', 'Загрузите визу или разрешение');
+            finishBtn.disabled = false;
+            finishBtn.textContent = 'Завершить регистрацию';
+            return;
+        }
+
+        console.log('[Registration] Creating FormData...');
+        alert('[DEBUG] Creating FormData...');
+
         const formData = new FormData();
         formData.append('phone', registrationData.phone);
         formData.append('city', registrationData.city);
@@ -519,6 +530,9 @@ originalFormSubmit.addEventListener('submit', async (e) => {
         if (passportVisa) {
             formData.append('passport_visa', passportVisa);
         }
+
+        console.log('[Registration] Sending fetch request...');
+        alert('[DEBUG] Sending fetch request...');
 
         const response = await fetch('/api/auth', {
             method: 'POST',
@@ -546,7 +560,9 @@ originalFormSubmit.addEventListener('submit', async (e) => {
 
     } catch (error) {
         console.error('Registration error:', error);
+        alert(`[DEBUG] Registration Error: ${error.name} - ${error.message}`);
         showError('reg-4', error.message);
+        const finishBtn = document.getElementById('finish-btn');
         finishBtn.disabled = false;
         finishBtn.textContent = 'Завершить регистрацию';
     }
