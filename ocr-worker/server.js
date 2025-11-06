@@ -8,6 +8,84 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50mb' }));
 const { query } = require('../api/_lib_db');
 
+function normalizePassportData(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      console.warn('[ocr-worker] Failed to parse passport data string:', error.message);
+      return null;
+    }
+  }
+  if (typeof raw === 'object') {
+    return raw;
+  }
+  return null;
+}
+
+function deriveNamesFromPassport(raw) {
+  const data = normalizePassportData(raw);
+  if (!data) {
+    return {
+      fullName: null,
+      shortName: null,
+      lastName: null,
+      firstName: null,
+      middleName: null,
+    };
+  }
+
+  const pick = (obj, variants) => {
+    for (const key of variants) {
+      if (obj && typeof obj[key] === 'string' && obj[key].trim().length) {
+        return obj[key].trim();
+      }
+    }
+    return null;
+  };
+
+  let lastName = pick(data, ['last_name', 'lastName', 'surname', 'family_name']);
+  let firstName = pick(data, ['first_name', 'firstName', 'given_name', 'name']);
+  let middleName = pick(data, ['middle_name', 'middleName', 'patronymic']);
+  let fullName = pick(data, ['full_name', 'fullName', 'fio', 'ФИО']);
+
+  if (!fullName && lastName && firstName) {
+    fullName = [lastName, firstName, middleName].filter(Boolean).join(' ');
+  }
+
+  if ((!lastName || !firstName) && fullName) {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      if (!lastName) lastName = parts[0];
+      if (!firstName) firstName = parts[1];
+      if (!middleName && parts.length >= 3) {
+        middleName = parts.slice(2).join(' ');
+      }
+    }
+  }
+
+  const shortName = [lastName, firstName].filter(Boolean).join(' ') || null;
+  const resolvedFullName = fullName || [lastName, firstName, middleName].filter(Boolean).join(' ') || null;
+
+  return {
+    fullName: resolvedFullName,
+    shortName,
+    lastName: lastName || null,
+    firstName: firstName || null,
+    middleName: middleName || null,
+  };
+}
+
+function enrichPassportData(data, names) {
+  const base = normalizePassportData(data) || {};
+  if (names.fullName && !base.full_name) base.full_name = names.fullName;
+  if (names.firstName && !base.first_name) base.first_name = names.firstName;
+  if (names.lastName && !base.last_name) base.last_name = names.lastName;
+  if (names.middleName && !base.middle_name) base.middle_name = names.middleName;
+  return base;
+}
+
 const checkInternalSecret = (req, res, next) => {
   const secret = req.headers['x-internal-secret'];
   if (!secret || secret !== process.env.INTERNAL_SECRET) {
@@ -115,11 +193,19 @@ app.post('/process-document', checkInternalSecret, async (req, res) => {
     currentStep = 'OCR обработка через Gemini';
     const ocrResult = await processWithGemini(files);
     console.log(`📋 [${new Date().toISOString()}] РЕЗУЛЬТАТЫ OCR:`, JSON.stringify(ocrResult, null, 2));
+    const nameInfo = deriveNamesFromPassport(ocrResult);
+    const enrichedResult = enrichPassportData(ocrResult, nameInfo);
 
     currentStep = 'Сохранение результатов в базу данных';
     await query(
-      'UPDATE clients SET verification_status = $1, recognized_data = $2::jsonb, ocr_completed_at = NOW() WHERE id = $3',
-      ['ocr_complete', JSON.stringify(ocrResult), userId]
+      `UPDATE clients
+         SET verification_status = $1,
+             recognized_data = $2::jsonb,
+             recognized_passport_data = $2::jsonb,
+             name = COALESCE($3, name),
+             ocr_completed_at = NOW()
+       WHERE id = $4`,
+      ['ocr_complete', JSON.stringify(enrichedResult), nameInfo.shortName || null, userId]
     );
 
     console.log(`🎉 [${new Date().toISOString()}] OCR ЗАВЕРШЕН УСПЕШНО для пользователя ${userId}`);

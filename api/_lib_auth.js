@@ -8,6 +8,84 @@ const { saveBuffer, downloadToBuffer } = require('./_lib_storage_backend');
 
 const TELEGRAM_HASH_KEY = 'WebAppData';
 
+function normalizePassportData(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            console.warn('[auth] Failed to parse passport data string:', error.message);
+            return null;
+        }
+    }
+    if (typeof raw === 'object') {
+        return raw;
+    }
+    return null;
+}
+
+function deriveNamesFromPassport(raw) {
+    const data = normalizePassportData(raw);
+    if (!data) {
+        return {
+            fullName: null,
+            shortName: null,
+            lastName: null,
+            firstName: null,
+            middleName: null,
+        };
+    }
+
+    const pick = (obj, variants) => {
+        for (const key of variants) {
+            if (obj && typeof obj[key] === 'string' && obj[key].trim().length) {
+                return obj[key].trim();
+            }
+        }
+        return null;
+    };
+
+    let lastName = pick(data, ['last_name', 'lastName', 'surname', 'family_name']);
+    let firstName = pick(data, ['first_name', 'firstName', 'given_name', 'name']);
+    let middleName = pick(data, ['middle_name', 'middleName', 'patronymic']);
+    let fullName = pick(data, ['full_name', 'fullName', 'fio', 'ФИО']);
+
+    if (!fullName && lastName && firstName) {
+        fullName = [lastName, firstName, middleName].filter(Boolean).join(' ');
+    }
+
+    if ((!lastName || !firstName) && fullName) {
+        const parts = fullName.trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            if (!lastName) lastName = parts[0];
+            if (!firstName) firstName = parts[1];
+            if (!middleName && parts.length >= 3) {
+                middleName = parts.slice(2).join(' ');
+            }
+        }
+    }
+
+    const shortName = [lastName, firstName].filter(Boolean).join(' ') || null;
+    const resolvedFullName = fullName || [lastName, firstName, middleName].filter(Boolean).join(' ') || null;
+
+    return {
+        fullName: resolvedFullName,
+        shortName,
+        lastName: lastName || null,
+        firstName: firstName || null,
+        middleName: middleName || null,
+    };
+}
+
+function enrichPassportData(data, names) {
+    const base = normalizePassportData(data) || {};
+    if (names.fullName && !base.full_name) base.full_name = names.fullName;
+    if (names.firstName && !base.first_name) base.first_name = names.firstName;
+    if (names.lastName && !base.last_name) base.last_name = names.lastName;
+    if (names.middleName && !base.middle_name) base.middle_name = names.middleName;
+    return base;
+}
+
 function normalizePhone(phone) {
     if (!phone) return '';
     const digits = String(phone).replace(/\D/g, '');
@@ -482,6 +560,8 @@ async function handleMultipartRegistration(req, res) {
     let recognizedData = {};
     if (storedFiles.length > 0) {
         recognizedData = await recognizeDocumentsWithGemini(storedFiles, citizenship);
+        const nameInfo = deriveNamesFromPassport(recognizedData);
+        recognizedData = enrichPassportData(recognizedData, nameInfo);
 
         await query(
             `UPDATE clients
@@ -490,6 +570,16 @@ async function handleMultipartRegistration(req, res) {
              WHERE id = $2`,
             [safeJson(recognizedData || {}), client.id]
         );
+
+        if (nameInfo.shortName) {
+            await query(
+                `UPDATE clients
+                 SET name = $1
+                 WHERE id = $2`,
+                [nameInfo.shortName, client.id]
+            );
+            client.name = nameInfo.shortName;
+        }
     }
 
     res.status(200).json({
@@ -640,13 +730,17 @@ async function handleBotRegister(body, res) {
         .map(([, value]) => parseStoragePath(value))
         .filter(Boolean);
 
-    let recognizedData = recognized_data || {};
+    let recognizedData = normalizePassportData(recognized_data) || {};
     if (!Object.keys(recognizedData).length && imagePaths.length > 0) {
         recognizedData = await recognizeDocumentsWithGemini(
             imagePaths.map((item) => ({ ...item, mimeType: 'image/jpeg' })),
             otherData.citizenship || 'ru'
         );
     }
+
+    const nameInfo = deriveNamesFromPassport(recognizedData);
+    recognizedData = enrichPassportData(recognizedData, nameInfo);
+    const displayName = nameInfo.shortName || name || 'Пользователь';
 
     const extraPayload = {
         ...otherData,
@@ -659,7 +753,7 @@ async function handleBotRegister(body, res) {
          VALUES ($1, $2, $3, 'needs_confirmation', $4::jsonb, $5::jsonb, $6)
          RETURNING id, name, phone, city, verification_status`,
         [
-            name,
+            displayName,
             phoneDigits,
             city,
             safeJson(extraPayload),
@@ -676,7 +770,7 @@ async function handleBotRegister(body, res) {
 
     res.status(200).json({
         success: true,
-        client,
+        client: { ...client, name: displayName },
         message: 'Ваши данные приняты на проверку.',
     });
 }
@@ -753,6 +847,11 @@ async function handleTelegramFormRegistration(body, res) {
         return {};
     })();
 
+    let recognizedData = normalizePassportData(recognized_data) || {};
+    const nameInfo = deriveNamesFromPassport(recognizedData);
+    recognizedData = enrichPassportData(recognizedData, nameInfo);
+    const displayName = nameInfo.shortName || name;
+
     const extraPayload = {
         citizenship: citizenship || '',
         emergency_contact_phone: emergency_contact_phone || '',
@@ -773,12 +872,12 @@ async function handleTelegramFormRegistration(body, res) {
          VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)
          RETURNING id, name, phone, city, verification_status`,
         [
-            name,
+            displayName,
             normalizedPhone,
             city,
             normalizedFileIds.length > 0 ? 'pending_ocr' : 'approved',
             safeJson(extraPayload),
-            safeJson(recognized_data || {}),
+            safeJson(recognizedData || {}),
             telegramUserId,
         ]
     );
@@ -791,7 +890,7 @@ async function handleTelegramFormRegistration(body, res) {
 
     res.status(200).json({
         success: true,
-        client,
+        client: { ...client, name: displayName },
         message:
             normalizedFileIds.length > 0
                 ? 'Регистрация принята. Документы обрабатываются.'
@@ -823,6 +922,8 @@ async function handleRegistrationWithUrls(body, res) {
     let recognizedData = {};
     if (fileDescriptors.length > 0) {
         recognizedData = await recognizeDocumentsWithGemini(fileDescriptors, citizenship);
+        const nameInfo = deriveNamesFromPassport(recognizedData);
+        recognizedData = enrichPassportData(recognizedData, nameInfo);
 
         await query(
             `UPDATE clients
@@ -832,6 +933,16 @@ async function handleRegistrationWithUrls(body, res) {
              WHERE id = $3`,
             [safeJson(recognizedData || {}), safeJson(files), client.id]
         );
+
+        if (nameInfo.shortName) {
+            await query(
+                `UPDATE clients
+                 SET name = $1
+                 WHERE id = $2`,
+                [nameInfo.shortName, client.id]
+            );
+            client.name = nameInfo.shortName;
+        }
     }
 
     res.status(200).json({

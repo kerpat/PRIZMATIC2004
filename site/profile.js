@@ -9,8 +9,8 @@ import {
     getSupportMessages,
     sendSupportMessage,
     markSupportMessagesRead,
-} from './api.js?v=13.2';
-import './sse-client.js?v=13.2';
+} from './api.js?v=13.4';
+import './sse-client.js?v=13.4';
 
 const state = {
     userId: null,
