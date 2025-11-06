@@ -84,9 +84,34 @@ export function createQrScanner(onQrCodeScanned) {
         animationFrameId = requestAnimationFrame(tick);
     }
 
+    async function getCameraStream() {
+        const mediaDevices = navigator.mediaDevices;
+        if (!mediaDevices?.getUserMedia) {
+            const error = new Error('MEDIA_DEVICES_UNAVAILABLE');
+            error.code = 'MEDIA_DEVICES_UNAVAILABLE';
+            throw error;
+        }
+
+        try {
+            return await mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {
+                        ideal: 'environment',
+                    },
+                },
+            });
+        } catch (err) {
+            if (err?.name === 'OverconstrainedError' || err?.name === 'ConstraintNotSatisfiedError') {
+                // Fallback to any available camera if the environment camera is unavailable.
+                return mediaDevices.getUserMedia({ video: true });
+            }
+            throw err;
+        }
+    }
+
     async function startScan() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            stream = await getCameraStream();
             video.srcObject = stream;
             video.setAttribute('playsinline', true); // Required to work on iOS
             modal.classList.remove('hidden');
@@ -97,7 +122,32 @@ export function createQrScanner(onQrCodeScanned) {
             video.addEventListener('loadedmetadata', updateVideoFrame, { once: true });
         } catch (err) {
             console.error('Error accessing camera', err);
-            alert('Не удалось получить доступ к камере. Проверьте разрешения в настройках браузера.');
+            let message = 'Не удалось получить доступ к камере. Проверьте разрешения в настройках браузера.';
+
+            if (err?.code === 'MEDIA_DEVICES_UNAVAILABLE') {
+                message = 'Ваш браузер не поддерживает доступ к камере. Откройте сервис в современном браузере или обновите текущий.';
+            } else if (err?.name === 'NotAllowedError') {
+                let permissionState = null;
+                try {
+                    const permissionQuery = navigator.permissions?.query?.({ name: 'camera' });
+                    if (permissionQuery) {
+                        permissionState = await permissionQuery;
+                    }
+                } catch (_) {
+                    permissionState = null;
+                }
+                if (permissionState?.state === 'denied') {
+                    message = 'Доступ к камере был запрещён. Разрешите использование камеры в настройках браузера или системы и попробуйте снова.';
+                } else {
+                    message = 'Камера заблокирована. Обновите страницу и предоставьте разрешение, когда браузер запросит его.';
+                }
+            } else if (err?.name === 'NotFoundError') {
+                message = 'Камера не найдена. Убедитесь, что устройство подключено и доступно для использования.';
+            } else if (err?.name === 'SecurityError') {
+                message = 'Для доступа к камере откройте приложение через HTTPS или добавьте сайт в доверенные в настройках браузера.';
+            }
+
+            alert(message);
         }
     }
 
