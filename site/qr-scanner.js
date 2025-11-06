@@ -20,6 +20,9 @@ export function createQrScanner(onQrCodeScanned) {
         if (container) {
             container.style.height = 'clamp(280px, 58vh, 540px)';
         }
+        if (video) {
+            video.style.objectFit = 'cover';
+        }
     }
 
     function updateVideoFrame() {

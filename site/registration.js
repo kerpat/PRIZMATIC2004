@@ -75,9 +75,20 @@ const IMAGE_COMPRESSION_CONFIG = {
     skipBelowBytes: 450 * 1024,
 };
 
-function getSafeFileName(originalName, extension) {
-    const base = originalName ? originalName.replace(/\.[^/.]+$/, '') : 'document';
-    return `${base}${extension}`;
+function sanitizeSegment(value) {
+    return String(value || '')
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase();
+}
+
+function getSafeFileName(originalName, extension, prefix = '') {
+    const base = sanitizeSegment(originalName) || 'document';
+    const normalizedExt = extension.startsWith('.') ? extension : `.${extension}`;
+    const normalizedPrefix = sanitizeSegment(prefix);
+    const combined = normalizedPrefix ? `${normalizedPrefix}-${base}` : base;
+    return `${combined}${normalizedExt}`;
 }
 
 function loadImageElement(file) {
@@ -96,18 +107,33 @@ function loadImageElement(file) {
     });
 }
 
-async function compressImageFile(file) {
+async function compressImageFile(file, fieldId) {
     if (!(file instanceof File)) return file;
-    if (!file.type.startsWith('image/')) return file;
+
+    const prefix = fieldId ? fieldId : '';
+    const originalExt = file.name.includes('.') ? `.${file.name.split('.').pop().toLowerCase()}` : '.jpg';
+
+    if (!file.type.startsWith('image/')) {
+        return new File([file], getSafeFileName(file.name, originalExt, prefix), {
+            type: file.type || 'application/octet-stream',
+            lastModified: file.lastModified,
+        });
+    }
 
     const lowerType = file.type.toLowerCase();
     if (lowerType.includes('heic') || lowerType.includes('heif')) {
         console.warn('[Registration] HEIC images are sent without client compression.');
-        return file;
+        return new File([file], getSafeFileName(file.name, originalExt, prefix), {
+            type: file.type,
+            lastModified: file.lastModified,
+        });
     }
 
     if (file.size <= IMAGE_COMPRESSION_CONFIG.skipBelowBytes) {
-        return file;
+        return new File([file], getSafeFileName(file.name, originalExt, prefix), {
+            type: file.type,
+            lastModified: file.lastModified,
+        });
     }
 
     let source;
@@ -155,20 +181,27 @@ async function compressImageFile(file) {
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, mimeType, quality));
     if (!blob) {
-        return file;
+        return new File([file], getSafeFileName(file.name, originalExt, prefix), {
+            type: file.type,
+            lastModified: file.lastModified,
+        });
     }
 
     const extension = mimeType === 'image/png' ? '.png' : '.jpg';
-    const optimizedName = getSafeFileName(file.name, extension);
+    const optimizedName = getSafeFileName(file.name, extension, prefix);
     return new File([blob], optimizedName, { type: mimeType, lastModified: Date.now() });
 }
 
-async function prepareFileForUpload(file) {
+async function prepareFileForUpload(file, fieldId) {
     try {
-        return await compressImageFile(file);
+        return await compressImageFile(file, fieldId);
     } catch (error) {
         console.warn('[Registration] Compression failed, using original file.', error);
-        return file;
+        const originalExt = file.name.includes('.') ? `.${file.name.split('.').pop().toLowerCase()}` : '.jpg';
+        return new File([file], getSafeFileName(file.name, originalExt, fieldId), {
+            type: file.type || 'application/octet-stream',
+            lastModified: file.lastModified,
+        });
     }
 }
 
@@ -571,8 +604,12 @@ originalFormSubmit.addEventListener('submit', async (e) => {
         for (const input of fileInputs) {
             if (input.files.length > 0) {
                 const originalFile = input.files[0];
-                const processedFile = await prepareFileForUpload(originalFile);
-                filesToUpload.push({ field: input.id, file: processedFile, originalName: originalFile.name });
+                const processedFile = await prepareFileForUpload(originalFile, input.id);
+                filesToUpload.push({
+                    field: input.id,
+                    file: processedFile,
+                    originalName: originalFile.name,
+                });
             }
         }
 
@@ -601,8 +638,12 @@ originalFormSubmit.addEventListener('submit', async (e) => {
 
         // 3. Map original field names to the new URLs
         const uploadedFileUrls = {};
-        vpsData.files.forEach(uploadedFile => {
-            const originalFile = filesToUpload.find(f => f.originalName === uploadedFile.originalName || f.file.name === uploadedFile.originalName);
+        vpsData.files.forEach((uploadedFile, index) => {
+            const originalFile =
+                filesToUpload.find(f => f.file.name === uploadedFile.originalName) ||
+                filesToUpload.find(f => f.originalName === uploadedFile.originalName) ||
+                filesToUpload[index];
+
             if (originalFile) {
                 uploadedFileUrls[originalFile.field] = uploadedFile.url;
             }

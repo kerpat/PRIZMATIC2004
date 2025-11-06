@@ -112,6 +112,7 @@ async function processRentalPayment(payment, metadata) {
     endDate.setDate(endDate.getDate() + rentalDays);
     const totalPaid = cardPaymentAmount + amountToDebit;
 
+    let rentalId;
     await transact(async (dbClient) => {
         if (amountToDebit > 0) {
             await addToBalance(userId, -amountToDebit, dbClient);
@@ -139,7 +140,7 @@ async function processRentalPayment(payment, metadata) {
             ]
         );
 
-        const rentalId = rentalInsert.rows[0].id;
+        rentalId = rentalInsert.rows[0].id;
 
         await logPayment({
             clientId: userId,
@@ -166,6 +167,40 @@ async function processRentalPayment(payment, metadata) {
             }, dbClient);
         }
     });
+
+    try {
+        const { notifyUserUpdate } = require('./_lib_sse_helpers');
+        const payloadTimestamp = new Date().toISOString();
+
+        if (amountToDebit > 0) {
+            const balanceResult = await query(
+                'SELECT balance_rub FROM clients WHERE id = $1',
+                [userId]
+            );
+            const updatedBalance = balanceResult.rows?.[0]?.balance_rub;
+            if (typeof updatedBalance === 'number') {
+                notifyUserUpdate(userId, 'balance_update', {
+                    balance: updatedBalance,
+                    change: -amountToDebit,
+                    timestamp: payloadTimestamp
+                });
+            }
+        }
+
+        notifyUserUpdate(userId, 'rental_update', {
+            rentalId,
+            status: 'awaiting_battery_assignment',
+            rental: {
+                id: rentalId,
+                status: 'awaiting_battery_assignment',
+                starts_at: startDate.toISOString(),
+                current_period_ends_at: endDate.toISOString(),
+            },
+            timestamp: payloadTimestamp
+        });
+    } catch (error) {
+        console.error('[payment-webhook] Failed to send SSE notifications:', error.message);
+    }
 }
 
 async function processBookingPayment(payment, metadata) {

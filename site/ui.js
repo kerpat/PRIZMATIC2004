@@ -1,4 +1,4 @@
-import { getRentalBatteries } from './api.js?v=13.4';
+import { getRentalBatteries } from './api.js?v=13.5';
 
 const verificationCopy = {
     pending: {

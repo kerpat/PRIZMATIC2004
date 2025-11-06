@@ -172,10 +172,22 @@ async function handleChargeFromBalance({ userId, tariffId, bikeCode, amount, day
         // Отправляем SSE уведомление пользователю о смене баланса
         try {
             const { notifyUserUpdate } = require('./_lib_sse_helpers');
+            const payloadTimestamp = new Date().toISOString();
             notifyUserUpdate(userId, 'balance_update', {
                 balance: userBalance - rentalCost,
                 change: -rentalCost,
-                timestamp: new Date().toISOString()
+                timestamp: payloadTimestamp
+            });
+            notifyUserUpdate(userId, 'rental_update', {
+                rentalId: newRentalId,
+                status: 'awaiting_battery_assignment',
+                rental: {
+                    id: newRentalId,
+                    status: 'awaiting_battery_assignment',
+                    starts_at: startDate.toISOString(),
+                    current_period_ends_at: endDate.toISOString(),
+                },
+                timestamp: payloadTimestamp
             });
         } catch (error) {
             console.error('Error sending SSE notification:', error.message);

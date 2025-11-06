@@ -3075,7 +3075,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const query = window.dbClient
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
-                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
+                .in('status', ['awaiting_battery_assignment', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             const { data, error } = await query;
@@ -3110,10 +3110,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
                 } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ОЖИДАЕТ АКБ
                     actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
-                } else if (assignment.status === 'awaiting_contract_signing') { // <-- ОЖИДАЕТ ПОДПИСАНИЯ
-                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
-                } else { // 'pending_assignment'
-                    actionButton = `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать вел.</button>`;
                 }
 
                 tr.innerHTML = `
@@ -3123,7 +3119,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
                     <td class="table-actions">
                         ${actionButton}
-                        ${assignment.status === 'pending_assignment' ? `<button class="btn btn-secondary reject-rental-btn" data-rental-id="${assignment.id}" style="background-color: #fff1f2; color: #e53e3e;">Отклонить</button>` : ''}
                     </td>
                 `;
                 assignmentsTableBody.appendChild(tr);

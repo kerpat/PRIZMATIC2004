@@ -1,4 +1,4 @@
-import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js?v=13.4';
+import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js?v=13.5';
 import {
     renderDefaultView,
     renderActiveRentalView,
@@ -8,9 +8,9 @@ import {
     renderAwaitingContractView,
     renderVerificationPendingView,
     renderVerificationRejectedView,
-} from './ui.js?v=13.4';
-import './sse-client.js?v=13.4';
-import { createQrScanner } from './qr-scanner.js?v=13.4';
+} from './ui.js?v=13.5';
+import './sse-client.js?v=13.5';
+import { createQrScanner } from './qr-scanner.js?v=13.5';
 
 let qrScanner = null;
 
