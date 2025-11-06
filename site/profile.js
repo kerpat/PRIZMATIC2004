@@ -570,6 +570,30 @@ async function updateNotifications() {
     }
 }
 
+function isSupportFileUrl(value) {
+    return typeof value === 'string' && (/^https?:\/\//i.test(value) || value.startsWith('/api/'));
+}
+
+function extractSupportFileExtension(value) {
+    if (typeof value !== 'string' || !value) return '';
+    const pathMatch = value.match(/path=([^&]+)/);
+    const candidate = pathMatch ? decodeURIComponent(pathMatch[1]) : value;
+    const clean = candidate.split('#')[0];
+    const lastSegment = clean.split('/').pop() || '';
+    const [namePart] = lastSegment.split('?');
+    const ext = namePart.includes('.') ? namePart.split('.').pop() : '';
+    return (ext || '').toLowerCase();
+}
+
+function extractSupportFileName(value) {
+    if (typeof value !== 'string' || !value) return 'Файл';
+    const pathMatch = value.match(/path=([^&]+)/);
+    const candidate = pathMatch ? decodeURIComponent(pathMatch[1]) : value;
+    const clean = candidate.split('#')[0];
+    const lastSegment = clean.split('/').pop() || 'Файл';
+    return lastSegment || 'Файл';
+}
+
 function addChatMessage(message) {
     if (!elements.chatHistory) return;
 
@@ -582,11 +606,11 @@ function addChatMessage(message) {
     container.dataset.messageId = message.id || '';
     container.classList.add(message.sender === 'admin' || message.isFromSupport ? 'support-message' : 'user-message');
 
-    const isUrl = typeof text === 'string' && /^https?:\/\//i.test(text);
+    const isUrl = isSupportFileUrl(text);
     let contentHtml = '';
 
     if (isUrl) {
-        const fileExt = text.split('.').pop()?.toLowerCase() || '';
+        const fileExt = extractSupportFileExtension(text);
         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(fileExt);
         const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileExt);
 
@@ -607,7 +631,7 @@ function addChatMessage(message) {
                 </div>
             `;
         } else {
-            const fileName = text.split('/').pop() || 'Файл';
+            const fileName = extractSupportFileName(text);
             contentHtml = `
                 <div class="chat-file-content">
                     <a href="${text}" target="_blank" class="chat-file-link">

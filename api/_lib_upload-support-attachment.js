@@ -92,9 +92,15 @@ async function handler(req, res) {
             }
         });
 
+        const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const baseUrl = host ? `${protocol}://${host}` : '';
+        const relativeUrl = `/api/router?endpoint=support-attachment&path=${encodeURIComponent(stored.path)}`;
+        const publicUrl = baseUrl ? `${baseUrl}${relativeUrl}` : relativeUrl;
+
         res.status(200).json({
             message: 'File uploaded successfully.',
-            publicUrl: stored.publicUrl,
+            publicUrl,
             path: stored.path,
             fileType: file.mimetype,
         });

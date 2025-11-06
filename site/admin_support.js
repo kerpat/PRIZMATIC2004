@@ -22,6 +22,26 @@ document.addEventListener('DOMContentLoaded', () => {
         pollTimer: null,
     };
 
+    const isFileUrl = (value) => typeof value === 'string' && (/^https?:\/\//i.test(value) || value.startsWith('/api/'));
+    const extractFileExtension = (value) => {
+        if (typeof value !== 'string' || !value) return '';
+        const pathMatch = value.match(/path=([^&]+)/);
+        const candidate = pathMatch ? decodeURIComponent(pathMatch[1]) : value;
+        const clean = candidate.split('#')[0];
+        const lastSegment = clean.split('/').pop() || '';
+        const [namePart] = lastSegment.split('?');
+        const ext = namePart.includes('.') ? namePart.split('.').pop() : '';
+        return (ext || '').toLowerCase();
+    };
+    const extractFileName = (value) => {
+        if (typeof value !== 'string' || !value) return 'Файл';
+        const pathMatch = value.match(/path=([^&]+)/);
+        const candidate = pathMatch ? decodeURIComponent(pathMatch[1]) : value;
+        const clean = candidate.split('#')[0];
+        const lastSegment = clean.split('/').pop() || 'Файл';
+        return lastSegment || 'Файл';
+    };
+
     const ADMIN_TOKEN_KEY = 'adminAuthToken';
 
     function getAdminToken() {
@@ -354,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Modified admin message sending function to handle file URLs
     async function sendAdminMessage(text) {
-        if (!text.trim() && !text.startsWith('http')) return; // Allow file URLs to be sent even if they appear empty
+        if (!text.trim() && !isFileUrl(text)) return; // Allow file URLs to be sent even if they appear empty
         
         const payload = state.activeChatIsAnonymous
             ? { anonymousChatId: state.activeChatId }
@@ -403,9 +423,9 @@ document.addEventListener('DOMContentLoaded', () => {
         bubble.className = 'message-bubble';
         
         // Check if the message is a file URL
-        if (message.message_text && message.message_text.startsWith('http')) {
+        if (isFileUrl(message.message_text)) {
             const fileUrl = message.message_text;
-            const fileExtension = fileUrl.split('.').pop().toLowerCase();
+            const fileExtension = extractFileExtension(fileUrl);
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
             const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileExtension);
             
@@ -430,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else {
                 // For other file types, show a download link
-                const fileName = fileUrl.split('/').pop() || 'Файл';
+                const fileName = extractFileName(fileUrl);
                 bubble.innerHTML = `
                     <div class="chat-file-content">
                         <a href="${fileUrl}" target="_blank" class="chat-file-link" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f9fd; border-radius: 8px; text-decoration: none; color: #1CB5E0;">
