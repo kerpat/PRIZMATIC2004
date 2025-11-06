@@ -842,7 +842,7 @@ body {
   border-spacing: 0 4px;
   background: transparent;
   margin-bottom: 20px;
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 .admin-table th,
@@ -852,9 +852,6 @@ body {
   font-size: .95rem;
   transition: background var(--transition-fast);
   background: var(--surface);
-  vertical-align: middle;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
 }
 
 .admin-table thead th {
@@ -884,69 +881,6 @@ body {
 
 .admin-table tbody tr:last-child td {
   border-bottom: none;
-}
-
-.admin-table th.actions-cell,
-.admin-table td.actions-cell {
-  width: 1%;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.admin-table td.actions-cell {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-  background: var(--surface);
-  padding: 12px 14px;
-  white-space: normal;
-}
-
-.admin-table td.actions-cell > * {
-  flex-shrink: 0;
-}
-
-.admin-table td.actions-cell .btn,
-.admin-table td.actions-cell button,
-.admin-table td.actions-cell a {
-  flex: 0 0 auto;
-  min-width: 110px;
-  max-width: 100%;
-  white-space: nowrap;
-}
-
-@media (max-width: 1024px) {
-  .admin-table td.actions-cell {
-    justify-content: center;
-    align-items: stretch;
-  }
-
-  .admin-table td.actions-cell .btn,
-  .admin-table td.actions-cell button,
-  .admin-table td.actions-cell a {
-    width: 100%;
-  }
-}
-
-.admin-table td.actions-cell:empty::before {
-  content: '—';
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.admin-table th.status-col {
-  white-space: nowrap;
-}
-
-.admin-table td.status-cell {
-  min-width: 150px;
-  text-align: center;
-}
-
-.admin-table td.status-cell .status-badge {
-  max-width: 100%;
 }
 
 /* Разделители для таблицы тарифов */
@@ -982,6 +916,39 @@ body {
 .admin-table tbody tr:hover {
   background: #fbfdfb;
   transform: translateX(4px);
+}
+
+.admin-table td.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  white-space: normal;
+}
+
+.admin-table td.table-actions .btn,
+.admin-table td.table-actions button,
+.admin-table td.table-actions a {
+  flex: 1 1 190px;
+  min-width: 160px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (max-width: 1024px) {
+  .admin-table td.table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-table td.table-actions .btn,
+  .admin-table td.table-actions button,
+  .admin-table td.table-actions a {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 .admin-table button {
@@ -1769,20 +1736,14 @@ select:focus::placeholder {
 
 /* Status badges with pulse animation for warnings/errors */
 .status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
+  display: inline-block;
+  padding: 4px 8px;
   border-radius: 8px;
   font-weight: 700;
   font-size: .85rem;
   text-align: center;
-  white-space: normal;
-  line-height: 1.25;
-  word-break: break-word;
+  white-space: nowrap;
   transition: transform var(--transition-fast);
-  max-width: 200px;
 }
 
 .status-badge:hover {
@@ -2145,22 +2106,27 @@ select:focus::placeholder {
 
 /* 1. Убираем фиксированную ширину таблицы */
 .admin-table.table-wide-actions {
+  table-layout: fixed;
+  /* Фиксированные колонки для предсказуемой ширины */
   width: 100%;
   max-width: 100%;
+  overflow-x: auto;
 }
 
 /* 2. Задаем минимальную ширину для колонки "Действия" */
 .admin-table.table-wide-actions th:last-child,
 .admin-table.table-wide-actions td:last-child {
-  min-width: 150px;
-  white-space: nowrap;
+  min-width: 120px;
+  /* Минимальная ширина для одной кнопки */
+  width: 120px;
+  max-width: 120px;
 }
 
 /* 3. Уменьшаем ширину некоторых других колонок, чтобы освободить место */
 .admin-table.table-wide-actions th:nth-child(3),
 /* Велосипед */
 .admin-table.table-wide-actions td:nth-child(3) {
-  min-width: 120px;
+  width: 100px;
 }
 
 /* Просрочка - 6-я колонка */
@@ -2176,17 +2142,21 @@ select:focus::placeholder {
 /* Сумма - 7-я колонка */
 .admin-table.table-wide-actions th:nth-child(7),
 .admin-table.table-wide-actions td:nth-child(7) {
+  width: 80px;
   min-width: 80px;
   text-align: right;
 }
 
 /* 4. Стилизуем сами кнопки/ссылки внутри ячейки для аккуратности */
-.admin-table.table-wide-actions td.actions-cell {
-  justify-content: flex-start;
-}
-
-.admin-table.table-wide-actions td.actions-cell > * {
-  min-width: 120px;
+.admin-table.table-wide-actions .table-actions {
+  display: flex;
+  /* Используем flexbox для выравнивания */
+  align-items: center;
+  /* Центрируем по вертикали */
+  gap: 8px;
+  /* Добавляем отступы между кнопками */
+  white-space: nowrap;
+  /* Запрещаем перенос текста внутри кнопок */
 }
 
 /*
@@ -2241,6 +2211,28 @@ select:focus::placeholder {
 
 #rentals-table tbody tr:not(.overdue-rental):hover td {
   background: transparent !important;
+}
+
+/* Исправление для колонки действий в просроченных арендах */
+.admin-table tbody tr.overdue-rental td.table-actions {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+}
+
+.admin-table tbody tr.overdue-rental td.table-actions button {
+  margin: 0;
+}
+
+/* 2. Специальное правило для таблицы АРЕНД: центрируем кнопки */
+#rentals-table td.table-actions {
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+}
+
+#rentals-table td.table-actions button {
+  margin: 0;
 }
 
 /* Стили для модалки действий с арендой */
@@ -2300,7 +2292,7 @@ select:focus::placeholder {
 }
 
 /* 2. Делаем кнопки в таблице бронирований одинакового размера */
-#bookings-table td.actions-cell .btn {
+#bookings-table .table-actions .btn {
   flex: 1; /* Кнопки делят место поровну */
 }
 /* 
