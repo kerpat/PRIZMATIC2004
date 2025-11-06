@@ -29,6 +29,32 @@ const METHOD_LABELS = {
     balance: 'Баланс',
 };
 
+const STATUS_LABELS = {
+    succeeded: 'Успешно',
+    pending: 'Ожидает подтверждения',
+    waiting_for_capture: 'Ожидает списания',
+    in_progress: 'Обрабатывается',
+    canceled: 'Отменён',
+    failed: 'Ошибка',
+    refunded: 'Возврат средств',
+    success: 'Успешно',
+    successed: 'Успешно',
+    completed: 'Успешно'
+};
+
+const STATUS_CLASS_MAP = {
+    succeeded: 'success',
+    refunded: 'neutral',
+    pending: 'warning',
+    waiting_for_capture: 'warning',
+    in_progress: 'warning',
+    canceled: 'error',
+    failed: 'error',
+    success: 'success',
+    successed: 'success',
+    completed: 'success'
+};
+
 const state = {
     userId: null,
     payments: [],
@@ -76,6 +102,43 @@ function getMethodLabel(method) {
     return METHOD_LABELS[method] || method;
 }
 
+function normalizeStatusValue(status) {
+    if (!status) return '';
+    const raw = String(status).trim().toLowerCase();
+    if (STATUS_LABELS[raw]) return raw;
+    switch (raw) {
+        case 'successed':
+        case 'success':
+        case 'completed':
+        case 'complete':
+            return 'succeeded';
+        case 'processing':
+            return 'in_progress';
+        case 'wait_capture':
+        case 'waiting_for_confirmation':
+            return 'waiting_for_capture';
+        default:
+            return raw;
+    }
+}
+
+function getStatusLabel(status) {
+    const normalized = normalizeStatusValue(status);
+    if (!normalized) return 'Не указано';
+    return STATUS_LABELS[normalized] || 'Неизвестно';
+}
+
+function getStatusClass(status) {
+    const normalized = normalizeStatusValue(status);
+    if (!normalized) return 'neutral';
+    return STATUS_CLASS_MAP[normalized] || 'neutral';
+}
+
+function isPendingStatus(status) {
+    const normalized = normalizeStatusValue(status);
+    return ['pending', 'waiting_for_capture', 'in_progress'].includes(normalized);
+}
+
 function isIncome(payment) {
     const type = normalizeType(payment.payment_type);
     if (type === 'top-up' || type === 'refund_to_balance') {
@@ -103,13 +166,21 @@ function renderHistory() {
         const isPositive = isIncome(payment);
         const amount = Number(payment.amount_rub) || 0;
         const date = new Date(payment.created_at);
+        const statusLabel = getStatusLabel(payment.status);
+        const statusClass = getStatusClass(payment.status);
 
         const item = document.createElement('div');
         item.className = 'history-item';
-        if (payment.status && payment.status !== 'succeeded') {
+        if (isPendingStatus(payment.status)) {
             item.classList.add('history-item--pending');
         }
         item.dataset.paymentId = payment.id;
+
+        const subtitleParts = [];
+        const methodLabel = getMethodLabel(payment.method);
+        if (methodLabel && methodLabel !== '—') {
+            subtitleParts.push(methodLabel);
+        }
 
         item.innerHTML = `
             <div class="history-info">
@@ -121,7 +192,8 @@ function renderHistory() {
                 </div>
                 <div class="history-details">
                     <span class="history-title">${getPaymentLabel(type)}</span>
-                    <span class="history-subtitle">${getMethodLabel(payment.method)}</span>
+                    <span class="history-subtitle">${subtitleParts.join(' • ') || '—'}</span>
+                    <span class="history-status ${statusClass}">${statusLabel}</span>
                 </div>
             </div>
             <div class="history-cost ${isPositive ? 'positive' : 'negative'}">
@@ -203,7 +275,7 @@ function renderPaymentDetails(payment) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Статус</span>
-                <span class="detail-value">${payment.status || 'succeeded'}</span>
+                <span class="detail-value"><span class="history-status ${getStatusClass(payment.status)}">${getStatusLabel(payment.status)}</span></span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Метод</span>

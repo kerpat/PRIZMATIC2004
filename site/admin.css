@@ -920,8 +920,35 @@ body {
 
 .admin-table td.table-actions {
   display: flex;
-  gap: 8px;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  white-space: normal;
+}
+
+.admin-table td.table-actions .btn,
+.admin-table td.table-actions button,
+.admin-table td.table-actions a {
+  flex: 1 1 190px;
+  min-width: 160px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (max-width: 1024px) {
+  .admin-table td.table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-table td.table-actions .btn,
+  .admin-table td.table-actions button,
+  .admin-table td.table-actions a {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 .admin-table button {
@@ -2156,14 +2183,6 @@ select:focus::placeholder {
  * ИСПРАВЛЕНИЕ: Центрирование и перенос кнопок в таблицах
  */
 
-/* 1. Общее правило для ВСЕХ таблиц: центрируем содержимое ячейки с действиями по вертикали. */
-.admin-table td.table-actions {
-  vertical-align: middle;
-  /* Стандартное выравнивание для таблиц */
-  align-items: center;
-  /* Выравнивание для flex-элементов внутри */
-}
-
 /* Стили для просроченных аренд */
 #rentals-table tbody tr.overdue-rental {
   background: linear-gradient(90deg, #fff5f5 0%, #ffe8e8 100%) !important;
@@ -2196,24 +2215,24 @@ select:focus::placeholder {
 
 /* Исправление для колонки действий в просроченных арендах */
 .admin-table tbody tr.overdue-rental td.table-actions {
-  display: table-cell !important;
-  text-align: center;
-  vertical-align: middle;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
 }
 
 .admin-table tbody tr.overdue-rental td.table-actions button {
-  margin: 0 auto;
+  margin: 0;
 }
 
 /* 2. Специальное правило для таблицы АРЕНД: центрируем кнопки */
 #rentals-table td.table-actions {
-  display: table-cell !important;
-  text-align: center;
-  vertical-align: middle;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
 }
 
 #rentals-table td.table-actions button {
-  margin: 0 auto;
+  margin: 0;
 }
 
 /* Стили для модалки действий с арендой */

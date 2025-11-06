@@ -417,56 +417,68 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {Object} { text: string, className: string }
      */
     function getStatusDisplay(status, type) {
+        const normalized = (status || '').toLowerCase();
         const statusMaps = {
             bike: {
-                'available': { text: 'Свободен', className: 'status-success' },
-                'rented': { text: 'В аренде', className: 'status-warning' },
-                'in_service': { text: 'В ремонте', className: 'status-error' },
-                'maintenance': { text: 'Обслуживание', className: 'status-info' },
-                'out_of_order': { text: 'Неисправен', className: 'status-error' },
-                'reserved': { text: 'Зарезервирован', className: 'status-info' },
-                'unavailable': { text: 'Недоступен', className: 'status-neutral' }
+                available: { text: 'Свободен', className: 'status-success' },
+                rented: { text: 'Выдан', className: 'status-warning' },
+                in_service: { text: 'В ремонте', className: 'status-error' },
+                maintenance: { text: 'На обслуживании', className: 'status-info' },
+                out_of_order: { text: 'Неисправен', className: 'status-error' },
+                reserved: { text: 'Зарезервирован', className: 'status-info' },
+                unavailable: { text: 'Недоступен', className: 'status-neutral' },
+                charging: { text: 'Заряжается', className: 'status-info' },
+                lost: { text: 'Утерян', className: 'status-error' }
             },
             rental: {
-                'active': { text: 'Активна', className: 'status-success' },
-                'awaiting_battery_assignment': { text: 'Ожидает АКБ', className: 'status-warning' },
-                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' },
-                'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
-                'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
-                'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },
-                'completed': { text: 'Завершена', className: 'status-neutral' },
-                'rejected': { text: 'Отклонена', className: 'status-error' },
-                'awaiting_return_signature': { text: 'Ожидает подписи акта', className: 'status-warning' }
+                active: { text: 'Активна', className: 'status-success' },
+                awaiting_battery_assignment: { text: 'Ожидает оборудование', className: 'status-warning' },
+                awaiting_contract_signing: { text: 'Ждёт подписи договора', className: 'status-warning' },
+                awaiting_return_signature: { text: 'Ждёт подписи акта', className: 'status-warning' },
+                pending_assignment: { text: 'Ожидает выдачи', className: 'status-warning' },
+                pending_return: { text: 'Ожидает сдачи', className: 'status-warning' },
+                overdue: { text: 'Просрочена', className: 'status-error' },
+                completed: { text: 'Завершена', className: 'status-neutral' },
+                completed_by_admin: { text: 'Закрыта администратором', className: 'status-info' },
+                rejected: { text: 'Отменена', className: 'status-error' },
+                canceled: { text: 'Отменена', className: 'status-error' }
             },
             client: {
-                'approved': { text: 'Одобрен', className: 'status-success' },
-                'rejected': { text: 'Отклонен', className: 'status-error' },
-                'pending': { text: 'На проверке', className: 'status-warning' },
-                'needs_confirmation': { text: 'Требует подтверждения', className: 'status-warning' },
-                'not_set': { text: 'Не задан', className: 'status-neutral' }
+                approved: { text: 'Одобрен', className: 'status-success' },
+                rejected: { text: 'Отклонён', className: 'status-error' },
+                pending: { text: 'На проверке', className: 'status-warning' },
+                pending_ocr: { text: 'Обработка OCR', className: 'status-info' },
+                needs_confirmation: { text: 'Требует подтверждения', className: 'status-warning' },
+                not_set: { text: 'Не задан', className: 'status-neutral' }
             },
             payment: {
-                'succeeded': { text: 'Успешно', className: 'status-success' },
-                'pending': { text: 'Ожидает', className: 'status-warning' },
-                'canceled': { text: 'Отменён', className: 'status-error' },
-                'failed': { text: 'Ошибка', className: 'status-error' },
-                'refunded': { text: 'Возвращено', className: 'status-neutral' }
+                succeeded: { text: 'Успешно', className: 'status-success' },
+                pending: { text: 'Ожидает подтверждения', className: 'status-warning' },
+                waiting_for_capture: { text: 'Ожидает списания', className: 'status-warning' },
+                in_progress: { text: 'Обрабатывается', className: 'status-warning' },
+                canceled: { text: 'Отменён', className: 'status-error' },
+                failed: { text: 'Ошибка', className: 'status-error' },
+                refunded: { text: 'Возврат средств', className: 'status-neutral' }
             },
             assignment: {
-                'pending_assignment': { text: 'Аренда', className: 'status-success' },
-                'pending_return': { text: 'Сдача', className: 'status-warning' }
+                awaiting_battery_assignment: { text: 'Выдача оборудования', className: 'status-warning' },
+                pending_return: { text: 'Приём оборудования', className: 'status-warning' }
             },
             battery: {
-                'available': { text: 'Свободна', className: 'status-success' },
-                'in_use': { text: 'В использовании', className: 'status-warning' },
-                'damaged': { text: 'Повреждена', className: 'status-error' },
-                'maintenance': { text: 'Обслуживание', className: 'status-info' },
-                'unavailable': { text: 'Недоступна', className: 'status-neutral' }
+                available: { text: 'Свободна', className: 'status-success' },
+                in_use: { text: 'Выдана', className: 'status-warning' },
+                charging: { text: 'Заряжается', className: 'status-info' },
+                damaged: { text: 'Повреждена', className: 'status-error' },
+                maintenance: { text: 'Обслуживание', className: 'status-info' },
+                unavailable: { text: 'Недоступна', className: 'status-neutral' }
             }
         };
 
         const typeMap = statusMaps[type] || {};
-        return typeMap[status] || { text: status || 'Неизвестно', className: 'status-neutral' };
+        if (typeMap[normalized]) {
+            return typeMap[normalized];
+        }
+        return { text: 'Неизвестно', className: 'status-neutral' };
     }
 
     // Payment type labels for admin panel
