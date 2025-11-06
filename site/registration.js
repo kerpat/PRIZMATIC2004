@@ -539,7 +539,10 @@ originalFormSubmit.addEventListener('submit', async (e) => {
             body: formData
         });
 
-        const data = await response.json();
+        const responseText = await response.text(); // Get response as text first
+        alert(`[DEBUG] Server Response Text: ${responseText.substring(0, 300)}`); // Show the raw response
+
+        const data = JSON.parse(responseText); // Manually parse JSON
 
         if (!response.ok) {
             throw new Error(data.error || 'Ошибка регистрации');
