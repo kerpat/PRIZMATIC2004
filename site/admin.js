@@ -1228,9 +1228,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${bike.bike_code}</td>
                     <td>${bike.model_name || ''}</td>
                     <td>${bike.city || ''}</td>
-                    <td>${createStatusBadge(bike.status, 'bike')}</td>
+                    <td class="status-cell">${createStatusBadge(bike.status, 'bike')}</td>
                     <td>${serviceReasonCell}</td> <!-- <-- НОВАЯ ЯЧЕЙКА С ПРИЧИНОЙ -->
-                    <td class="table-actions">
+                    <td class="table-actions actions-cell">
                         <button type="button" class="edit-bike-btn" data-id="${bike.id}">Ред.</button>
                         <button type="button" class="delete-bike-btn" data-id="${bike.id}">Удалить</button>
                     </td>`;
@@ -1363,8 +1363,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${battery.serial_number}</td>
                     <td>${battery.capacity_wh || '—'}</td>
                     <td>${battery.description || '—'}</td>
-                    <td>${createStatusBadge(battery.status, 'battery')}</td>
-                    <td class="table-actions">
+                    <td class="status-cell">${createStatusBadge(battery.status, 'battery')}</td>
+                    <td class="table-actions actions-cell">
                         <button type="button" class="edit-battery-btn" data-id="${battery.id}">Ред.</button>
                         <button type="button" class="delete-battery-btn" data-id="${battery.id}">Удалить</button>
                     </td>`;
@@ -1573,12 +1573,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                 <td>${displayName}</td>
                 <td>${formatPhoneDisplay(client.phone)}</td>
-                <td>${createStatusBadge(status, 'client')}</td>
+                <td class="status-cell">${createStatusBadge(status, 'client')}</td>
                 <td><div class="chips">${tagsHtml}</div></td>
                 <td>${date}</td>
-                <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
-                <td>${verificationButtons}</td>
-                <td><button type="button" class="delete-client-btn btn-danger" data-id="${client.id}" style="background-color:#e53e3e;color:white;">Удалить</button></td>`;
+                <td class="actions-cell"><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
+                <td class="actions-cell">${verificationButtons}</td>
+                <td class="actions-cell"><button type="button" class="delete-client-btn btn-danger" data-id="${client.id}" style="background-color:#e53e3e;color:white;">Удалить</button></td>`;
                 clientsTableBody.appendChild(tr);
             });
         } catch (err) {
@@ -1794,8 +1794,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${end}</td>
                     <td>${overdueCell}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
-                    <td>${createStatusBadge(r.status, 'rental')}</td>
-                    <td class="table-actions">${actionsCell}</td>
+                    <td class="status-cell">${createStatusBadge(r.status, 'rental')}</td>
+                    <td class="table-actions actions-cell">${actionsCell}</td>
                 `;
                 
                 // Добавляем обработчик клика на строку (но не на кнопку)
@@ -2473,12 +2473,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${Number(p.amount_rub ?? 0).toLocaleString('ru-RU')} ₽</td>
                     <td>${typeLabel}</td>
                     <td><span class="payment-method-badge ${p.method || ''}">${methodLabel}</span></td>
-                    <td>${createStatusBadge(p.status, 'payment')}</td>
+                    <td class="status-cell">${createStatusBadge(p.status, 'payment')}</td>
                     <td>
                         <div>${dateStr}</div>
                         <small style="font-size: 0.8em; color: #666;">${timeStr}</small>
                     </td>
-                    <td>${actionsCell}</td>`;
+                    <td class="actions-cell">${actionsCell}</td>`;
                 tbody.appendChild(tr);
             });
         } catch (err) {
@@ -3127,9 +3127,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td>${assignment.clients?.name || `ID: ${assignment.user_id.slice(0, 8)}...`}</td>
                     <td>${assignment.tariffs?.title || `ID: ${assignment.tariff_id}`}</td>
-                    <td>${createStatusBadge(assignment.status, 'rental')}</td>
+                    <td class="status-cell">${createStatusBadge(assignment.status, 'rental')}</td>
                     <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
-                    <td class="table-actions">
+                    <td class="table-actions actions-cell">
                         ${actionButton}
                     </td>
                 `;
@@ -3182,7 +3182,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="progress-bar progress-bar-fill" style="width: 100%;"></div>
                          </div>
                     </td>
-                    <td class="table-actions">
+                    <td class="table-actions actions-cell">
                         <button class="btn btn-primary create-rental-from-booking-btn" data-booking-id="${booking.id}">Пришел</button>
                         <button class="btn btn-danger reject-booking-btn" data-booking-id="${booking.id}">Отклонить</button>
                     </td>
@@ -5015,7 +5015,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tr.innerHTML = `
               <td>${t.name}</td>
               <td>${t.is_active ? 'Да' : 'Нет'}</td>
-              <td class="table-actions">
+              <td class="table-actions actions-cell">
                 <button type="button" class="template-edit-btn" data-id="${t.id}">Ред.</button>
                 <button type="button" class="template-delete-btn" data-id="${t.id}">Удалить</button>
               </td>`;
