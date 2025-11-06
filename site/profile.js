@@ -733,10 +733,24 @@ async function handleFileUpload(files) {
         try {
             const formData = new FormData();
             formData.append('file', file);
+            
+            // Проверяем, что у нас есть либо userId, либо anonymousChatId
             if (state.userId) {
                 formData.append('clientId', state.userId);
             } else if (state.anonymousChatId) {
                 formData.append('anonymousChatId', state.anonymousChatId);
+            } else {
+                // Если ни один из идентификаторов не задан, генерируем анонимный чат
+                const anonymousId = localStorage.getItem('anonymousChatId') || 
+                                   sessionStorage.getItem('anonymousChatId') || 
+                                   'anonymous-' + Date.now();
+                
+                // Сохраняем ID анонимного чата для последующего использования
+                if (!localStorage.getItem('anonymousChatId') && !sessionStorage.getItem('anonymousChatId')) {
+                    sessionStorage.setItem('anonymousChatId', anonymousId);
+                }
+                
+                formData.append('anonymousChatId', anonymousId);
             }
 
             const response = await fetch('/api/upload-support-attachment', {

@@ -318,6 +318,148 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle file uploads for admin support
+    async function handleFileUpload(files) {
+        if (!files || files.length === 0 || !state.activeChatId) return;
+        
+        for (const file of files) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                if (!state.activeChatIsAnonymous) {
+                    formData.append('clientId', state.activeChatId);
+                } else {
+                    formData.append('anonymousChatId', state.activeChatId);
+                }
+                
+                const response = await fetch('/api/upload-support-attachment', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to upload file');
+                }
+                
+                const result = await response.json();
+                // Send the file URL as a message
+                await sendAdminMessage(result.publicUrl);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Ошибка загрузки файла: ' + error.message);
+            }
+        }
+    }
+
+    // Modified admin message sending function to handle file URLs
+    async function sendAdminMessage(text) {
+        if (!text.trim() && !text.startsWith('http')) return; // Allow file URLs to be sent even if they appear empty
+        
+        const payload = state.activeChatIsAnonymous
+            ? { anonymousChatId: state.activeChatId }
+            : { clientId: state.activeChatId };
+
+        if (chatInput) {
+            chatInput.disabled = true;
+        }
+        if (sendBtn) {
+            sendBtn.disabled = true;
+        }
+
+        try {
+            await adminApi('send-support-message-admin', {
+                ...payload,
+                messageText: text,
+            });
+            
+            if (chatInput) {
+                chatInput.value = '';
+            }
+            
+            await loadChatHistory({ id: state.activeChatId, isAnonymous: state.activeChatIsAnonymous });
+            await loadChats();
+        } catch (error) {
+            console.error('Error sending message:', error);
+            alert('Не удалось отправить сообщение: ' + error.message);
+        } finally {
+            if (chatInput) {
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+            if (sendBtn) {
+                sendBtn.disabled = false;
+            }
+        }
+    }
+
+    // Modified appendMessageToHistory to handle different file types
+    function appendMessageToHistory(message) {
+        if (!chatHistoryContainer) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = `chat-message ${message.sender === 'admin' ? 'admin-message' : 'client-message'}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        
+        // Check if the message is a file URL
+        if (message.message_text && message.message_text.startsWith('http')) {
+            const fileUrl = message.message_text;
+            const fileExtension = fileUrl.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
+            const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileExtension);
+            
+            if (isImage) {
+                bubble.innerHTML = `
+                    <div class="chat-file-content">
+                        <a href="${fileUrl}" target="_blank">
+                            <img src="${fileUrl}" alt="Вложение" class="chat-image-preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                        </a>
+                        <div class="chat-file-name">Изображение</div>
+                    </div>
+                `;
+            } else if (isVideo) {
+                bubble.innerHTML = `
+                    <div class="chat-file-content">
+                        <video controls class="chat-video-preview" style="max-width: 200px; border-radius: 8px;">
+                            <source src="${fileUrl}" type="video/${fileExtension}">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                        <div class="chat-file-name">Видео</div>
+                    </div>
+                `;
+            } else {
+                // For other file types, show a download link
+                const fileName = fileUrl.split('/').pop() || 'Файл';
+                bubble.innerHTML = `
+                    <div class="chat-file-content">
+                        <a href="${fileUrl}" target="_blank" class="chat-file-link" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f9fd; border-radius: 8px; text-decoration: none; color: #1CB5E0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>${fileName}</span>
+                        </a>
+                    </div>
+                `;
+            }
+        } else {
+            // Regular text message
+            bubble.textContent = message.message_text || '';
+        }
+        
+        wrapper.appendChild(bubble);
+
+        const meta = document.createElement('div');
+        meta.className = 'message-meta';
+        const timestamp = message.created_at ? new Date(message.created_at) : new Date();
+        meta.textContent = timestamp.toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+        wrapper.appendChild(meta);
+
+        chatHistoryContainer.appendChild(wrapper);
+    }
+
     // File attachment functionality
     if (chatAttachBtn && chatFileInput) {
         chatAttachBtn.addEventListener('click', (event) => {
@@ -333,145 +475,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('beforeunload', stopPolling);
 });
-
-// Handle file uploads for admin support
-async function handleFileUpload(files) {
-    if (!files || files.length === 0 || !state.activeChatId) return;
-    
-    for (const file of files) {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            if (!state.activeChatIsAnonymous) {
-                formData.append('clientId', state.activeChatId);
-            } else {
-                formData.append('anonymousChatId', state.activeChatId);
-            }
-            
-            const response = await fetch('/api/upload-support-attachment', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to upload file');
-            }
-            
-            const result = await response.json();
-            // Send the file URL as a message
-            await sendAdminMessage(result.publicUrl);
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            alert('Ошибка загрузки файла: ' + error.message);
-        }
-    }
-}
-
-// Modified admin message sending function to handle file URLs
-async function sendAdminMessage(text) {
-    if (!text.trim() && !text.startsWith('http')) return; // Allow file URLs to be sent even if they appear empty
-    
-    const payload = state.activeChatIsAnonymous
-        ? { anonymousChatId: state.activeChatId }
-        : { clientId: state.activeChatId };
-
-    if (chatInput) {
-        chatInput.disabled = true;
-    }
-    if (sendBtn) {
-        sendBtn.disabled = true;
-    }
-
-    try {
-        await adminApi('send-support-message-admin', {
-            ...payload,
-            messageText: text,
-        });
-        
-        if (chatInput) {
-            chatInput.value = '';
-        }
-        
-        await loadChatHistory({ id: state.activeChatId, isAnonymous: state.activeChatIsAnonymous });
-        await loadChats();
-    } catch (error) {
-        console.error('Error sending message:', error);
-        alert('Не удалось отправить сообщение: ' + error.message);
-    } finally {
-        if (chatInput) {
-            chatInput.disabled = false;
-            chatInput.focus();
-        }
-        if (sendBtn) {
-            sendBtn.disabled = false;
-        }
-    }
-}
-
-// Modified appendMessageToHistory to handle different file types
-function appendMessageToHistory(message) {
-    if (!chatHistoryContainer) return;
-    const wrapper = document.createElement('div');
-    wrapper.className = `chat-message ${message.sender === 'admin' ? 'admin-message' : 'client-message'}`;
-
-    const bubble = document.createElement('div');
-    bubble.className = 'message-bubble';
-    
-    // Check if the message is a file URL
-    if (message.message_text && message.message_text.startsWith('http')) {
-        const fileUrl = message.message_text;
-        const fileExtension = fileUrl.split('.').pop().toLowerCase();
-        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
-        const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileExtension);
-        
-        if (isImage) {
-            bubble.innerHTML = `
-                <div class="chat-file-content">
-                    <a href="${fileUrl}" target="_blank">
-                        <img src="${fileUrl}" alt="Вложение" class="chat-image-preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
-                    </a>
-                    <div class="chat-file-name">Изображение</div>
-                </div>
-            `;
-        } else if (isVideo) {
-            bubble.innerHTML = `
-                <div class="chat-file-content">
-                    <video controls class="chat-video-preview" style="max-width: 200px; border-radius: 8px;">
-                        <source src="${fileUrl}" type="video/${fileExtension}">
-                        Ваш браузер не поддерживает видео.
-                    </video>
-                    <div class="chat-file-name">Видео</div>
-                </div>
-            `;
-        } else {
-            // For other file types, show a download link
-            const fileName = fileUrl.split('/').pop() || 'Файл';
-            bubble.innerHTML = `
-                <div class="chat-file-content">
-                    <a href="${fileUrl}" target="_blank" class="chat-file-link" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f9fd; border-radius: 8px; text-decoration: none; color: #1CB5E0;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <span>${fileName}</span>
-                    </a>
-                </div>
-            `;
-        }
-    } else {
-        // Regular text message
-        bubble.textContent = message.message_text || '';
-    }
-    
-    wrapper.appendChild(bubble);
-
-    const meta = document.createElement('div');
-    meta.className = 'message-meta';
-    const timestamp = message.created_at ? new Date(message.created_at) : new Date();
-    meta.textContent = timestamp.toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
-    wrapper.appendChild(meta);
-
-    chatHistoryContainer.appendChild(wrapper);
-}
