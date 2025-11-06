@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     const filteredClients = mapClientsData.filter(client =>
-                        client.name.toLowerCase().includes(query)
+                        getDisplayName(client).toLowerCase().includes(query)
                     );
 
                     if (filteredClients.length === 0) {
@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     filteredClients.forEach((client, index) => {
                         const resultItem = document.createElement('div');
                         resultItem.className = 'search-result-item';
-                        resultItem.textContent = client.name;
+                        resultItem.textContent = getDisplayName(client);
                         resultItem.dataset.clientId = client.id;
                         resultItem.dataset.coords = `${client.location_geojson.coordinates[1]},${client.location_geojson.coordinates[0]}`;
                         resultItem.addEventListener('click', () => selectCourier(client));
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         myMap.setZoom(15, { duration: 500 });
                     });
 
-                    courierSearchInput.value = client.name;
+                    courierSearchInput.value = getDisplayName(client);
                     searchResults.style.display = 'none';
                     courierSearchInput.blur();
                 }
@@ -345,8 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: `client_${client.id}`,
                 geometry: { type: 'Point', coordinates: [client.location_geojson.coordinates[1], client.location_geojson.coordinates[0]] },
                 properties: {
-                    hintContent: `Курьер: ${client.name}`,
-                    balloonContent: `<strong>${client.name}</strong><br>ID: ${client.id}`
+                    hintContent: `Курьер: ${getDisplayName(client)}`,
+                    balloonContent: `<strong>${getDisplayName(client)}</strong><br>ID: ${client.id}`
                 },
                 options: { preset: 'islands#userIcon', iconColor: '#ff0000' }
             }));
@@ -529,7 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
             if (error) throw error;
 
-            const rec = client?.recognized_passport_data || client?.extra?.recognized_data || {};
+            const recRaw = client?.recognized_passport_data || client?.extra?.recognized_data || {};
+            const rec = formatPassportData(recRaw);
+            const displayName = formatPersonName(client.name) || client.name || 'Не указано';
             if (recognizedDisplay) {
                 recognizedDisplay.innerHTML = '';
                 
@@ -540,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="display: grid; gap: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <strong style="min-width: 120px; color: var(--accent);">ФИО:</strong>
-                            <span style="font-size: 16px; font-weight: 600;">${client.name || 'Не указано'}</span>
+                            <span style="font-size: 16px; font-weight: 600;">${displayName}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <strong style="min-width: 120px; color: var(--accent);">Телефон:</strong>
@@ -1486,6 +1488,47 @@ document.addEventListener('DOMContentLoaded', () => {
         return phone;
     }
 
+    function normalizeNameToken(token = '') {
+        return token
+            .split('-')
+            .map((hyphenPart) =>
+                hyphenPart
+                    .split("'")
+                    .map((segment) => {
+                        const lower = segment.toLowerCase();
+                        if (!lower.length) return '';
+                        return lower.charAt(0).toUpperCase() + lower.slice(1);
+                    })
+                    .join("'")
+            )
+            .join('-');
+    }
+
+    function formatPersonName(value) {
+        if (!value || typeof value !== 'string') return null;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        return trimmed
+            .split(/\s+/)
+            .map(normalizeNameToken)
+            .join(' ');
+    }
+
+    function formatPassportData(passport = {}) {
+        if (!passport || typeof passport !== 'object') return {};
+        const copy = { ...passport };
+        if (copy.full_name) copy.full_name = formatPersonName(copy.full_name) || copy.full_name;
+        if (copy.first_name) copy.first_name = formatPersonName(copy.first_name) || copy.first_name;
+        if (copy.last_name) copy.last_name = formatPersonName(copy.last_name) || copy.last_name;
+        if (copy.middle_name) copy.middle_name = formatPersonName(copy.middle_name) || copy.middle_name;
+        return copy;
+    }
+
+    function getDisplayName(client) {
+        if (!client) return '';
+        return formatPersonName(client.name) || client.name || '';
+    }
+
     async function loadClients() {
         clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
         try {
@@ -1508,6 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const date = new Date(client.created_at).toLocaleDateString();
                 const status = client.verification_status || 'not_set';
                 const tags = client.extra?.tags || [];
+                const displayName = getDisplayName(client);
 
                 const verificationButtons = status === 'pending' || status === 'needs_confirmation'
                     ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
@@ -1515,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
 
                 tr.innerHTML = `
-                <td>${client.name}</td>
+                <td>${displayName}</td>
                 <td>${formatPhoneDisplay(client.phone)}</td>
                 <td>${createStatusBadge(status, 'client')}</td>
                 <td><div class="chips">${tagsHtml}</div></td>

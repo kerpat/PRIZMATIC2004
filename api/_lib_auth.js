@@ -24,6 +24,34 @@ function normalizePassportData(raw) {
     return null;
 }
 
+function capitalizeSegment(segment = '') {
+    const lower = segment.toLowerCase();
+    if (!lower.length) return '';
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function normalizeNameToken(token = '') {
+    return token
+        .split('-')
+        .map((hyphenPart) =>
+            hyphenPart
+                .split("'")
+                .map(capitalizeSegment)
+                .join("'")
+        )
+        .join('-');
+}
+
+function normalizePersonName(value) {
+    if (!value || typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed
+        .split(/\s+/)
+        .map(normalizeNameToken)
+        .join(' ');
+}
+
 function deriveNamesFromPassport(raw) {
     const data = normalizePassportData(raw);
     if (!data) {
@@ -65,11 +93,15 @@ function deriveNamesFromPassport(raw) {
         }
     }
 
+    lastName = normalizePersonName(lastName);
+    firstName = normalizePersonName(firstName);
+    middleName = normalizePersonName(middleName);
+    fullName = normalizePersonName(fullName) || [lastName, firstName, middleName].filter(Boolean).join(' ');
+
     const shortName = [lastName, firstName].filter(Boolean).join(' ') || null;
-    const resolvedFullName = fullName || [lastName, firstName, middleName].filter(Boolean).join(' ') || null;
 
     return {
-        fullName: resolvedFullName,
+        fullName: fullName || null,
         shortName,
         lastName: lastName || null,
         firstName: firstName || null,

@@ -25,6 +25,41 @@ const state = {
 const elements = {};
 const toastTimers = new Map();
 
+function normalizeNameToken(token = '') {
+    return token
+        .split('-')
+        .map((hyphenPart) =>
+            hyphenPart
+                .split("'")
+                .map((segment) => {
+                    const lower = segment.toLowerCase();
+                    if (!lower.length) return '';
+                    return lower.charAt(0).toUpperCase() + lower.slice(1);
+                })
+                .join("'")
+        )
+        .join('-');
+}
+
+function formatPersonName(value) {
+    if (!value || typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed
+        .split(/\s+/)
+        .map(normalizeNameToken)
+        .join(' ');
+}
+
+function formatPassportData(passport = {}) {
+    const clone = { ...passport };
+    if (clone.full_name) clone.full_name = formatPersonName(clone.full_name) || clone.full_name;
+    if (clone.first_name) clone.first_name = formatPersonName(clone.first_name) || clone.first_name;
+    if (clone.last_name) clone.last_name = formatPersonName(clone.last_name) || clone.last_name;
+    if (clone.middle_name) clone.middle_name = formatPersonName(clone.middle_name) || clone.middle_name;
+    return clone;
+}
+
 function $(selector, scope = document) {
     return scope.querySelector(selector);
 }
@@ -75,8 +110,9 @@ function showToast(id, duration = 2800) {
 
 function updateUserBanner(user) {
     if (elements.namePlaceholder && typeof user?.name === 'string') {
-        const firstName = user.name.split(' ')[0];
-        elements.namePlaceholder.textContent = firstName || user.name || 'Пользователь';
+        const formatted = formatPersonName(user.name) || user.name;
+        const firstName = formatted.split(' ')[1] || formatted.split(' ')[0];
+        elements.namePlaceholder.textContent = firstName || formatted || 'Пользователь';
     }
 
     if (elements.userIdLabel && state.userId) {
@@ -290,8 +326,9 @@ function bicycleBatteryNumbers(rental) {
 function generateContractHTML(rental) {
     const now = new Date();
     const client = rental?.clients || {};
+    const displayName = formatPersonName(client.name) || client.name || 'N/A';
     const bike = rental?.bikes || {};
-    const passport = client?.recognized_passport_data || {};
+    const passport = formatPassportData(client?.recognized_passport_data);
 
     return `
         <div style="text-align: center; font-weight: bold; font-size: 1.2em; margin-bottom: 20px;">
@@ -316,7 +353,7 @@ function generateContractHTML(rental) {
         <h4 style="margin-bottom: 10px;">2. Арендатор</h4>
         <table border="1" style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;">
             <tbody>
-                <tr><th style="padding: 8px; width: 40%;">ФИО</th><td style="padding: 8px;">${client.name || 'N/A'}</td></tr>
+                <tr><th style="padding: 8px; width: 40%;">ФИО</th><td style="padding: 8px;">${passport.full_name || displayName}</td></tr>
                 <tr><th style="padding: 8px;">Дата рождения</th><td style="padding: 8px;">${passport.birth_date || 'N/A'}</td></tr>
                 <tr><th style="padding: 8px;">Паспорт</th><td style="padding: 8px;">${formatPassport(passport)}</td></tr>
                 <tr><th style="padding: 8px;">Кем выдан</th><td style="padding: 8px;">${passport.issuing_authority || 'N/A'}</td></tr>
@@ -333,8 +370,9 @@ function generateContractHTML(rental) {
 function generateReturnActHTML(rental, defects = []) {
     const now = new Date();
     const client = rental?.clients || {};
+    const displayName = formatPersonName(client.name) || client.name || 'N/A';
     const bike = rental?.bikes || {};
-    const passport = client?.recognized_passport_data || {};
+    const passport = formatPassportData(client?.recognized_passport_data);
     const extraData = rental?.extra_data || {};
     const defectsMarkup = Array.isArray(defects) && defects.length > 0
         ? `<h4 style="margin-top: 20px; margin-bottom: 10px;">Выявленные неисправности</h4>
@@ -395,7 +433,7 @@ function generateReturnActHTML(rental, defects = []) {
         <h4 style="margin-bottom: 10px;">2. Арендатор</h4>
         <table border="1" style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;">
             <tbody>
-                <tr><th style="padding: 8px; width: 40%;">ФИО</th><td style="padding: 8px;">${client.name || 'N/A'}</td></tr>
+                <tr><th style="padding: 8px; width: 40%;">ФИО</th><td style="padding: 8px;">${passport.full_name || displayName}</td></tr>
                 <tr><th style="padding: 8px;">Дата рождения</th><td style="padding: 8px;">${passport.birth_date || 'N/A'}</td></tr>
                 <tr><th style="padding: 8px;">Паспорт</th><td style="padding: 8px;">${formatPassport(passport)}</td></tr>
                 <tr><th style="padding: 8px;">Адрес регистрации</th><td style="padding: 8px;">${passport.registration_address || 'N/A'}</td></tr>
@@ -919,6 +957,16 @@ async function bootstrap() {
             window.location.replace('registration.html');
             return;
         }
+        const formattedUserName = formatPersonName(state.user.name);
+        if (formattedUserName) {
+            state.user.name = formattedUserName;
+            try {
+                localStorage.setItem('userName', formattedUserName);
+            } catch (error) {
+                console.warn('[Profile] Не удалось обновить имя в localStorage:', error);
+            }
+        }
+        state.user.recognized_passport_data = formatPassportData(state.user.recognized_passport_data);
         updateUserBanner(state.user);
     } catch (error) {
         console.error('[Profile] Failed to load user:', error);

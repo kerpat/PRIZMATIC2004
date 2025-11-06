@@ -40,6 +40,32 @@ const optionCache = new Map();
 const toastTimers = new Map();
 const RENTAL_STATUS_POLL_INTERVAL = 6000;
 
+function normalizeNameToken(token = '') {
+    return token
+        .split('-')
+        .map((hyphenPart) =>
+            hyphenPart
+                .split("'")
+                .map((segment) => {
+                    const lower = segment.toLowerCase();
+                    if (!lower.length) return '';
+                    return lower.charAt(0).toUpperCase() + lower.slice(1);
+                })
+                .join("'")
+        )
+        .join('-');
+}
+
+function formatPersonName(value) {
+    if (!value || typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed
+        .split(/\s+/)
+        .map(normalizeNameToken)
+        .join(' ');
+}
+
 function formatRub(value) {
     const numeric = Number(value || 0);
     if (!Number.isFinite(numeric)) {
@@ -904,16 +930,17 @@ function bindVerificationViewEvents({ allowRetry = false } = {}) {
     const supportBtn = document.getElementById('verification-support-btn');
     if (supportBtn) {
         supportBtn.addEventListener('click', () => {
-            if (window.SupportChat && typeof window.SupportChat.open === 'function') {
-                window.SupportChat.open();
-                return;
-            }
+            const telegramUrl = 'https://t.me/PRIZMATIC_wello';
             try {
-                localStorage.setItem('openSupportAfterRedirect', '1');
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.openTelegramLink(telegramUrl);
+                } else {
+                    window.open(telegramUrl, '_blank', 'noopener');
+                }
             } catch (error) {
-                console.warn('[Main] Не удалось сохранить флаг поддержки:', error);
+                console.warn('[Main] Не удалось открыть Telegram, fallback на переход:', error);
+                window.location.href = telegramUrl;
             }
-            window.location.href = 'profile.html#support';
         });
     }
 
@@ -1145,6 +1172,18 @@ async function bootstrap() {
             localStorage.clear();
             window.location.replace('registration.html');
             return;
+        }
+
+        if (user?.name) {
+            const formattedName = formatPersonName(user.name);
+            if (formattedName) {
+                user.name = formattedName;
+                try {
+                    localStorage.setItem('userName', formattedName);
+                } catch (error) {
+                    console.warn('[Main] Не удалось обновить имя в localStorage:', error);
+                }
+            }
         }
 
         state.user = user;
