@@ -1,4 +1,4 @@
-import { getRentalBatteries } from './api.js?v=13.1';
+import { getRentalBatteries } from './api.js?v=13.2';
 
 const verificationCopy = {
     pending: {
@@ -85,6 +85,19 @@ export function renderVerificationPendingView(mainContent, { status, city, updat
         <div class="verification-container">
             <h2 class="verification-header">${statusLabel}</h2>
             <div class="verification-status-card">
+                <div class="verification-animation">
+                    <div class="verification-loader">
+                        <span></span>
+                        <span class="delay"></span>
+                        <span class="delay-2"></span>
+                        <div class="verification-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
                 <div class="verification-status-info">
                     <h3>${config.title}</h3>
                     <div class="progress-bar-container">
@@ -121,6 +134,20 @@ export function renderVerificationRejectedView(mainContent, { status, reason } =
         <div class="verification-container">
             <h2 class="verification-header" style="color:#e53e3e;">Нужна ваша помощь</h2>
             <div class="verification-status-card" style="border:2px solid rgba(229,62,62,0.15);">
+                <div class="verification-animation warning">
+                    <div class="verification-loader warning">
+                        <span></span>
+                        <span class="delay"></span>
+                        <span class="delay-2"></span>
+                        <div class="verification-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 9v4"></path>
+                                <path d="M12 17h.01"></path>
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.42 3.86a2 2 0 0 0-3.42 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
                 <div class="verification-status-info">
                     <h3 style="color:#e53e3e;">Верификация не пройдена</h3>
                     <p>${reason || message}</p>

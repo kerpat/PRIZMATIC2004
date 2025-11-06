@@ -1553,6 +1553,76 @@ body:has(.map-page-container) #map {
   text-align: center;
 }
 
+.verification-animation {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.verification-loader {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.verification-loader span {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid rgba(20, 255, 236, 0.22);
+  animation: verification-pulse 1.9s infinite;
+}
+
+.verification-loader span.delay {
+  animation-delay: 0.25s;
+}
+
+.verification-loader span.delay-2 {
+  animation-delay: 0.5s;
+}
+
+.verification-loader.warning span {
+  border-color: rgba(229, 62, 62, 0.28);
+}
+
+.verification-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at top, #14FFEC 0%, #0d7377 65%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 10px 25px rgba(13, 115, 119, 0.25);
+  position: relative;
+  z-index: 1;
+}
+
+.verification-loader.warning .verification-icon {
+  background: radial-gradient(circle at top, #ffd7d7 0%, #e53e3e 65%);
+  box-shadow: 0 10px 25px rgba(229, 62, 62, 0.25);
+}
+
+@keyframes verification-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
 /* 1. Стилизация выпадающих списков (select) */
 select.form-control {
   width: 100%;

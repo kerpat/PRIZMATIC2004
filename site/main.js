@@ -1,4 +1,4 @@
-import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js?v=13.1';
+import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js?v=13.2';
 import {
     renderDefaultView,
     renderActiveRentalView,
@@ -8,9 +8,9 @@ import {
     renderAwaitingContractView,
     renderVerificationPendingView,
     renderVerificationRejectedView,
-} from './ui.js?v=13.1';
-import './sse-client.js?v=13.1';
-import { createQrScanner } from './qr-scanner.js?v=13.1';
+} from './ui.js?v=13.2';
+import './sse-client.js?v=13.2';
+import { createQrScanner } from './qr-scanner.js?v=13.2';
 
 let qrScanner = null;
 
@@ -904,6 +904,15 @@ function bindVerificationViewEvents({ allowRetry = false } = {}) {
     const supportBtn = document.getElementById('verification-support-btn');
     if (supportBtn) {
         supportBtn.addEventListener('click', () => {
+            if (window.SupportChat && typeof window.SupportChat.open === 'function') {
+                window.SupportChat.open();
+                return;
+            }
+            try {
+                localStorage.setItem('openSupportAfterRedirect', '1');
+            } catch (error) {
+                console.warn('[Main] Не удалось сохранить флаг поддержки:', error);
+            }
             window.location.href = 'profile.html#support';
         });
     }

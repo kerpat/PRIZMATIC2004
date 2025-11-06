@@ -9,8 +9,8 @@ import {
     getSupportMessages,
     sendSupportMessage,
     markSupportMessagesRead,
-} from './api.js?v=13.1';
-import './sse-client.js?v=13.1';
+} from './api.js?v=13.2';
+import './sse-client.js?v=13.2';
 
 const state = {
     userId: null,
@@ -909,6 +909,15 @@ function setupModals() {
 }
 
 function handleDeepLinks() {
+    try {
+        if (localStorage.getItem('openSupportAfterRedirect') === '1') {
+            localStorage.removeItem('openSupportAfterRedirect');
+            setTimeout(() => window.openProfileModal?.('support-modal'), 250);
+        }
+    } catch (error) {
+        console.warn('[Profile] Не удалось прочитать флаг поддержки:', error);
+    }
+
     if (window.location.hash === '#support') {
         setTimeout(() => window.openProfileModal?.('support-modal'), 250);
     }
