@@ -204,6 +204,35 @@
             fill: currentColor;
         }
 
+        .chat-image-preview {
+            max-width: 210px;
+            max-height: 210px;
+            border-radius: 12px;
+            display: block;
+        }
+
+        .chat-video-preview {
+            max-width: 210px;
+            border-radius: 12px;
+            display: block;
+        }
+
+        .chat-file-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f0f9fd;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #0d7377;
+            font-weight: 600;
+        }
+
+        .chat-file-link:hover {
+            background: #e0f3fa;
+        }
+
         #chat-input-wrapper {
             flex-grow: 1;
             background-color: var(--card-bg);
