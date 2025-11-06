@@ -4,7 +4,29 @@
   "webDir": "site",
   "server": {
     "url": "https://prizmatic-2004.vercel.app",
-    "cleartext": true
+    "cleartext": true,
+    "allowNavigation": [
+      "yoomoney.ru",
+      "*.yoomoney.ru",
+      "yookassa.ru",
+      "*.yookassa.ru",
+      "static.yoomoney.ru",
+      "pay.yookassa.ru",
+      "checkout.yookassa.ru",
+      "3dsec.sberbank.ru",
+      "*.sberbank.ru",
+      "*.sber.ru",
+      "*.sbp.nspk.ru",
+      "pay.nspk.ru",
+      "qr.nspk.ru",
+      "*.tinkoff.ru",
+      "securepay.tinkoff.ru",
+      "*.vtb.ru",
+      "*.alfabank.ru",
+      "*.gazprombank.ru",
+      "*.raiffeisen.ru",
+      "*.rsb.ru"
+    ]
   },
   "android": {
     "buildOptions": {

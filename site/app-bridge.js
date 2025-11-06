@@ -3,12 +3,14 @@ class AppBridge {
     constructor() {
         this.isAndroidApp = this.detectAndroidApp();
         this.isIOSApp = this.detectIOSApp();
-        this.isInApp = this.isAndroidApp || this.isIOSApp;
+        this.isTelegramApp = this.detectTelegramApp();
+        this.isInApp = this.isTelegramApp;
         
         // Добавляем логирование для отладки
         console.log('AppBridge initialized:', {
             isAndroidApp: this.isAndroidApp,
             isIOSApp: this.isIOSApp,
+            isTelegramApp: this.isTelegramApp,
             isInApp: this.isInApp,
             userAgent: navigator.userAgent,
             capacitor: typeof window.Capacitor !== 'undefined',
@@ -17,21 +19,23 @@ class AppBridge {
         
         if (this.isInApp) {
             this.setupAppNavigation();
+            this.enforceInAppNavigation();
+            this.registerDeepLinkHandler();
         }
     }
 
     // Определение Android приложения
     detectAndroidApp() {
-        // Проверяем наличие специфических признаков Android WebView в вашем приложении
-        return typeof window.Capacitor !== 'undefined' || // Capacitor framework (используется в вашем приложении)
-               (window.Capacitor && window.Capacitor.Plugins) || // Дополнительная проверка для Capacitor
-               navigator.userAgent.includes('wv') || // WebView marker
-               (navigator.userAgent.includes('Android') && navigator.userAgent.toLowerCase().includes('chrome') && navigator.userAgent.includes('safari')); // Android WebView
+        return false;
     }
 
     // Определение iOS приложения (на всякий случай)
     detectIOSApp() {
-        return window.webkit && window.webkit.messageHandlers;
+        return false;
+    }
+
+    detectTelegramApp() {
+        return typeof window.Telegram !== 'undefined' && !!(window.Telegram.WebApp && window.Telegram.WebApp.initData);
     }
 
     // Настройка специальной навигации для приложений
@@ -48,13 +52,84 @@ class AppBridge {
         this.setupPaymentReturnHandling();
     }
 
+    // Принудительно оставляем навигацию внутри WebView
+    enforceInAppNavigation() {
+        if (!this.isInApp || this._navigationPatched) return;
+        this._navigationPatched = true;
+
+        const originalOpen = window.open?.bind(window);
+        window.open = (url = '', name, specs) => {
+            if (typeof url === 'string' && url && !/^javascript:/i.test(url) && url !== 'about:blank') {
+                console.log('[AppBridge] window.open перехвачен:', { url, name, specs });
+                this.navigateTo(url);
+                return window;
+            }
+            return originalOpen ? originalOpen(url, name, specs) : null;
+        };
+
+        document.addEventListener('click', (event) => {
+            const anchor = event.target?.closest?.('a[target="_blank"]');
+            if (anchor && anchor.href) {
+                event.preventDefault();
+                console.log('[AppBridge] target=_blank click перехвачен:', anchor.href);
+                this.navigateTo(anchor.href);
+            }
+        }, true);
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (form?.target === '_blank') {
+                console.log('[AppBridge] target=_blank submit перехвачен:', form.action || '(current)');
+                form.target = '_self';
+            }
+        }, true);
+    }
+
+    registerDeepLinkHandler() {
+        if (this._deepLinkRegistered) return;
+        const appPlugin = window.Capacitor?.App || window.Capacitor?.Plugins?.App;
+        if (!appPlugin || typeof appPlugin.addListener !== 'function') {
+            return;
+        }
+
+        this._deepLinkRegistered = true;
+        appPlugin.addListener('appUrlOpen', (event) => {
+            try {
+                const incomingUrl = event?.url;
+                if (!incomingUrl) return;
+
+                console.log('[AppBridge] appUrlOpen:', incomingUrl);
+                const lower = incomingUrl.toLowerCase();
+                const isPaymentReturn = lower.startsWith('prizmatic://return') || lower.includes('/payment-return');
+                if (!isPaymentReturn) return;
+
+                const parsed = new URL(incomingUrl);
+                const status = (parsed.searchParams.get('status') ||
+                                parsed.searchParams.get('payment_status') ||
+                                parsed.searchParams.get('result') ||
+                                'unknown').toLowerCase();
+                const type = (parsed.searchParams.get('type') ||
+                              parsed.searchParams.get('payment_type') ||
+                              'payment').toLowerCase();
+
+                sessionStorage.setItem('paymentReturnStatus', status);
+                sessionStorage.setItem('paymentReturnType', type);
+
+                const destination = `profile.html?payment_return=${encodeURIComponent(status)}&payment_type=${encodeURIComponent(type)}`;
+                setTimeout(() => this.navigateTo(destination), 0);
+            } catch (error) {
+                console.warn('[AppBridge] Ошибка обработки deep-link:', error);
+            }
+        });
+    }
+
     // Проверяем, возвращаемся ли из оплаты
     isReturnFromPayment() {
         // Проверяем URL на признаки возврата из оплаты
         const searchParams = new URLSearchParams(window.location.search);
         const returnFromPaymentParams = [
             'payment_success', 'payment_id', 'payment_status', 'payment_complete', 'return_url',
-            'success', 'result', 'status', 'token', 'payment_token', 'checkout', 'paid'
+            'success', 'result', 'status', 'token', 'payment_token', 'checkout', 'paid', 'payment_return', 'payment_type'
         ];
         
         for (const param of returnFromPaymentParams) {
@@ -80,37 +155,73 @@ class AppBridge {
     handleReturnFromPayment() {
         // Проверяем, есть ли в URL параметры, указывающие на успешную оплату
         const urlParams = new URLSearchParams(window.location.search);
-        const paymentSuccess = urlParams.get('payment_success') || 
-                              urlParams.get('status') === 'success' ||
-                              urlParams.get('payment_status') === 'success';
+        const storedStatus = (sessionStorage.getItem('paymentReturnStatus') || '').toLowerCase();
+        const storedType = (sessionStorage.getItem('paymentReturnType') || '').toLowerCase();
+        const urlStatus = (
+            urlParams.get('payment_return') ||
+            urlParams.get('payment_status') ||
+            urlParams.get('status') ||
+            urlParams.get('result') ||
+            urlParams.get('payment_success')
+        );
+        const urlType = (
+            urlParams.get('payment_type') ||
+            urlParams.get('type')
+        );
+
+        const normalizedUrlStatus = typeof urlStatus === 'string' ? urlStatus.toLowerCase() : '';
+        const normalizedUrlType = typeof urlType === 'string' ? urlType.toLowerCase() : '';
+        const finalStatus = storedStatus || normalizedUrlStatus;
+        const finalType = storedType || normalizedUrlType || 'payment';
+
+        const isSuccess = ['success', 'succeeded', 'paid'].includes(finalStatus);
+        const isFailed = ['canceled', 'cancelled', 'failed', 'rejected'].includes(finalStatus);
         
         // Если это возврат из оплаты, делаем задержку перед обработкой
         setTimeout(() => {
-            if (paymentSuccess) {
+            if (isSuccess) {
                 // Показываем пользователю сообщение об успешной оплате
-                this.showPaymentSuccessNotification();
+                this.showPaymentSuccessNotification(finalType);
+            } else if (isFailed) {
+                this.showPaymentErrorNotification(finalType);
             }
             
             // Предотвращаем переход по внешним ссылкам, которые могут вывести из приложения
             this.preventExternalNavigation();
             
             // Если есть специфические параметры оплаты, очищаем URL, чтобы не было повторных действий
-            if (paymentSuccess) {
+            if (finalStatus) {
+                sessionStorage.removeItem('paymentReturnStatus');
+                sessionStorage.removeItem('paymentReturnType');
                 this.cleanPaymentParamsFromUrl();
             }
         }, 1000);
     }
 
     // Показываем уведомление об успешной оплате
-    showPaymentSuccessNotification() {
+    showPaymentSuccessNotification(type = 'payment') {
+        const map = {
+            top_up: 'Баланс пополнен!',
+            rental: 'Аренда оформлена!',
+            booking: 'Бронирование подтверждено!',
+            renewal: 'Продление оформлено!',
+            save_card: 'Карта сохранена!',
+        };
+        const message = map[type] || 'Платёж прошёл успешно!';
+
         // Находим или создаем toast-уведомление
         let toast = document.getElementById('payment-success-toast');
         if (!toast) {
             toast = document.createElement('div');
             toast.id = 'payment-success-toast';
             toast.className = 'toast-container toast-success';
-            toast.innerHTML = '<p class="toast-message">Платёж прошёл успешно!</p>';
+            toast.innerHTML = '<p class="toast-message"></p>';
             document.body.appendChild(toast);
+        }
+
+        const textNode = toast.querySelector('.toast-message');
+        if (textNode) {
+            textNode.textContent = message;
         }
         
         // Показываем уведомление
@@ -120,6 +231,33 @@ class AppBridge {
         setTimeout(() => {
             toast.classList.add('hidden');
         }, 3000);
+    }
+
+    showPaymentErrorNotification(type = 'payment') {
+        const map = {
+            top_up: 'Платёж не подтверждён. Попробуйте пополнить баланс позже.',
+            rental: 'Аренда не подтверждена. Попробуйте ещё раз.',
+            booking: 'Оплата бронирования не завершена.',
+            renewal: 'Продление не прошло. Проверьте данные.',
+            save_card: 'Не удалось сохранить карту.',
+        };
+        const message = map[type] || 'Платёж не подтверждён. Попробуйте ещё раз.';
+
+        let toast = document.getElementById('payment-error-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'payment-error-toast';
+            toast.className = 'toast-container toast-error';
+            toast.innerHTML = '<p class="toast-message"></p>';
+            document.body.appendChild(toast);
+        }
+
+        const textNode = toast.querySelector('.toast-message');
+        if (textNode) {
+            textNode.textContent = message;
+        }
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3500);
     }
 
     // Предотвращаем внешнюю навигацию, которая может вывести из приложения
@@ -156,7 +294,7 @@ class AppBridge {
     // Очищаем параметры оплаты из URL, чтобы избежать повторных действий
     cleanPaymentParamsFromUrl() {
         const url = new URL(window.location);
-        const paramsToClean = ['payment_success', 'payment_id', 'payment_status', 'status', 'return_url', 'token', 'payment_token'];
+        const paramsToClean = ['payment_success', 'payment_id', 'payment_status', 'status', 'payment_return', 'payment_type', 'type', 'return_url', 'token', 'payment_token'];
         
         let changed = false;
         paramsToClean.forEach(param => {
@@ -229,13 +367,19 @@ class AppBridge {
 
     // Метод для выполнения навигации внутри приложения
     navigateTo(path) {
-        if (this.isInApp) {
-            // Для приложения используем внутреннюю навигацию
-            window.location.href = path;
-        } else {
-            // Для веба используем стандартную навигацию
-            window.location.href = path;
+        if (!path) return;
+        const isIntent = /^intent:/i.test(path);
+        const isSpecial = /^(mailto:|tel:)/i.test(path);
+
+        if ((isIntent || isSpecial) && window.Capacitor?.Plugins?.App?.openUrl) {
+            window.Capacitor.Plugins.App.openUrl({ url: path }).catch((error) => {
+                console.warn('[AppBridge] Не удалось открыть спец-ссылку, пробуем стандартно:', error);
+                window.location.href = path;
+            });
+            return;
         }
+
+        window.location.href = path;
     }
     
     // Настройка обработки кнопок возврата из оплаты (только когда возвращаемся из оплаты)

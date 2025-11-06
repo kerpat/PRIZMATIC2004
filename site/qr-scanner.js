@@ -4,8 +4,44 @@ export function createQrScanner(onQrCodeScanned) {
     const modal = document.getElementById('qr-scanner-modal');
     const video = document.getElementById('qr-video');
     const closeBtn = document.getElementById('qr-scanner-close-btn');
+    const container = modal?.querySelector('.qr-scanner-container');
+    
+    if (!modal || !video || !closeBtn || !container) {
+        console.warn('[QR Scanner] Required DOM nodes not found.');
+        return {
+            startScan: () => alert('Сканер QR-кодов недоступен. Обновите страницу и попробуйте снова.'),
+            stopScan: () => {},
+        };
+    }
     let stream = null;
     let animationFrameId = null;
+
+    function resetVideoFrame() {
+        if (container) {
+            container.style.height = 'clamp(280px, 58vh, 540px)';
+        }
+    }
+
+    function updateVideoFrame() {
+        if (!container || !video) return;
+
+        const settings = stream?.getVideoTracks?.()[0]?.getSettings?.();
+        const trackWidth = settings?.width;
+        const trackHeight = settings?.height;
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+
+        const width = trackWidth || videoWidth;
+        const height = trackHeight || videoHeight;
+
+        if (width && height) {
+            const ratio = height / width;
+            const target = Math.max(0.75, Math.min(ratio, 1.6)); // keep within sane bounds
+            const baseHeight = container.offsetWidth * target;
+            const clamped = Math.max(260, Math.min(baseHeight, window.innerHeight * 0.72));
+            container.style.height = `${clamped}px`;
+        }
+    }
 
     function stopScan() {
         if (animationFrameId) {
@@ -16,6 +52,12 @@ export function createQrScanner(onQrCodeScanned) {
             stream.getTracks().forEach(track => track.stop());
             stream = null;
         }
+        if (video) {
+            video.pause();
+            video.srcObject = null;
+        }
+        resetVideoFrame();
+        window.removeEventListener('resize', updateVideoFrame);
         modal.classList.add('hidden');
     }
 
@@ -44,9 +86,12 @@ export function createQrScanner(onQrCodeScanned) {
             stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
             video.srcObject = stream;
             video.setAttribute('playsinline', true); // Required to work on iOS
-            video.play();
-            animationFrameId = requestAnimationFrame(tick);
             modal.classList.remove('hidden');
+            await video.play();
+            updateVideoFrame();
+            animationFrameId = requestAnimationFrame(tick);
+            window.addEventListener('resize', updateVideoFrame, { passive: true });
+            video.addEventListener('loadedmetadata', updateVideoFrame, { once: true });
         } catch (err) {
             console.error('Error accessing camera', err);
             alert('Не удалось получить доступ к камере. Проверьте разрешения в настройках браузера.');

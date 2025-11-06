@@ -762,7 +762,7 @@ async function handleTopup(event) {
         const response = await createPayment(state.user.id, null, null, {
             amount,
             type: 'top-up',
-            return_url: `${window.location.origin}/?topup_success=true`,
+            return_url: `${window.location.origin}/payment-return.html?status=pending&type=top_up`,
         });
 
         if (response?.confirmation_url) {

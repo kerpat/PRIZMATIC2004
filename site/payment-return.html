@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Возвращение в приложение</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #0f1735 0%, #142046 100%);
+            color: #ffffff;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+        }
+        .return-card {
+            max-width: 420px;
+            width: 90%;
+            background: rgba(20, 32, 70, 0.92);
+            backdrop-filter: blur(8px);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(11, 14, 35, 0.35);
+            text-align: center;
+        }
+        .return-card h1 {
+            margin: 0 0 12px;
+            font-size: 26px;
+            line-height: 1.3;
+        }
+        .return-card p {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #c5cdf0;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="return-card">
+        <div class="status-badge" id="statusBadge">
+            <span id="statusText">Платёж обрабатывается…</span>
+        </div>
+        <h1 id="titleText">Оплата обрабатывается</h1>
+        <p id="messageText">
+            Пожалуйста, вернитесь в приложение PRIZMATIC, чтобы продолжить.
+        </p>
+    </div>
+
+    <script src="app-bridge.js"></script>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const status = (params.get('status') || params.get('payment_status') || params.get('result') || '').toLowerCase();
+            const type = (params.get('type') || 'payment').toLowerCase();
+            const statusText = document.getElementById('statusText');
+            const titleText = document.getElementById('titleText');
+            const messageText = document.getElementById('messageText');
+
+            const normalizedStatus = status || 'unknown';
+
+            if (status === 'success' || status === 'succeeded') {
+                statusText.textContent = 'Платёж успешно подтверждён';
+                titleText.textContent = 'Спасибо за оплату!';
+                messageText.textContent = 'Вернитесь в приложение PRIZMATIC — мы уже обновляем данные.';
+            } else if (status === 'pending') {
+                statusText.textContent = 'Платёж обрабатывается…';
+                titleText.textContent = 'Мы подтверждаем платёж';
+                messageText.textContent = 'Вернитесь в приложение PRIZMATIC и проверьте статус через несколько секунд.';
+            } else if (status === 'canceled') {
+                statusText.textContent = 'Платёж отменён';
+                titleText.textContent = 'Оплата отменена';
+                messageText.textContent = 'Вернитесь в приложение PRIZMATIC, чтобы попробовать ещё раз или выбрать другой способ оплаты.';
+            } else {
+                statusText.textContent = 'Статус платежа неизвестен';
+                titleText.textContent = 'Не удалось получить статус';
+                messageText.textContent = 'Вернитесь в приложение PRIZMATIC, чтобы увидеть актуальную информацию.';
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -4,6 +4,26 @@ const crypto = require('crypto');
 const { query, transact } = require('./_lib_db');
 const { normalizePhone, addToBalance, logPayment } = require('./_lib_finance');
 
+const FRONTEND_BASE_URL = (process.env.APP_BASE_URL || process.env.FRONTEND_BASE_URL || 'https://prizmatic-2004.vercel.app').replace(/\/$/, '');
+const PAYMENT_RETURN_PAGE = `${FRONTEND_BASE_URL}/payment-return.html`;
+
+function buildPaymentReturnUrl({ status = 'pending', type, source, paymentId } = {}) {
+    const params = new URLSearchParams({ status });
+    const normalize = (value) =>
+        String(value)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '') || undefined;
+
+    const normalizedType = type ? normalize(type) : undefined;
+    const normalizedSource = source ? normalize(source) : undefined;
+
+    if (normalizedType) params.set('type', normalizedType);
+    if (normalizedSource) params.set('source', normalizedSource);
+    if (paymentId) params.set('payment_id', paymentId);
+    return `${PAYMENT_RETURN_PAGE}?${params.toString()}`;
+}
+
 function parseRequestBody(body) {
     if (!body) return {};
     if (typeof body === 'string') {
@@ -267,6 +287,8 @@ async function handleSaveCard({ userId }) {
     const idempotenceKey = crypto.randomUUID();
     const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
 
+    const defaultReturnUrl = buildPaymentReturnUrl({ status: 'pending', type: 'save-card', source: 'card' });
+
     const paymentData = {
         amount: { value: amountToCharge.toFixed(2), currency: 'RUB' },
         capture: true,
@@ -275,7 +297,7 @@ async function handleSaveCard({ userId }) {
         save_payment_method: true,
         confirmation: {
             type: 'redirect',
-            return_url: 'https://prizmatic-2004.vercel.app/profile.html?card_saved=true',
+            return_url: defaultReturnUrl,
         },
         receipt: {
             customer: { phone: normalizedPhone },
@@ -342,14 +364,12 @@ async function handleCreatePayment(body) {
     let amount;
     let description;
     let amountToDebitFromBalance = 0;
-    let successRedirectUrl;
-    let paymentType;
+    let paymentType = 'payment';
 
     const userBalance = Number(client.balance_rub || 0);
 
     if (type === 'renewal') {
         paymentType = 'renewal';
-        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?renewal_success=true';
         description = 'Продление аренды';
         const renewalCost = Number(amountFromClient);
 
@@ -363,12 +383,10 @@ async function handleCreatePayment(body) {
         }
     } else if (type === 'booking') {
         paymentType = 'booking';
-        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?booking_success=true';
         description = 'Бронирование велосипеда';
         amount = Number(amountFromClient);
     } else if (tariffId && amountFromClient) {
         paymentType = 'rental';
-        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?rental_success=true';
         description = 'Аренда велосипеда';
         const tariffCost = Number(amountFromClient);
 
@@ -382,7 +400,6 @@ async function handleCreatePayment(body) {
         }
     } else if (amountFromClient) {
         paymentType = 'top-up';
-        successRedirectUrl = 'https://prizmatic-2004.vercel.app/?topup_success=true';
         description = 'Пополнение баланса PRIZMATIC';
         amount = Number(amountFromClient);
     } else {
@@ -400,6 +417,12 @@ async function handleCreatePayment(body) {
 
     const idempotenceKey = crypto.randomUUID();
     const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
+
+    const defaultReturnUrl = buildPaymentReturnUrl({ status: 'pending', type: paymentType });
+    const normalizedReturnUrl =
+        typeof return_url === 'string' && return_url.includes('payment-return')
+            ? return_url
+            : defaultReturnUrl;
 
     const paymentData = {
         amount: { value: amount.toFixed(2), currency: 'RUB' },
@@ -435,7 +458,7 @@ async function handleCreatePayment(body) {
     } else {
         paymentData.confirmation = {
             type: 'redirect',
-            return_url: return_url || successRedirectUrl,
+            return_url: normalizedReturnUrl,
         };
     }
 
