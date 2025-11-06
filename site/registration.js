@@ -66,6 +66,112 @@ function setupFileInput(inputId, labelId, infoId) {
     });
 }
 
+// === Image compression helpers ===
+const IMAGE_COMPRESSION_CONFIG = {
+    maxWidth: 2000,
+    maxHeight: 2000,
+    quality: 0.82,
+    pngQuality: 0.9,
+    skipBelowBytes: 450 * 1024,
+};
+
+function getSafeFileName(originalName, extension) {
+    const base = originalName ? originalName.replace(/\.[^/.]+$/, '') : 'document';
+    return `${base}${extension}`;
+}
+
+function loadImageElement(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+        };
+        img.onerror = (error) => {
+            URL.revokeObjectURL(url);
+            reject(error);
+        };
+        img.src = url;
+    });
+}
+
+async function compressImageFile(file) {
+    if (!(file instanceof File)) return file;
+    if (!file.type.startsWith('image/')) return file;
+
+    const lowerType = file.type.toLowerCase();
+    if (lowerType.includes('heic') || lowerType.includes('heif')) {
+        console.warn('[Registration] HEIC images are sent without client compression.');
+        return file;
+    }
+
+    if (file.size <= IMAGE_COMPRESSION_CONFIG.skipBelowBytes) {
+        return file;
+    }
+
+    let source;
+    try {
+        if (window.createImageBitmap) {
+            source = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        } else {
+            source = await loadImageElement(file);
+        }
+    } catch (error) {
+        console.warn('[Registration] Failed to decode image, sending original.', error);
+        return file;
+    }
+
+    const width = source.width || source.displayWidth;
+    const height = source.height || source.displayHeight;
+    if (!width || !height) {
+        if (source.close) source.close();
+        return file;
+    }
+
+    const ratioWidth = IMAGE_COMPRESSION_CONFIG.maxWidth / width;
+    const ratioHeight = IMAGE_COMPRESSION_CONFIG.maxHeight / height;
+    const scale = Math.min(1, ratioWidth, ratioHeight);
+
+    const targetWidth = Math.round(width * scale);
+    const targetHeight = Math.round(height * scale);
+    const shouldResize = scale < 1;
+
+    if (!shouldResize && file.size < 1200 * 1024) {
+        if (source.close) source.close();
+        return file;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.drawImage(source, 0, 0, targetWidth, targetHeight);
+    if (source.close) source.close();
+
+    const isPng = file.type === 'image/png';
+    const mimeType = isPng ? 'image/png' : 'image/jpeg';
+    const quality = isPng ? IMAGE_COMPRESSION_CONFIG.pngQuality : IMAGE_COMPRESSION_CONFIG.quality;
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, mimeType, quality));
+    if (!blob) {
+        return file;
+    }
+
+    const extension = mimeType === 'image/png' ? '.png' : '.jpg';
+    const optimizedName = getSafeFileName(file.name, extension);
+    return new File([blob], optimizedName, { type: mimeType, lastModified: Date.now() });
+}
+
+async function prepareFileForUpload(file) {
+    try {
+        return await compressImageFile(file);
+    } catch (error) {
+        console.warn('[Registration] Compression failed, using original file.', error);
+        return file;
+    }
+}
+
 // Check if already logged in
 function checkExistingAuth() {
     const userId = localStorage.getItem('userId');
@@ -455,18 +561,20 @@ originalFormSubmit.addEventListener('submit', async (e) => {
     e.preventDefault();
     const finishBtn = document.getElementById('finish-btn');
     finishBtn.disabled = true;
-    finishBtn.textContent = 'Загрузка документов...';
+    finishBtn.textContent = 'Подготовка файлов...';
 
     try {
         // 1. Collect files to upload
         const filesToUpload = [];
         const fileInputs = document.querySelectorAll('#docs-container input[type="file"]');
         
-        fileInputs.forEach(input => {
+        for (const input of fileInputs) {
             if (input.files.length > 0) {
-                filesToUpload.push({ field: input.id, file: input.files[0] });
+                const originalFile = input.files[0];
+                const processedFile = await prepareFileForUpload(originalFile);
+                filesToUpload.push({ field: input.id, file: processedFile, originalName: originalFile.name });
             }
-        });
+        }
 
         if (filesToUpload.length === 0) {
             showError('reg-4', 'Загрузите хотя бы один документ.');
@@ -474,6 +582,7 @@ originalFormSubmit.addEventListener('submit', async (e) => {
         }
 
         // 2. Upload files to the dedicated VPS server
+        finishBtn.textContent = 'Загрузка документов...';
         const vpsFormData = new FormData();
         filesToUpload.forEach(f => {
             // The backend expects the field name to be 'files'
@@ -493,7 +602,7 @@ originalFormSubmit.addEventListener('submit', async (e) => {
         // 3. Map original field names to the new URLs
         const uploadedFileUrls = {};
         vpsData.files.forEach(uploadedFile => {
-            const originalFile = filesToUpload.find(f => f.file.name === uploadedFile.originalName);
+            const originalFile = filesToUpload.find(f => f.originalName === uploadedFile.originalName || f.file.name === uploadedFile.originalName);
             if (originalFile) {
                 uploadedFileUrls[originalFile.field] = uploadedFile.url;
             }

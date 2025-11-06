@@ -23,7 +23,7 @@ export function createQrScanner(onQrCodeScanned) {
     }
 
     function updateVideoFrame() {
-        if (!container || !video) return;
+        if (!container || !video || !stream) return;
 
         const settings = stream?.getVideoTracks?.()[0]?.getSettings?.();
         const trackWidth = settings?.width;
@@ -36,10 +36,10 @@ export function createQrScanner(onQrCodeScanned) {
 
         if (width && height) {
             const ratio = height / width;
-            const target = Math.max(0.75, Math.min(ratio, 1.6)); // keep within sane bounds
-            const baseHeight = container.offsetWidth * target;
-            const clamped = Math.max(260, Math.min(baseHeight, window.innerHeight * 0.72));
+            const targetHeight = container.offsetWidth * ratio;
+            const clamped = Math.max(260, Math.min(targetHeight, window.innerHeight * 0.9));
             container.style.height = `${clamped}px`;
+            video.style.objectFit = ratio >= 1 ? 'cover' : 'contain';
         }
     }
 
