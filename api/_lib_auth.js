@@ -205,6 +205,7 @@ async function recognizeDocumentsWithGemini(fileDescriptors, countryCode) {
                 });
             } catch (error) {
                 console.error(`[auth] Failed to load file ${file.path || file.url} for OCR:`, error.message);
+                throw new Error(`Failed to download file from VPS: ${file.url}. Reason: ${error.message}`);
             }
         }
 
