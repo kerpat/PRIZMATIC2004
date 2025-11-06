@@ -1,4 +1,4 @@
-import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js';
+import { getClient, getActiveRental, getAvailableBikes, getTariffs, createPayment, chargeFromBalance, updateRentalStatus } from './api.js?v=13.1';
 import {
     renderDefaultView,
     renderActiveRentalView,
@@ -6,9 +6,11 @@ import {
     renderPendingReturnView,
     renderAwaitingEquipmentView,
     renderAwaitingContractView,
-} from './ui.js';
-import './sse-client.js';
-import { createQrScanner } from './qr-scanner.js';
+    renderVerificationPendingView,
+    renderVerificationRejectedView,
+} from './ui.js?v=13.1';
+import './sse-client.js?v=13.1';
+import { createQrScanner } from './qr-scanner.js?v=13.1';
 
 let qrScanner = null;
 
@@ -30,6 +32,9 @@ const state = {
     processingExtension: false,
     rentalRefreshTimer: null,
 };
+
+const VERIFICATION_APPROVED_STATUS = 'approved';
+const VERIFICATION_REJECTED_STATUSES = new Set(['rejected', 'ocr_failed']);
 
 const optionCache = new Map();
 const toastTimers = new Map();
@@ -850,6 +855,104 @@ function bindDefaultViewEvents() {
     updateTariffLabel();
 }
 
+function getVerificationStatus() {
+    return (state.user?.verification_status || '').toLowerCase();
+}
+
+function isUserVerified() {
+    return getVerificationStatus() === VERIFICATION_APPROVED_STATUS;
+}
+
+function showVerificationStatusToast(status) {
+    const normalized = (status || '').toLowerCase();
+    const toast = document.getElementById('notification-toast');
+    if (!toast) return;
+
+    const messageEl = toast.querySelector('.toast-message');
+    if (!messageEl) return;
+
+    let message = 'Статус обновлен.';
+    if (normalized === 'approved') {
+        message = '✅ Аккаунт подтвержден! Приятных поездок 🚲';
+    } else if (normalized === 'rejected') {
+        message = '❌ Верификация не пройдена. Свяжитесь с поддержкой.';
+    } else if (normalized === 'ocr_failed') {
+        message = '⚠️ Не удалось распознать документы. Попробуйте загрузить их снова.';
+    }
+
+    messageEl.innerHTML = message;
+    showToast('notification-toast', normalized === 'approved' ? 2600 : 3200);
+}
+
+function bindVerificationViewEvents({ allowRetry = false } = {}) {
+    const refreshBtn = document.getElementById('verification-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            const originalText = refreshBtn.textContent;
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Обновляем...';
+            try {
+                await refreshUser();
+                await refreshRentalView();
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = originalText || 'Обновить статус';
+            }
+        });
+    }
+
+    const supportBtn = document.getElementById('verification-support-btn');
+    if (supportBtn) {
+        supportBtn.addEventListener('click', () => {
+            window.location.href = 'profile.html#support';
+        });
+    }
+
+    if (allowRetry) {
+        const retryBtn = document.getElementById('verification-retry-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', async () => {
+                const originalText = retryBtn.textContent;
+                retryBtn.disabled = true;
+                retryBtn.textContent = 'Перезагружаем...';
+                try {
+                    await refreshUser();
+                    await refreshRentalView();
+                } finally {
+                    retryBtn.disabled = false;
+                    retryBtn.textContent = originalText || 'Перезагрузить данные';
+                }
+            });
+        }
+    }
+}
+
+function renderVerificationFlow(mainContent) {
+    const status = getVerificationStatus();
+    if (!status || status === VERIFICATION_APPROVED_STATUS) {
+        return false;
+    }
+
+    const updatedAt = state.user?.updated_at || state.user?.verification_updated_at || state.user?.modified_at;
+
+    if (VERIFICATION_REJECTED_STATUSES.has(status)) {
+        renderVerificationRejectedView(mainContent, {
+            status,
+            reason: state.user?.extra?.verification_reason
+        });
+        bindVerificationViewEvents({ allowRetry: true });
+        return true;
+    }
+
+    renderVerificationPendingView(mainContent, {
+        status,
+        city: state.user?.city,
+        updatedAt
+    });
+    bindVerificationViewEvents();
+    return true;
+}
+
 async function openTariffModal() {
     await fetchTariffs();
     renderTariffList();
@@ -927,6 +1030,12 @@ async function refreshRentalView() {
     if (!mainContent) return;
 
     clearRentalRefreshTimer();
+
+    if (!isUserVerified()) {
+        if (renderVerificationFlow(mainContent)) {
+            return;
+        }
+    }
 
     try {
         const rental = await getActiveRental(state.user.id);
@@ -1108,6 +1217,22 @@ function connectSSE(userId) {
                 state.user.balance_rub = data.data.balance;
                 updateBalanceDisplay(data.data.balance);
             }
+        });
+
+        sseClient.on('verification_update', async (data) => {
+            const incomingStatus = data?.data?.status || data?.status;
+            if (!incomingStatus || !state.user) return;
+
+            const normalized = String(incomingStatus).toLowerCase();
+            if (normalized === getVerificationStatus()) {
+                return;
+            }
+
+            console.log('Получено обновление верификации:', normalized);
+            const updatedUser = await refreshUser();
+            const updatedStatus = (updatedUser?.verification_status || normalized).toLowerCase();
+            showVerificationStatusToast(updatedStatus);
+            await refreshRentalView();
         });
         
         sseClient.on('connected', (data) => {

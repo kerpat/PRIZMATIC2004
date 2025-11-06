@@ -1281,6 +1281,75 @@ async function handleNotifyBatteryAssignment({ rentalId }) {
     return { status: 200, body: { message: 'Уведомление успешно отправлено.' } };
 }
 
+async function handleNotifyVerification({ userId, status }) {
+    if (!userId || !status) {
+        return { status: 400, body: { error: 'userId и status обязательны.' } };
+    }
+
+    const normalizedStatus = String(status).toLowerCase();
+    const allowedStatuses = new Set([
+        'pending',
+        'needs_confirmation',
+        'pending_ocr',
+        'processing_ocr',
+        'ocr_complete',
+        'ocr_failed',
+        'approved',
+        'rejected'
+    ]);
+
+    if (!allowedStatuses.has(normalizedStatus)) {
+        return { status: 400, body: { error: `Недопустимый статус: ${status}` } };
+    }
+
+    const clientResult = await query(
+        'SELECT telegram_user_id, name FROM clients WHERE id = $1',
+        [userId]
+    );
+    const client = clientResult.rows[0];
+
+    // Отправляем SSE уведомление, даже если клиента не нашли (для уверенности)
+    try {
+        const { notifyUserUpdate } = require('./_lib_sse_helpers');
+        notifyUserUpdate(userId, 'verification_update', { status: normalizedStatus });
+    } catch (error) {
+        console.error('[admin] Failed to send verification SSE:', error);
+    }
+
+    if (!client) {
+        return { status: 200, body: { message: 'Клиент не найден, SSE-уведомление отправлено.' } };
+    }
+
+    const telegramUserId = client.telegram_user_id;
+    if (telegramUserId) {
+        let messageText = null;
+        switch (normalizedStatus) {
+            case 'approved':
+                messageText = '✅ Поздравляем! Ваш профиль подтвержден. Можно брать велосипед 🚲';
+                break;
+            case 'rejected':
+                messageText = '❌ Верификация не пройдена. Свяжитесь с поддержкой, чтобы уточнить детали.';
+                break;
+            case 'ocr_failed':
+                messageText = '⚠️ Не удалось автоматически распознать документы. Пожалуйста, загрузите фото ещё раз или обратитесь в поддержку.';
+                break;
+            case 'pending':
+            case 'needs_confirmation':
+            case 'pending_ocr':
+            case 'processing_ocr':
+            case 'ocr_complete':
+            default:
+                messageText = null;
+        }
+
+        if (messageText) {
+            await sendTelegramMessage(telegramUserId, messageText);
+        }
+    }
+
+    return { status: 200, body: { message: 'Статус верификации обновлен и уведомления отправлены.' } };
+}
+
 async function handleNotifyOverdue({ rentalId, messageText }) {
     if (!rentalId || !messageText) {
         return { status: 400, body: { error: 'rentalId и messageText обязательны.' } };
@@ -1476,6 +1545,9 @@ async function handler(req, res) {
                 break;
             case 'notify-overdue':
                 result = await handleNotifyOverdue(body);
+                break;
+            case 'notify-verification':
+                result = await handleNotifyVerification(body);
                 break;
             case 'generate-return-act-html':
                 result = await handleGenerateReturnActHTML(body);

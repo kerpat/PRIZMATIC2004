@@ -2,7 +2,6 @@ import {
     getClient,
     getPaymentMethodDetails,
     savePaymentMethod,
-    unbindPaymentMethod,
     updateUserCity,
     getPendingContracts,
     getContractDetails,
@@ -10,8 +9,8 @@ import {
     getSupportMessages,
     sendSupportMessage,
     markSupportMessagesRead,
-} from './api.js';
-import './sse-client.js';
+} from './api.js?v=13.1';
+import './sse-client.js?v=13.1';
 
 const state = {
     userId: null,
@@ -114,32 +113,6 @@ async function handleAddCardClick() {
     }
 }
 
-async function handleUnbindClick() {
-    if (!state.userId || state.cardUpdating) return;
-    if (!confirm('Отвязать сохраненный способ оплаты?')) return;
-
-    state.cardUpdating = true;
-    const unbindBtn = $('#unbind-card-btn');
-    const originalText = unbindBtn?.textContent;
-    if (unbindBtn) {
-        unbindBtn.disabled = true;
-        unbindBtn.textContent = 'Отвязываем...';
-    }
-
-    try {
-        await unbindPaymentMethod(state.userId);
-        await updateCardView(true);
-    } catch (error) {
-        alert(`Ошибка: ${error.message}`);
-    } finally {
-        state.cardUpdating = false;
-        if (unbindBtn) {
-            unbindBtn.disabled = false;
-            unbindBtn.textContent = originalText || 'Отвязать карту';
-        }
-    }
-}
-
 function renderCardPlaceholder() {
     if (!elements.cardContainer) return;
     elements.cardContainer.innerHTML = `
@@ -179,10 +152,8 @@ function renderCardDetails(paymentMethod) {
                     <span>Привязана</span>
                 </div>
             </div>
-            <button class="btn btn-secondary" id="unbind-card-btn" style="margin-top: 20px;">Отвязать карту</button>
         </div>
     `;
-    $('#unbind-card-btn')?.addEventListener('click', handleUnbindClick);
 }
 
 async function updateCardView(force = false) {

@@ -1,4 +1,42 @@
-import { getRentalBatteries } from './api.js';
+import { getRentalBatteries } from './api.js?v=13.1';
+
+const verificationCopy = {
+    pending: {
+        header: 'Аккаунт на проверке',
+        title: 'Документы отправлены',
+        description: 'Обычно модерация занимает до 24 часов. Мы пришлем уведомление сразу после проверки.',
+        progress: 30
+    },
+    pending_ocr: {
+        header: 'Проверяем документы',
+        title: 'Идет автоматическая проверка',
+        description: 'Система распознает паспорт. Пожалуйста, оставайтесь на связи — это займёт несколько минут.',
+        progress: 45
+    },
+    processing_ocr: {
+        header: 'Проверяем документы',
+        title: 'Обработка фотографий',
+        description: 'Сервис распознаёт данные паспорта. Мы сообщим, когда всё будет готово.',
+        progress: 55
+    },
+    ocr_complete: {
+        header: 'Финальная проверка',
+        title: 'Администратор подтверждает данные',
+        description: 'Документы распознаны. Оператор вручную проверяет корректность данных.',
+        progress: 75
+    },
+    needs_confirmation: {
+        header: 'Финальная проверка',
+        title: 'Администратор подтверждает данные',
+        description: 'Ваши документы в очереди у оператора. Обычно это занимает до 2 часов в рабочее время.',
+        progress: 75
+    }
+};
+
+function getVerificationConfig(status) {
+    const normalized = typeof status === 'string' ? status.toLowerCase() : 'pending';
+    return verificationCopy[normalized] || verificationCopy.pending;
+}
 
 function getProgressColor(progress) {
     if (progress > 50) return '#40A4DF'; // azure
@@ -34,6 +72,75 @@ export function renderDefaultView(mainContent) {
             </div>
         </div>
         <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
+    `;
+}
+
+export function renderVerificationPendingView(mainContent, { status, city, updatedAt } = {}) {
+    const config = getVerificationConfig(status);
+    const statusLabel = config.header;
+    const cityText = city ? `Город: ${city}` : 'Мы учтём ваш город при выдаче техники.';
+    const updatedText = updatedAt ? `Обновлено: ${new Date(updatedAt).toLocaleTimeString('ru-RU')}` : 'Обновляем автоматически';
+
+    mainContent.innerHTML = `
+        <div class="verification-container">
+            <h2 class="verification-header">${statusLabel}</h2>
+            <div class="verification-status-card">
+                <div class="verification-status-info">
+                    <h3>${config.title}</h3>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${config.progress}%;"></div>
+                    </div>
+                    <p>${config.description}</p>
+                    <p style="margin-top: 12px; font-size: 0.85rem; color: #6f8480;">${cityText}<br>${updatedText}</p>
+                </div>
+            </div>
+            <div class="actions-grid">
+                <button type="button" class="action-card" id="verification-refresh-btn">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 6.21 6.21L1 10"></path><path d="M3.51 15A9 9 0 0 0 17.79 17.79L23 14"></path></svg>
+                    </div>
+                    <span>Обновить статус</span>
+                </button>
+                <button type="button" class="action-card" id="verification-support-btn">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <span>Написать в поддержку</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+export function renderVerificationRejectedView(mainContent, { status, reason } = {}) {
+    const message = status === 'ocr_failed'
+        ? 'Не удалось автоматически распознать документы. Загрузите более четкие фото или свяжитесь с поддержкой.'
+        : 'Администратор не смог подтвердить данные. Обратитесь в поддержку, чтобы узнать подробности.';
+
+    mainContent.innerHTML = `
+        <div class="verification-container">
+            <h2 class="verification-header" style="color:#e53e3e;">Нужна ваша помощь</h2>
+            <div class="verification-status-card" style="border:2px solid rgba(229,62,62,0.15);">
+                <div class="verification-status-info">
+                    <h3 style="color:#e53e3e;">Верификация не пройдена</h3>
+                    <p>${reason || message}</p>
+                </div>
+            </div>
+            <div class="actions-grid">
+                <button type="button" class="action-card" id="verification-retry-btn">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3"></path><polyline points="21 3 21 12 12 12"></polyline></svg>
+                    </div>
+                    <span>Перезагрузить данные</span>
+                </button>
+                <button type="button" class="action-card" id="verification-support-btn">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <span>Связаться с поддержкой</span>
+                </button>
+            </div>
+        </div>
     `;
 }
 

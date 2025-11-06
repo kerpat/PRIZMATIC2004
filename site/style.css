@@ -1500,6 +1500,7 @@ body:has(.map-page-container) #map {
 
 .action-card {
   background-color: var(--card-bg);
+  border: none;
   border-radius: 20px;
   padding: 15px;
   /* Уменьшаем паддинг для компактности */
@@ -1515,6 +1516,7 @@ body:has(.map-page-container) #map {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   aspect-ratio: 1 / 0.8;
   /* Делаем карточки пропорциональными */
+  outline: none;
 }
 
 .action-card:hover {
@@ -1527,6 +1529,29 @@ body:has(.map-page-container) #map {
 }
 
 /* ===== НОВЫЕ СТИЛИ ДЛЯ КРАСИВОЙ ФОРМЫ РЕГИСТРАЦИИ ===== */
+
+.client-photo-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--card-bg);
+  border-radius: 16px;
+}
+
+.client-photo-thumb {
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.client-photo-caption {
+  font-size: 0.85rem;
+  color: #556f6b;
+  text-align: center;
+}
 
 /* 1. Стилизация выпадающих списков (select) */
 select.form-control {

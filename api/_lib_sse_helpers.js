@@ -18,11 +18,20 @@ function notifyUserUpdate(userId, updateType, data) {
         }
       };
 
-      sendEvent({
+      const payload = {
         type: updateType,
         data: data,
         timestamp: Date.now()
-      });
+      };
+
+      sendEvent(payload);
+
+      if (updateType === 'balance_update' && data && typeof data.balance !== 'undefined') {
+        connection.lastBalance = data.balance;
+      }
+      if (updateType === 'verification_update' && data && typeof data.status === 'string') {
+        connection.lastVerificationStatus = data.status;
+      }
     }
   }
 }

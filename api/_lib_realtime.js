@@ -2,7 +2,7 @@
 // API endpoint: /api/realtime
 
 const { query } = require('./_lib_db');
-const { connections, notifyUserUpdate: internalNotifyUserUpdate } = require('./_lib_sse_helpers');
+const { connections } = require('./_lib_sse_helpers');
 
 module.exports = async function handler(req, res) {
   // Для SSE используем HTTP методы GET
@@ -57,7 +57,9 @@ module.exports = async function handler(req, res) {
     userId,
     res,
     lastUpdate: Date.now(),
-    intervalId: null
+    intervalId: null,
+    lastBalance: null,
+    lastVerificationStatus: null
   });
 
   // Отправляем приветствие
@@ -85,7 +87,7 @@ module.exports = async function handler(req, res) {
   connection.intervalId = setInterval(async () => {
     try {
       // Проверяем обновления для конкретного пользователя
-      const updates = await checkUserUpdates(userId);
+      const updates = await checkUserUpdates(connection);
       
       if (updates.length > 0) {
         updates.forEach(update => {
@@ -121,8 +123,9 @@ function cleanupConnection(connectionId) {
 }
 
 // Функция проверки обновлений для пользователя
-async function checkUserUpdates(userId) {
+async function checkUserUpdates(connection) {
   const updates = [];
+  const { userId } = connection;
 
   try {
     // Проверяем изменения в аренде пользователя
@@ -155,50 +158,39 @@ async function checkUserUpdates(userId) {
     }
 
     // Проверяем обновления баланса
-    const balanceQuery = await query(`
-      SELECT balance_rub 
+    const clientQuery = await query(`
+      SELECT balance_rub,
+             verification_status
       FROM clients 
       WHERE id = $1
     `, [userId]);
 
-    if (balanceQuery.rows.length > 0) {
-      updates.push({
-        type: 'balance_update',
-        data: { balance: balanceQuery.rows[0].balance_rub },
-        timestamp: Date.now()
-      });
+    if (clientQuery.rows.length > 0) {
+      const { balance_rub: balance, verification_status: verificationStatus } = clientQuery.rows[0];
+
+      if (balance !== undefined && balance !== connection.lastBalance) {
+        updates.push({
+          type: 'balance_update',
+          data: { balance },
+          timestamp: Date.now()
+        });
+        connection.lastBalance = balance;
+      }
+
+      if (verificationStatus && verificationStatus !== connection.lastVerificationStatus) {
+        updates.push({
+          type: 'verification_update',
+          data: { status: verificationStatus },
+          timestamp: Date.now()
+        });
+        connection.lastVerificationStatus = verificationStatus;
+      }
     }
 
     return updates;
   } catch (error) {
     console.error('Error checking user updates:', error);
     return updates;
-  }
-}
-
-// Функция для отправки уведомлений конкретному пользователю
-// Эта функция может быть вызвана из других API при обновлениях
-export function notifyUserUpdate(userId, updateType, data) {
-  // Находим все соединения для этого пользователя
-  for (const [connectionId, connection] of connections) {
-    if (connection.userId === userId) {
-      const sendEvent = (data) => {
-        try {
-          connection.res.write(`data: ${JSON.stringify(data)}
-
-`);
-        } catch (error) {
-          // Если ошибка при отправке, удаляем соединение
-          cleanupConnection(connectionId);
-        }
-      };
-
-      sendEvent({
-        type: updateType,
-        data: data,
-        timestamp: Date.now()
-      });
-    }
   }
 }
 

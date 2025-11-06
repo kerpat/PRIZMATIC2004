@@ -1,5 +1,5 @@
-import { getClient, getActiveRental, createPayment } from './api.js';
-import { renderDefaultView, renderActiveRentalView, renderOverdueRentalView, renderPendingReturnView } from './ui.js';
+import { getClient, getActiveRental, createPayment } from './api.js?v=13.1';
+import { renderDefaultView, renderActiveRentalView, renderOverdueRentalView, renderPendingReturnView } from './ui.js?v=13.1';
 
 function initializeModals() {
     const modals = document.querySelectorAll('.modal-overlay');

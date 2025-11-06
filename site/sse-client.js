@@ -69,6 +69,9 @@ class SSEClient {
       case 'balance_update':
         this.dispatch('balance_update', data);
         break;
+      case 'verification_update':
+        this.dispatch('verification_update', data);
+        break;
       case 'heartbeat':
         this.dispatch('heartbeat', data);
         break;

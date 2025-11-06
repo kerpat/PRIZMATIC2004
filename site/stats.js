@@ -1,4 +1,4 @@
-import { getPaymentsHistory } from './api.js';
+import { getPaymentsHistory } from './api.js?v=13.1';
 
 const PAYMENT_ICONS = {
     rental: 'rental',
