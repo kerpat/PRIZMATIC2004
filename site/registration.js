@@ -66,9 +66,6 @@ function setupFileInput(inputId, labelId, infoId) {
     });
 }
 
-setupFileInput('passport-main', 'label-main', 'info-main');
-setupFileInput('passport-reg', 'label-reg', 'info-reg');
-
 // Check if already logged in
 function checkExistingAuth() {
     const userId = localStorage.getItem('userId');
@@ -175,7 +172,6 @@ document.getElementById('login-phone-form').addEventListener('submit', async (e)
 
         registrationData.phone = cleaned;
         
-        // Тестовый номер - сразу логиним без звонка
         if (cleaned === '79129850281') {
             console.log('[Login] Test phone detected, skipping call verification');
             await completeLogin();
@@ -270,10 +266,8 @@ function startStatusCheck(mode) {
                 clearInterval(statusCheckInterval);
 
                 if (mode === 'login') {
-                    // Login: fetch user and redirect
                     await completeLogin();
                 } else {
-                    // Registration: go to step 3 (citizenship selection)
                     showSuccess('reg-2', 'Номер подтвержден');
                     setTimeout(() => {
                         showStep('step-reg-3');
@@ -310,7 +304,6 @@ async function completeLogin() {
             throw new Error(data.error || 'Ошибка входа');
         }
 
-        // Save to localStorage
         localStorage.setItem('userId', data.user.id);
         localStorage.setItem('userName', data.user.name || 'Пользователь');
         localStorage.setItem('userPhone', data.user.phone);
@@ -329,9 +322,6 @@ async function completeLogin() {
     }
 }
 
-// Step 4 (Registration): Documents upload - REMOVED OLD CODE, replaced with new version below
-
-// Progress dots update
 function updateProgressDots(currentStep) {
     for (let i = 1; i <= 4; i++) {
         const dot = document.getElementById(`dot-${i}`);
@@ -345,7 +335,6 @@ function updateProgressDots(currentStep) {
     }
 }
 
-// Step 3 (Registration): Citizenship selection
 const citizenshipOptions = document.querySelectorAll('.citizenship-option');
 const citizenshipContinueBtn = document.getElementById('citizenship-continue');
 const otherCountryInput = document.getElementById('other-country-input');
@@ -353,16 +342,10 @@ const countryNameInput = document.getElementById('country-name');
 
 citizenshipOptions.forEach(option => {
     option.addEventListener('click', () => {
-        // Remove selected from all options
         citizenshipOptions.forEach(opt => opt.classList.remove('selected'));
-
-        // Mark this option as selected
         option.classList.add('selected');
-
-        // Store citizenship
         registrationData.citizenship = option.getAttribute('data-country');
 
-        // Show/hide country input for "other"
         if (registrationData.citizenship === 'other') {
             otherCountryInput.style.display = 'block';
             countryNameInput.required = true;
@@ -371,8 +354,6 @@ citizenshipOptions.forEach(option => {
             countryNameInput.required = false;
             countryNameInput.value = '';
         }
-
-        // Enable continue button
         citizenshipContinueBtn.disabled = false;
     });
 });
@@ -383,7 +364,6 @@ citizenshipContinueBtn.addEventListener('click', () => {
         return;
     }
 
-    // Check if "other" is selected and country name is provided
     if (registrationData.citizenship === 'other') {
         const countryName = countryNameInput.value.trim();
         if (!countryName) {
@@ -398,7 +378,6 @@ citizenshipContinueBtn.addEventListener('click', () => {
     generateDocumentInputs(registrationData.citizenship);
 });
 
-// Generate document inputs based on citizenship
 function generateDocumentInputs(citizenship) {
     const docsContainer = document.getElementById('docs-container');
     const docsSubtitle = document.getElementById('docs-subtitle');
@@ -448,11 +427,9 @@ function generateDocumentInputs(citizenship) {
             break;
     }
 
-    // Update subtitle and info
     docsSubtitle.textContent = subtitle;
     docsInfo.innerHTML = `<span class="title">${infoTitle}</span>${infoText}`;
 
-    // Generate file inputs
     docsContainer.innerHTML = documents.map(doc => `
         <div class="file-upload-wrapper">
             <input type="file" id="${doc.id}" name="${doc.id}" accept="image/*" capture="environment" required>
@@ -468,106 +445,100 @@ function generateDocumentInputs(citizenship) {
         </div>
     `).join('');
 
-    // Setup file inputs
     documents.forEach(doc => {
         setupFileInput(doc.id, `label-${doc.id}`, `info-${doc.id}`);
     });
 }
 
-// Update Step 4 form submission to include citizenship
 const originalFormSubmit = document.getElementById('documents-form');
 originalFormSubmit.addEventListener('submit', async (e) => {
     e.preventDefault();
-    console.log('[Registration] Form submission initiated.');
-    alert('[DEBUG] Form submission initiated.'); // Use alert for mobile debugging
+    const finishBtn = document.getElementById('finish-btn');
+    finishBtn.disabled = true;
+    finishBtn.textContent = 'Загрузка документов...';
 
     try {
-        const finishBtn = document.getElementById('finish-btn');
-        finishBtn.disabled = true;
-        finishBtn.textContent = 'Загрузка...';
-
-        const passportMain = document.getElementById('passport-main').files[0];
-        const passportReg = document.getElementById('passport-reg')?.files[0];
-        const passportVisa = document.getElementById('passport-visa')?.files[0];
-
-        if (!passportMain) {
-            showError('reg-4', 'Загрузите фотографию паспорта');
-            finishBtn.disabled = false;
-            finishBtn.textContent = 'Завершить регистрацию';
-            return;
-        }
-
-        if (registrationData.citizenship !== 'other' && !passportReg) {
-            showError('reg-4', 'Загрузите все необходимые фотографии');
-            finishBtn.disabled = false;
-            finishBtn.textContent = 'Завершить регистрацию';
-            return;
-        }
-
-        if (registrationData.citizenship === 'other' && !passportVisa) {
-            showError('reg-4', 'Загрузите визу или разрешение');
-            finishBtn.disabled = false;
-            finishBtn.textContent = 'Завершить регистрацию';
-            return;
-        }
-
-        console.log('[Registration] Creating FormData...');
-        alert('[DEBUG] Creating FormData...');
-
-        const formData = new FormData();
-        formData.append('phone', registrationData.phone);
-        formData.append('city', registrationData.city);
-        formData.append('citizenship', registrationData.citizenship);
-        if (registrationData.country) {
-            formData.append('country', registrationData.country);
-        }
-        formData.append('passport_main', passportMain);
-
-        if (passportReg) {
-            formData.append('passport_reg', passportReg);
-        }
-
-        if (passportVisa) {
-            formData.append('passport_visa', passportVisa);
-        }
-
-        console.log('[Registration] Sending fetch request...');
-        alert('[DEBUG] Sending fetch request...');
-
-        const response = await fetch('/api/auth', {
-            method: 'POST',
-            body: formData
+        // 1. Collect files to upload
+        const filesToUpload = [];
+        const fileInputs = document.querySelectorAll('#docs-container input[type="file"]');
+        
+        fileInputs.forEach(input => {
+            if (input.files.length > 0) {
+                filesToUpload.push({ field: input.id, file: input.files[0] });
+            }
         });
 
-        const responseText = await response.text(); // Get response as text first
-        alert(`[DEBUG] Server Response Text: ${responseText.substring(0, 300)}`); // Show the raw response
-
-        const data = JSON.parse(responseText); // Manually parse JSON
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Ошибка регистрации');
+        if (filesToUpload.length === 0) {
+            showError('reg-4', 'Загрузите хотя бы один документ.');
+            throw new Error('No files selected');
         }
 
-        // Save to localStorage
-        localStorage.setItem('userId', data.user.id);
-        localStorage.setItem('userName', data.user.name || 'Пользователь');
-        localStorage.setItem('userPhone', data.user.phone);
+        // 2. Upload files to the dedicated VPS server
+        const vpsFormData = new FormData();
+        filesToUpload.forEach(f => {
+            // The backend expects the field name to be 'files'
+            vpsFormData.append('files', f.file, f.file.name);
+        });
+
+        const vpsResponse = await fetch('https://prizmaticupliad.duckdns.org/upload', {
+            method: 'POST',
+            body: vpsFormData
+        });
+
+        const vpsData = await vpsResponse.json();
+        if (!vpsResponse.ok) {
+            throw new Error('Ошибка загрузки файлов на сервер: ' + (vpsData.error || 'Неизвестная ошибка'));
+        }
+
+        // 3. Map original field names to the new URLs
+        const uploadedFileUrls = {};
+        vpsData.files.forEach(uploadedFile => {
+            const originalFile = filesToUpload.find(f => f.file.name === uploadedFile.originalName);
+            if (originalFile) {
+                uploadedFileUrls[originalFile.field] = uploadedFile.url;
+            }
+        });
+        
+        // 4. Prepare the final JSON payload for the Vercel backend
+        finishBtn.textContent = 'Завершение регистрации...';
+        const vercelPayload = {
+            action: 'register-with-urls', // New action for the backend
+            phone: registrationData.phone,
+            city: registrationData.city,
+            citizenship: registrationData.citizenship,
+            country: registrationData.country || null,
+            files: uploadedFileUrls 
+        };
+
+        // 5. Call the Vercel backend with the file URLs
+        const vercelResponse = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(vercelPayload)
+        });
+
+        const vercelData = await vercelResponse.json();
+        if (!vercelResponse.ok) {
+            throw new Error(vercelData.error || 'Ошибка регистрации');
+        }
+
+        // 6. Handle success
+        localStorage.setItem('userId', vercelData.user.id);
+        localStorage.setItem('userName', vercelData.user.name || 'Пользователь');
+        localStorage.setItem('userPhone', vercelData.user.phone);
         localStorage.setItem('isRegistered', 'true');
         localStorage.setItem('authProvider', 'phone');
 
-        showSuccess('reg-4', 'Регистрация завершена');
+        showSuccess('reg-4', 'Регистрация завершена!');
 
         setTimeout(() => {
             window.location.href = 'index.html';
         }, 2000);
 
     } catch (error) {
-        console.error('Registration error:', error);
-        alert(`[DEBUG] Registration Error: ${error.name} - ${error.message}`);
+        console.error('Registration finalization error:', error);
         showError('reg-4', error.message);
-        const finishBtn = document.getElementById('finish-btn');
         finishBtn.disabled = false;
         finishBtn.textContent = 'Завершить регистрацию';
     }
 });
-

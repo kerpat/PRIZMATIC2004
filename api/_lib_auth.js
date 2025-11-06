@@ -183,16 +183,28 @@ async function recognizeDocumentsWithGemini(fileDescriptors, countryCode) {
         const imageParts = [];
         for (const file of fileDescriptors) {
             try {
-                const { bucket, object, mimeType } = file;
-                const download = await downloadToBuffer(bucket, object);
+                let buffer;
+                let mimeType = file.mimeType || 'image/jpeg';
+
+                if (file.url) {
+                    const response = await axios.get(file.url, { responseType: 'arraybuffer' });
+                    buffer = Buffer.from(response.data);
+                    mimeType = response.headers['content-type'] || mimeType;
+                } else {
+                    const { bucket, object } = file;
+                    const download = await downloadToBuffer(bucket, object);
+                    buffer = download.buffer;
+                    mimeType = file.mimeType || download.mimeType || mimeType;
+                }
+
                 imageParts.push({
                     inlineData: {
-                        data: download.buffer.toString('base64'),
-                        mimeType: file.mimeType || download.mimeType || 'image/jpeg',
+                        data: buffer.toString('base64'),
+                        mimeType: mimeType,
                     },
                 });
             } catch (error) {
-                console.error(`[auth] Failed to load file ${file.path} for OCR:`, error.message);
+                console.error(`[auth] Failed to load file ${file.path || file.url} for OCR:`, error.message);
             }
         }
 
@@ -786,6 +798,53 @@ async function handleTelegramFormRegistration(body, res) {
     });
 }
 
+async function handleRegistrationWithUrls(body, res) {
+    const { phone, city, citizenship, country, files } = body;
+
+    if (!phone || !city || !citizenship || !files) {
+        res.status(400).json({ error: 'Missing required registration data.' });
+        return;
+    }
+
+    const client = await upsertClientByPhone({
+        phone: normalizePhone(phone),
+        name: 'Пользователь', // Default name
+        city,
+        citizenship,
+        country,
+    });
+
+    const fileDescriptors = Object.entries(files).map(([fieldName, url]) => ({
+        url: url,
+        fieldName: fieldName
+    }));
+
+    let recognizedData = {};
+    if (fileDescriptors.length > 0) {
+        recognizedData = await recognizeDocumentsWithGemini(fileDescriptors, citizenship);
+
+        await query(
+            `UPDATE clients
+             SET recognized_passport_data = $1::jsonb,
+                 verification_status = 'needs_confirmation',
+                 extra = extra || jsonb_build_object('uploaded_documents', $2::jsonb)
+             WHERE id = $3`,
+            [safeJson(recognizedData || {}), safeJson(files), client.id]
+        );
+    }
+
+    res.status(200).json({
+        success: true,
+        user: {
+            id: client.id,
+            name: client.name,
+            phone: client.phone,
+            city: client.city,
+        },
+        message: 'Регистрация завершена. Ваши данные отправлены на проверку.',
+    });
+}
+
 async function handler(req, res) {
     try {
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -813,6 +872,9 @@ async function handler(req, res) {
         const { action } = body;
 
         switch (action) {
+            case 'register-with-urls':
+                await handleRegistrationWithUrls(body, res);
+                break;
             case 'check-user-exists':
                 await handleCheckUserExists(body, res);
                 break;
