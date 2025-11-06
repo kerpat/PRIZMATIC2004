@@ -89,6 +89,10 @@
       "destination": "/api/router?endpoint=realtime"
     },
     {
+      "source": "/api/upload-support-attachment",
+      "destination": "/api/router?endpoint=upload-support-attachment"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/site/$1"
     }
