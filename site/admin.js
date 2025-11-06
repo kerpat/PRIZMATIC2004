@@ -1720,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '<tr><td colspan="9">Загрузка...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Загрузка...</td></tr>';
         try {
             const statusRuMap = {
                 'active': 'Активна',
@@ -1777,9 +1777,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     overdueCell = '—';
                 }
 
-                // --- УПРОЩЕННАЯ ЛОГИКА: ОДНА КНОПКА "ДЕЙСТВИЯ" ---
-                const actionsCell = `<button type="button" class="rental-actions-btn" data-rental-id="${r.id}" data-rental-status="${r.status}" data-contract-url="${r.extra_data?.contract_document_url || ''}" data-return-url="${r.extra_data?.return_act_url || ''}">Действия</button>`;
-
+                // --- Отрисовка строки аренды ---
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
                     <td>${r.clients?.phone || 'Н/Д'}</td>
@@ -1795,14 +1793,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${overdueCell}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
                     <td>${createStatusBadge(r.status, 'rental')}</td>
-                    <td class="table-actions">${actionsCell}</td>
                 `;
                 
-                // Добавляем обработчик клика на строку (но не на кнопку)
+                // Показываем детали аренды по клику на строку
                 tr.addEventListener('click', async (e) => {
-                    // Игнорируем клик по кнопке "Действия"
-                    if (e.target.closest('.rental-actions-btn')) return;
-                    
                     // Открываем план платежей
                     try {
                         const { data: rental, error } = await window.dbClient
@@ -1812,6 +1806,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             .single();
 
                         if (error) throw error;
+
+                        populateRentalActionButtons(rental);
 
                         const paymentPlan = await generatePaymentPlan(rental);
                         
@@ -1851,6 +1847,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         }).join('');
 
                         const paymentPlanModal = document.getElementById('payment-plan-modal');
+                        const paymentPlanTitle = paymentPlanModal?.querySelector('.modal-header h3');
+                        if (paymentPlanTitle) {
+                            paymentPlanTitle.textContent = `Аренда #${rental.id}: действия и план платежей`;
+                        }
                         paymentPlanModal.classList.remove('hidden');
                     } catch (err) {
                         alert('Ошибка загрузки плана платежей: ' + err.message);
@@ -1864,7 +1864,7 @@ document.addEventListener('DOMContentLoaded', () => {
             notifyOverdueRentals(data || []);
 
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="9">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
     }
 
@@ -1881,184 +1881,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentRentalBatteries = [];
 
-    // Модалка действий с арендой
-    const rentalActionsModal = document.getElementById('rental-actions-modal');
-    const rentalActionsCloseBtn = document.getElementById('rental-actions-close-btn');
-    const rentalActionsContent = document.getElementById('rental-actions-content');
+    const rentalActionsInline = document.getElementById('rental-actions-inline');
 
-    if (rentalActionsCloseBtn) {
-        rentalActionsCloseBtn.addEventListener('click', () => {
-            rentalActionsModal.classList.add('hidden');
-        });
+    function populateRentalActionButtons(rentalData) {
+        if (!rentalActionsInline) return;
+
+        rentalActionsInline.innerHTML = '';
+
+        const planButton = document.createElement('button');
+        planButton.type = 'button';
+        planButton.className = 'btn btn-secondary scroll-payment-plan-btn';
+        planButton.style.width = '100%';
+        planButton.textContent = 'План платежей';
+        rentalActionsInline.appendChild(planButton);
+
+        const editButton = document.createElement('button');
+        editButton.className = 'btn btn-primary edit-rental-btn';
+        editButton.style.width = '100%';
+        editButton.textContent = 'Редактировать аренду';
+        editButton.dataset.id = rentalData.id;
+        rentalActionsInline.appendChild(editButton);
+
+        const contractUrl = rentalData.extra_data?.contract_document_url;
+        if (contractUrl) {
+            const contractLink = document.createElement('a');
+            contractLink.href = `/api/router?endpoint=view-document&rental=${rentalData.id}&type=contract`;
+            contractLink.target = '_blank';
+            contractLink.rel = 'noopener noreferrer';
+            contractLink.className = 'btn btn-secondary';
+            contractLink.style.width = '100%';
+            contractLink.style.textAlign = 'center';
+            contractLink.textContent = 'Акт приёма';
+            rentalActionsInline.appendChild(contractLink);
+        }
+
+        const returnUrl = rentalData.extra_data?.return_act_url;
+        if (returnUrl) {
+            const returnLink = document.createElement('a');
+            returnLink.href = `/api/router?endpoint=view-document&rental=${rentalData.id}&type=return_act`;
+            returnLink.target = '_blank';
+            returnLink.rel = 'noopener noreferrer';
+            returnLink.className = 'btn btn-secondary';
+            returnLink.style.width = '100%';
+            returnLink.style.textAlign = 'center';
+            returnLink.textContent = 'Акт сдачи';
+            rentalActionsInline.appendChild(returnLink);
+        }
+
+        if (rentalData.status === 'active') {
+            const endButton = document.createElement('button');
+            endButton.className = 'btn btn-danger end-rental-btn';
+            endButton.style.width = '100%';
+            endButton.textContent = 'Завершить аренду';
+            endButton.dataset.id = rentalData.id;
+            rentalActionsInline.appendChild(endButton);
+        }
     }
 
-    if (rentalActionsModal) {
-        rentalActionsModal.addEventListener('click', (e) => {
-            if (e.target === rentalActionsModal) {
-                rentalActionsModal.classList.add('hidden');
-            }
-        });
-    }
-
-    // Обработчик кликов внутри модалки действий
-    if (rentalActionsContent) {
-        rentalActionsContent.addEventListener('click', async (e) => {
-            const target = e.target;
-            
-            // Если кликнули на кнопку редактирования
-            if (target.classList.contains('edit-rental-btn')) {
-                const rentalId = target.dataset.id;
-                rentalActionsModal.classList.add('hidden');
-                
-                // Открываем модалку редактирования
-                try {
-                    const { data: rentalData, error: rentalError } = await supabase
-                        .from('rentals')
-                        .select('*, bikes(*)')
-                        .eq('id', rentalId)
-                        .single();
-                    if (rentalError) throw rentalError;
-
-                    const { data: availableBikes, error: bikesError } = await supabase
-                        .from('bikes')
-                        .select('*')
-                        .eq('status', 'available');
-                    if (bikesError) throw bikesError;
-
-                    rentalBikeSelect.innerHTML = '';
-                    if (rentalData.bikes) {
-                        const currentBikeOption = new Option(`${rentalData.bikes.model_name} (#${rentalData.bikes.bike_code}) - Текущий`, rentalData.bike_id);
-                        rentalBikeSelect.add(currentBikeOption);
-                    }
-                    availableBikes.forEach(bike => {
-                        if (bike.id !== rentalData.bike_id) {
-                            const option = new Option(`${bike.model_name} (#${bike.bike_code})`, bike.id);
-                            rentalBikeSelect.add(option);
-                        }
-                    });
-
-                    rentalIdInput.value = rentalData.id;
-                    rentalBikeSelect.value = rentalData.bike_id;
-                    rentalStatusSelect.value = rentalData.status;
-
-                    if (rentalData.current_period_ends_at) {
-                        const date = new Date(rentalData.current_period_ends_at);
-                        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-                        rentalEndDateInput.value = date.toISOString().slice(0, 16);
-                    }
-
-                    // Загружаем АКБ для этой аренды
-                    const { data: batteries, error: battError } = await supabase
-                        .from('rental_batteries')
-                        .select('battery_id, batteries(serial_number)')
-                        .eq('rental_id', rentalId);
-
-                    if (!battError && batteries) {
-                        currentRentalBatteries = batteries.map(b => ({
-                            id: b.battery_id,
-                            serial: b.batteries?.serial_number || 'Неизвестно'
-                        }));
-                        renderRentalBatteriesList();
-                    }
-
-                    rentalEditModal.classList.remove('hidden');
-                } catch (err) {
-                    alert('Ошибка загрузки данных аренды: ' + err.message);
+    if (rentalActionsInline) {
+        rentalActionsInline.addEventListener('click', async (e) => {
+            const scrollBtn = e.target.closest('.scroll-payment-plan-btn');
+            if (scrollBtn) {
+                const paymentPlanContent = document.getElementById('payment-plan-content');
+                if (paymentPlanContent) {
+                    paymentPlanContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-            }
-            // Если кликнули на кнопку завершения
-            else if (target.classList.contains('end-rental-btn')) {
-                const rentalId = target.dataset.id;
-                rentalActionsModal.classList.add('hidden');
-                
-                if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
-                    try {
-                        const { error } = await supabase
-                            .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
-                        if (error) throw error;
-                        alert('Аренда завершена!');
-                        loadRentals();
-                    } catch (err) {
-                        alert('Ошибка завершения аренды: ' + err.message);
-                    }
-                }
-            }
-            // Для ссылок - просто закрываем модалку
-            else if (target.tagName === 'A') {
-                rentalActionsModal.classList.add('hidden');
-            }
-        });
-    }
-
-    if (rentalsTableBody) {
-        rentalsTableBody.addEventListener('click', async (e) => {
-            const actionsBtn = e.target.closest('.rental-actions-btn');
-            const editBtn = e.target.closest('.edit-rental-btn');
-            const endBtn = e.target.closest('.end-rental-btn');
-
-            // --- ОБРАБОТЧИК КНОПКИ "ДЕЙСТВИЯ" (НОВАЯ МОДАЛКА) ---
-            if (actionsBtn) {
-                const rentalId = actionsBtn.dataset.rentalId;
-                const rentalStatus = actionsBtn.dataset.rentalStatus;
-                const contractUrl = actionsBtn.dataset.contractUrl;
-                const returnUrl = actionsBtn.dataset.returnUrl;
-
-                // Очищаем содержимое модалки
-                rentalActionsContent.innerHTML = '';
-
-                // Кнопка "Редактировать"
-                const editButton = document.createElement('button');
-                editButton.className = 'btn btn-primary';
-                editButton.style.width = '100%';
-                editButton.textContent = 'Редактировать аренду';
-                editButton.dataset.id = rentalId;
-                editButton.classList.add('edit-rental-btn');
-                rentalActionsContent.appendChild(editButton);
-
-                // Ссылки на документы
-                if (contractUrl) {
-                    const contractLink = document.createElement('a');
-                    // Используем endpoint для просмотра документа
-                    contractLink.href = `/api/router?endpoint=view-document&rental=${rentalId}&type=contract`;
-                    contractLink.target = '_blank';
-                    contractLink.className = 'btn btn-secondary';
-                    contractLink.style.width = '100%';
-                    contractLink.style.textAlign = 'center';
-                    contractLink.textContent = 'Акт приёма';
-                    rentalActionsContent.appendChild(contractLink);
-                }
-
-                if (returnUrl) {
-                    const returnLink = document.createElement('a');
-                    // Используем endpoint для просмотра документа
-                    returnLink.href = `/api/router?endpoint=view-document&rental=${rentalId}&type=return_act`;
-                    returnLink.target = '_blank';
-                    returnLink.className = 'btn btn-secondary';
-                    returnLink.style.width = '100%';
-                    returnLink.style.textAlign = 'center';
-                    returnLink.textContent = 'Акт сдачи';
-                    rentalActionsContent.appendChild(returnLink);
-                }
-
-                // Кнопка "Завершить"
-                if (rentalStatus === 'active') {
-                    const endButton = document.createElement('button');
-                    endButton.className = 'btn btn-danger';
-                    endButton.style.width = '100%';
-                    endButton.textContent = 'Завершить аренду';
-                    endButton.dataset.id = rentalId;
-                    endButton.classList.add('end-rental-btn');
-                    rentalActionsContent.appendChild(endButton);
-                }
-
-                // Открываем модалку
-                rentalActionsModal.classList.remove('hidden');
                 return;
             }
 
-            // --- ОБРАБОТЧИК КНОПКИ "РЕДАКТИРОВАТЬ" ---
+            const editBtn = e.target.closest('.edit-rental-btn');
             if (editBtn) {
                 const rentalId = editBtn.dataset.id;
+
                 try {
                     const { data: rentalData, error: rentalError } = await supabase
                         .from('rentals')
@@ -2095,7 +1989,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         rentalEndDateInput.value = date.toISOString().slice(0, 16);
                     }
 
-                    // Загружаем АКБ для этой аренды
                     const { data: batteries, error: battError } = await supabase
                         .from('rental_batteries')
                         .select('battery_id, batteries(serial_number)')
@@ -2113,143 +2006,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (err) {
                     alert('Ошибка загрузки данных аренды: ' + err.message);
                 }
+                return;
             }
 
-            // --- ОБРАБОТЧИК КНОПКИ "ЗАВЕРШИТЬ" ---
+            const endBtn = e.target.closest('.end-rental-btn');
             if (endBtn) {
                 const rentalId = endBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
                     try {
                         const { error } = await supabase
-                            .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
+                            .from('rentals')
+                            .update({ status: 'completed_by_admin' })
+                            .eq('id', rentalId);
                         if (error) throw error;
-                        alert('Аренда успешно завершена.');
+                        alert('Аренда завершена!');
                         loadRentals();
+                        const paymentPlanModalEl = document.getElementById('payment-plan-modal');
+                        if (paymentPlanModalEl) {
+                            paymentPlanModalEl.classList.add('hidden');
+                        }
                     } catch (err) {
                         alert('Ошибка завершения аренды: ' + err.message);
                     }
-                }
-            }
-        });
-    }
-
-    // Функция отображения списка АКБ
-    function renderRentalBatteriesList() {
-        if (!rentalEditBatteriesList) return;
-
-        if (currentRentalBatteries.length === 0) {
-            rentalEditBatteriesList.innerHTML = '<p style="color: #666; font-size: 14px;">АКБ не назначены</p>';
-        } else {
-            rentalEditBatteriesList.innerHTML = currentRentalBatteries.map(b =>
-                `<div style="padding: 8px 12px; background: var(--card-bg); border-radius: 6px; border: 1px solid var(--progress-bar-bg);">
-                    <strong>АКБ:</strong> ${b.serial}
-                </div>`
-            ).join('');
-        }
-    }
-
-    // Обработчик кнопки "Изменить АКБ"
-    if (rentalEditChangeBatteriesBtn) {
-        rentalEditChangeBatteriesBtn.addEventListener('click', async () => {
-            const rentalId = rentalIdInput.value;
-            if (!rentalId) return;
-
-            // Открываем существующее модальное окно выбора АКБ
-            if (assignBatteriesModal && assignBatteriesRentalIdInput) {
-                assignBatteriesRentalIdInput.value = rentalId;
-
-                // Получаем текущий велосипед аренды
-                const currentBikeId = rentalBikeSelect.value;
-                
-                // Загружаем доступные АКБ
-                try {
-                    const { data: batteries, error } = await supabase
-                        .from('batteries')
-                        .select('*')
-                        .eq('status', 'available');
-
-                    if (error) throw error;
-
-                    if (batterySelectList) {
-                        batterySelectList.innerHTML = '';
-                        // Ограничиваем отображение до 5 АКБ
-                        const limitedBatteries = batteries.slice(0, 5);
-                        limitedBatteries.forEach(battery => {
-                            const label = document.createElement('label');
-                            label.className = 'battery-checkbox-item';
-                            label.innerHTML = `
-                                <input type="checkbox" name="battery" value="${battery.id}">
-                                <span>${battery.serial_number} (${battery.capacity_wh || 'N/A'} Wh)</span>
-                            `;
-                            batterySelectList.appendChild(label);
-                        });
-
-                        // Показываем сообщение если АКБ больше 5
-                        if (batteries.length > 5) {
-                            const hint = document.createElement('p');
-                            hint.style.cssText = 'color: #666; font-size: 13px; margin: 10px 0 0 0; text-align: center;';
-                            hint.textContent = `Показано 5 из ${batteries.length} АКБ. Используйте поиск для фильтрации.`;
-                            batterySelectList.appendChild(hint);
-                        }
-                    }
-
-                    // Добавляем динамический поиск
-                    const searchInput = document.getElementById('battery-search-in-modal');
-                    if (searchInput) {
-                        // Сбрасываем значение поиска
-                        searchInput.value = '';
-
-                        // Удаляем старые обработчики (если есть)
-                        const newSearchInput = searchInput.cloneNode(true);
-                        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-
-                        // Добавляем новый обработчик
-                        newSearchInput.addEventListener('input', () => {
-                            const query = newSearchInput.value.toLowerCase().trim();
-                            batterySelectList.querySelectorAll('label').forEach(label => {
-                                const text = label.textContent.toLowerCase();
-                                label.style.display = text.includes(query) ? 'block' : 'none';
-                            });
-                        });
-                    }
-
-                    // ВАЖНО: Загружаем текущий велосипед и автоматически выбираем его
-                    if (batteryModalBikeSelect && currentBikeId) {
-                        // Получаем информацию о текущем велосипеде
-                        const { data: currentBike, error: bikeError } = await supabase
-                            .from('bikes')
-                            .select('*')
-                            .eq('id', currentBikeId)
-                            .single();
-                        
-                        if (!bikeError && currentBike) {
-                            // Заполняем select текущим велосипедом
-                            batteryModalBikeSelect.innerHTML = '';
-                            const option = document.createElement('option');
-                            option.value = currentBike.id;
-                            option.textContent = `${currentBike.model_name} (#${currentBike.bike_code}) - Текущий`;
-                            batteryModalBikeSelect.appendChild(option);
-                            batteryModalBikeSelect.value = currentBike.id;
-                            
-                            // Скрываем блок выбора велосипеда
-                            const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
-                            if (bikeSelectGroup) {
-                                bikeSelectGroup.style.display = 'none';
-                            }
-                        }
-                    }
-
-                    // Изменяем заголовок модального окна
-                    const modalTitle = assignBatteriesModal.querySelector('.modal-header h3');
-                    if (modalTitle) {
-                        modalTitle.textContent = 'Изменить аккумуляторы';
-                    }
-
-                    assignBatteriesModal.classList.remove('hidden');
-                    rentalEditModal.classList.add('hidden');
-
-                } catch (err) {
-                    alert('Ошибка загрузки АКБ: ' + err.message);
                 }
             }
         });
