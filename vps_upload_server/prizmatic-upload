@@ -1,5 +1,4 @@
 server {
-    listen 80;
     server_name xn----7sbudcwsigrzv.space;
 
     root /var/www/prismatic-uploads;
@@ -16,4 +15,27 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 25M;
     }
+
+    listen 443 ssl; # managed by Certbot
+
+    # ECDSA certificate (current)
+    ssl_certificate /etc/letsencrypt/live/xn----7sbudcwsigrzv.space/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/xn----7sbudcwsigrzv.space/privkey.pem; # managed by Certbot
+
+    # RSA certificate (for compatibility)
+    ssl_certificate /etc/letsencrypt/live/xn----7sbudcwsigrzv.space-rsa/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/xn----7sbudcwsigrzv.space-rsa/privkey.pem;
+
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+server {
+    if ($host = xn----7sbudcwsigrzv.space) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+    server_name xn----7sbudcwsigrzv.space;
+    return 404; # managed by Certbot
 }

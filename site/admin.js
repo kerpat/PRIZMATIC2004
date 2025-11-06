@@ -593,44 +593,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
-                    // 2. Ищем папку в Storage
+                    // 2. Ищем папку в Storage (историческое хранилище на Supabase)
                     const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(folderId));
                     if (fErr) throw fErr;
 
-                    // Фильтруем системные файлы
-                    const realFiles = files ? files.filter(f => 
-                        f.name && 
-                        !f.name.startsWith('.') && 
+                    const realFiles = files ? files.filter(f =>
+                        f.name &&
+                        !f.name.startsWith('.') &&
                         f.name !== '.emptyFolderPlaceholder'
                     ) : [];
 
-                    console.log(`[Load Photos] Found ${realFiles.length} files:`, realFiles.map(f => f.name));
+                    const imageSources = [];
 
-                    if (realFiles.length === 0) {
+                    if (realFiles.length > 0) {
+                        console.log(`[Load Photos] Found ${realFiles.length} Supabase files:`, realFiles.map(f => f.name));
+                        realFiles.forEach(f => {
+                            const { data } = supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`);
+                            if (data?.publicUrl) {
+                                imageSources.push({ url: data.publicUrl, label: f.name });
+                            }
+                        });
+                    } else {
+                        // Fallback для новых регистраций: ссылки из extra.uploaded_documents (VPS + MinIO)
+                        const docMap = client?.extra?.uploaded_documents;
+                        if (docMap && typeof docMap === 'object') {
+                            Object.entries(docMap).forEach(([field, url]) => {
+                                if (typeof url === 'string' && url.startsWith('http')) {
+                                    imageSources.push({ url, label: field });
+                                }
+                            });
+                        }
+                        console.log(`[Load Photos] Supabase empty, fallback items:`, imageSources.map(item => item.url));
+                    }
+
+                    if (imageSources.length === 0) {
                         photosDiv.innerHTML = '<p style="color: #666;">Фото не найдены.</p>';
                         viewerImages = [];
                     } else {
                         photosDiv.innerHTML = '';
-                        // 3. Строим публичные URL
-                        viewerImages = realFiles.map(f => supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`).data.publicUrl);
+                        viewerImages = imageSources.map(item => item.url);
 
                         viewerIndex = 0;
-                        viewerImages.forEach(u => {
+                        imageSources.forEach(({ url, label }) => {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'client-photo-wrapper';
+
                             const img = document.createElement('img');
-                            img.src = u;
+                            img.src = url;
                             img.className = 'client-photo-thumb';
-                            img.style.maxHeight = '200px'; // Добавьте в код
+                            img.style.maxHeight = '200px';
                             img.addEventListener('click', () => {
                                 if (imageViewerOverlay && imageViewerImg) {
-                                    imageViewerImg.src = u;
-                                    viewerIndex = viewerImages.indexOf(u);
+                                    imageViewerImg.src = url;
+                                    viewerIndex = viewerImages.indexOf(url);
                                     imageViewerOverlay.classList.remove('hidden');
                                 }
                             });
-                            photosDiv.appendChild(img);
+
+                            const caption = document.createElement('div');
+                            caption.className = 'client-photo-caption';
+                            caption.textContent = label;
+
+                            wrapper.appendChild(img);
+                            wrapper.appendChild(caption);
+                            photosDiv.appendChild(wrapper);
                         });
 
-                        // Add video if exists
+                        // Add video if exists (по-прежнему хранится в Supabase)
                         if (client?.extra?.video_selfie_storage_path) {
                             const videoUrl = supabase.storage.from('passports').getPublicUrl(client.extra.video_selfie_storage_path).data.publicUrl;
                             const video = document.createElement('video');
