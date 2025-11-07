@@ -125,13 +125,17 @@ async function listMinioObjects(bucket, prefix) {
         await minioReadyPromise;
     }
 
+    console.log(`[storage_backend] listMinioObjects: bucket="${bucket}", prefix="${prefix}"`);
+
     return new Promise((resolve, reject) => {
         const objects = [];
         const stream = minioClient.listObjectsV2(bucket, prefix || '', false);
         stream.on('data', (obj) => {
             if (obj.prefix) {
+                console.log(`[storage_backend] Skipping prefix:`, obj.prefix);
                 return;
             }
+            console.log(`[storage_backend] Found object:`, obj.name);
             const name = path.basename(obj.name);
             objects.push({
                 name,
@@ -144,8 +148,14 @@ async function listMinioObjects(bucket, prefix) {
                 metadata: null,
             });
         });
-        stream.on('error', (error) => reject(error));
-        stream.on('end', () => resolve(objects));
+        stream.on('error', (error) => {
+            console.error('[storage_backend] MinIO stream error:', error);
+            reject(error);
+        });
+        stream.on('end', () => {
+            console.log(`[storage_backend] listMinioObjects: finished, total ${objects.length} objects`);
+            resolve(objects);
+        });
     });
 }
 
@@ -173,15 +183,18 @@ async function saveBuffer({
     }
 
     const extension = inferExtension(mimeType, path.extname(originalName || '').replace('.', '') || 'bin');
+    const sanitizedUserId = sanitizeFilenamePart(userId) || 'anonymous';
     const parts = [
-        sanitizeFilenamePart(userId) || 'anonymous',
+        sanitizedUserId,
         sanitizeFilenamePart(prefix),
         Date.now(),
         crypto.randomBytes(6).toString('hex'),
     ].filter(Boolean);
 
     const objectName = `${parts.join('_')}.${extension}`;
-    const relativePath = objectName.includes('/') ? objectName : `${sanitizeFilenamePart(userId) || 'anonymous'}/${objectName}`;
+    const relativePath = objectName.includes('/') ? objectName : `${sanitizedUserId}/${objectName}`;
+    
+    console.log(`[storage_backend] saveBuffer: userId="${userId}", sanitized="${sanitizedUserId}", prefix="${prefix}", path="${relativePath}"`);
 
     if (STORAGE_TYPE === 'filesystem') {
         const targetDir = path.join(STORAGE_PATH, bucket, path.dirname(relativePath));

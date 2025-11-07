@@ -613,6 +613,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const listData = await listResponse.json();
                     const files = listData.files || [];
 
+                    console.log(`[Load Photos] Raw API response:`, listData);
+                    console.log(`[Load Photos] Files before filter:`, files);
+
                     // Фильтруем системные файлы
                     const realFiles = files.filter(f => 
                         f.name && 
@@ -620,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         f.name !== '.emptyFolderPlaceholder'
                     );
 
-                    console.log(`[Load Photos] Found ${realFiles.length} files:`, realFiles.map(f => f.name));
+                    console.log(`[Load Photos] Found ${realFiles.length} files after filter:`, realFiles);
 
                     if (realFiles.length === 0) {
                         photosDiv.innerHTML = '<p style="color: #666;">Фото не найдены.</p>';

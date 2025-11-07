@@ -304,8 +304,11 @@ async function handleListStorageFiles({ bucket, prefix }) {
         return { status: 400, body: { error: 'bucket is required.' } };
     }
 
+    console.log(`[admin] handleListStorageFiles: bucket="${bucket}", prefix="${prefix}"`);
+
     try {
         const files = await listObjects({ bucket, prefix });
+        console.log(`[admin] handleListStorageFiles: found ${files.length} files:`, files.map(f => f.path || f.name));
         return { status: 200, body: { files } };
     } catch (error) {
         console.error('[admin] handleListStorageFiles error:', error);
