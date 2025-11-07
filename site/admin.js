@@ -436,7 +436,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'pending_return': { text: 'Ждет сдачу', className: 'status-warning' },
                 'completed': { text: 'Завершена', className: 'status-neutral' },
                 'rejected': { text: 'Отклонена', className: 'status-error' },
-                'awaiting_return_signature': { text: 'Ждет подп. акт', className: 'status-warning' }
+                'awaiting_return_signature': { text: 'Ждет подп. акт', className: 'status-warning' },
+                'returned': { text: 'Принята', className: 'status-success' }
             },
             client: {
                 'approved': { text: 'Одобрен', className: 'status-success' },
@@ -2081,10 +2082,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Кнопка "Удалить аренду"
                 const deleteButton = document.createElement('button');
-                deleteButton.className = 'btn btn-danger';
+                deleteButton.className = 'btn';
                 deleteButton.style.width = '100%';
                 deleteButton.style.backgroundColor = '#dc3545';
                 deleteButton.style.borderColor = '#dc3545';
+                deleteButton.style.color = '#ffffff';
+                deleteButton.style.fontWeight = 'bold';
+                deleteButton.style.padding = '10px';
+                deleteButton.style.marginTop = '10px';
                 deleteButton.textContent = '🗑️ Удалить аренду';
                 deleteButton.dataset.id = rentalId;
                 deleteButton.classList.add('delete-rental-btn');
