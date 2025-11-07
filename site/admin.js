@@ -688,6 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('add-note-footer-btn').style.display = 'inline-block';
                         document.getElementById('invoice-create-btn').style.display = 'inline-block';
                         document.getElementById('balance-adjust-btn').style.display = 'inline-block';
+                        document.getElementById('unbind-card-btn').style.display = 'inline-block';
                         document.getElementById('client-info-close-2').style.display = 'inline-block';
                     } else {
                         recognizedEditForm.classList.remove('hidden');
@@ -699,6 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('add-note-footer-btn').style.display = 'none';
                         document.getElementById('invoice-create-btn').style.display = 'none';
                         document.getElementById('balance-adjust-btn').style.display = 'none';
+                        document.getElementById('unbind-card-btn').style.display = 'none';
                         document.getElementById('client-info-close-2').style.display = 'none';
                     }
                 };
@@ -2736,6 +2738,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Ошибка: ' + err.message);
             } finally {
                 toggleButtonLoading(balanceSubmitBtn, false, 'Применить', 'Применяем...');
+            }
+        });
+    }
+
+    // --- Unbind Card Logic ---
+    const unbindCardBtn = document.getElementById('unbind-card-btn');
+    
+    if (unbindCardBtn) {
+        unbindCardBtn.addEventListener('click', async () => {
+            if (!currentEditingId) {
+                alert('Клиент не выбран.');
+                return;
+            }
+
+            if (!confirm('Вы уверены, что хотите отвязать карту клиента? Это также отключит автоплатежи.')) {
+                return;
+            }
+
+            toggleButtonLoading(unbindCardBtn, true, 'Отвязать карту', 'Отвязываем...');
+
+            try {
+                const { error } = await supabase
+                    .from('clients')
+                    .update({ 
+                        yookassa_payment_method_id: null,
+                        autopay_enabled: false
+                    })
+                    .eq('id', currentEditingId);
+
+                if (error) throw error;
+
+                alert('Карта успешно отвязана, автоплатежи отключены.');
+                
+            } catch (err) {
+                alert('Ошибка отвязки карты: ' + err.message);
+            } finally {
+                toggleButtonLoading(unbindCardBtn, false, 'Отвязать карту', 'Отвязываем...');
             }
         });
     }
