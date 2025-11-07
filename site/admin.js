@@ -674,6 +674,42 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTags(currentEditingExtra.tags || []);
             renderNotes(currentEditingExtra.notes || []);
 
+            // Render payment card info
+            const cardInfoDiv = document.getElementById('client-card-info');
+            if (cardInfoDiv) {
+                const paymentMethod = currentEditingExtra?.payment_method_details;
+                if (client.yookassa_payment_method_id && paymentMethod) {
+                    let cardText = 'Способ оплаты привязан';
+                    if (paymentMethod.type === 'bank_card' && paymentMethod.card) {
+                        const last4 = paymentMethod.card.last4 || '****';
+                        const cardType = paymentMethod.card.card_type || 'Банковская карта';
+                        cardText = `💳 **** **** **** ${last4} (${cardType})`;
+                    } else if (paymentMethod.type === 'sbp') {
+                        cardText = '💳 Система быстрых платежей (СБП)';
+                    }
+                    const autopayStatus = client.autopay_enabled ? '✅ Автоплатежи включены' : '⚠️ Автоплатежи отключены';
+                    cardInfoDiv.innerHTML = `
+                        <div style="color: var(--text-color);">
+                            <div style="margin-bottom: 8px; font-weight: 600;">${cardText}</div>
+                            <div style="font-size: 14px; color: var(--text-muted);">${autopayStatus}</div>
+                        </div>
+                    `;
+                } else {
+                    cardInfoDiv.innerHTML = '<p style="color: #666; margin: 0;">Карта не привязана</p>';
+                }
+            }
+
+            // Update unbind card button visibility
+            const unbindCardBtn = document.getElementById('unbind-card-btn');
+            if (unbindCardBtn) {
+                if (client.yookassa_payment_method_id) {
+                    unbindCardBtn.style.display = 'inline-block';
+                    unbindCardBtn.disabled = false;
+                } else {
+                    unbindCardBtn.style.display = 'none';
+                }
+            }
+
             // Toggle edit/view functionality
             if (clientInfoEditToggle) {
                 clientInfoEditToggle.onclick = () => {
@@ -688,7 +724,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('add-note-footer-btn').style.display = 'inline-block';
                         document.getElementById('invoice-create-btn').style.display = 'inline-block';
                         document.getElementById('balance-adjust-btn').style.display = 'inline-block';
-                        document.getElementById('unbind-card-btn').style.display = 'inline-block';
+                        // Only show unbind button if card exists
+                        const hasCard = client?.yookassa_payment_method_id;
+                        document.getElementById('unbind-card-btn').style.display = hasCard ? 'inline-block' : 'none';
                         document.getElementById('client-info-close-2').style.display = 'inline-block';
                     } else {
                         recognizedEditForm.classList.remove('hidden');
@@ -2759,17 +2797,41 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleButtonLoading(unbindCardBtn, true, 'Отвязать карту', 'Отвязываем...');
 
             try {
+                // Get current extra data
+                const { data: clientData, error: fetchError } = await supabase
+                    .from('clients')
+                    .select('extra')
+                    .eq('id', currentEditingId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                // Update extra to remove payment_method_details
+                const updatedExtra = { ...(clientData?.extra || {}) };
+                delete updatedExtra.payment_method_details;
+
+                // Update client with cleared payment method
                 const { error } = await supabase
                     .from('clients')
                     .update({ 
                         yookassa_payment_method_id: null,
-                        autopay_enabled: false
+                        autopay_enabled: false,
+                        extra: updatedExtra
                     })
                     .eq('id', currentEditingId);
 
                 if (error) throw error;
 
                 alert('Карта успешно отвязана, автоплатежи отключены.');
+                
+                // Hide the unbind button after successful unbind
+                unbindCardBtn.style.display = 'none';
+                
+                // Update card info display
+                const cardInfoDiv = document.getElementById('client-card-info');
+                if (cardInfoDiv) {
+                    cardInfoDiv.innerHTML = '<p style="color: #666; margin: 0;">Карта не привязана</p>';
+                }
                 
             } catch (err) {
                 alert('Ошибка отвязки карты: ' + err.message);
