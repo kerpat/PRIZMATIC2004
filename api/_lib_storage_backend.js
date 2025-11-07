@@ -183,18 +183,21 @@ async function saveBuffer({
     }
 
     const extension = inferExtension(mimeType, path.extname(originalName || '').replace('.', '') || 'bin');
-    const sanitizedUserId = sanitizeFilenamePart(userId) || 'anonymous';
+    
+    // Сохраняем userId БЕЗ sanitize чтобы можно было искать по нему
+    // Формируем имя: userId_prefix_timestamp_random.ext
     const parts = [
-        sanitizedUserId,
+        userId || 'anonymous', // Оригинальный userId с дефисами
         sanitizeFilenamePart(prefix),
         Date.now(),
         crypto.randomBytes(6).toString('hex'),
     ].filter(Boolean);
 
+    // Сохраняем в КОРЕНЬ бакета без вложенных папок
     const objectName = `${parts.join('_')}.${extension}`;
-    const relativePath = objectName.includes('/') ? objectName : `${sanitizedUserId}/${objectName}`;
+    const relativePath = objectName; // Файл в корне бакета
     
-    console.log(`[storage_backend] saveBuffer: userId="${userId}", sanitized="${sanitizedUserId}", prefix="${prefix}", path="${relativePath}"`);
+    console.log(`[storage_backend] saveBuffer: userId="${userId}", prefix="${prefix}", fileName="${relativePath}"`);
 
     if (STORAGE_TYPE === 'filesystem') {
         const targetDir = path.join(STORAGE_PATH, bucket, path.dirname(relativePath));

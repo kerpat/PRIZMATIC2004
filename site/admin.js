@@ -615,17 +615,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     console.log(`[Load Photos] Raw API response:`, listData);
                     console.log(`[Load Photos] All files in bucket:`, allFiles.length);
+                    console.log(`[Load Photos] File names:`, allFiles.map(f => f.name));
 
                     // Фильтруем файлы которые относятся к этому userId
-                    // Имя файла содержит sanitized userId (дефисы заменены на подчеркивания)
-                    const sanitizedUserId = folderId.replace(/-/g, '_');
-                    
+                    // Имя файла начинается с userId: 6df43fa2-12f4-488d-8633-3a8de8d227c6_prefix_timestamp.jpg
                     const realFiles = allFiles.filter(f => {
                         if (!f.name || f.name.startsWith('.') || f.name === '.emptyFolderPlaceholder') {
                             return false;
                         }
-                        // Проверяем что имя файла содержит userId (с дефисами или подчеркиваниями)
-                        return f.name.includes(folderId) || f.name.includes(sanitizedUserId);
+                        // Файл начинается с userId
+                        return f.name.startsWith(folderId + '_');
                     });
 
                     console.log(`[Load Photos] Found ${realFiles.length} files after filter:`, realFiles);
