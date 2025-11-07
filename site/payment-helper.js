@@ -80,34 +80,37 @@ export async function openPaymentUrl(url) {
             log('✅ window.Capacitor.Plugins найден');
             log('📦 Доступные плагины:', Object.keys(window.Capacitor.Plugins));
             
-            // Проверяем наличие PaymentBrowser
-            if (!window.Capacitor.Plugins.PaymentBrowser) {
-                error('PaymentBrowser плагин не найден!');
-                log('🔄 Fallback на window.location');
-                window.location.href = url;
-                return;
+            // Пробуем использовать JavaScript Interface (прямой вызов нативного кода)
+            if (window.PaymentNative && typeof window.PaymentNative.openPayment === 'function') {
+                log('✅ PaymentNative JS Interface найден!');
+                log('🎯 Вызываем PaymentNative.openPayment...');
+                
+                try {
+                    window.PaymentNative.openPayment(url);
+                    log('✅ PaymentNative.openPayment успешно вызван!');
+                    log('═══════════════════════════════════════');
+                    return;
+                } catch (err) {
+                    error('Ошибка при вызове PaymentNative.openPayment:', err);
+                }
             }
             
-            log('✅ PaymentBrowser плагин найден!');
-            
-            // Проверяем метод open
-            if (typeof window.Capacitor.Plugins.PaymentBrowser.open !== 'function') {
-                error('PaymentBrowser.open не является функцией!', {
-                    type: typeof window.Capacitor.Plugins.PaymentBrowser.open,
-                    value: window.Capacitor.Plugins.PaymentBrowser.open
-                });
-                log('🔄 Fallback на window.location');
-                window.location.href = url;
-                return;
+            // Проверяем наличие PaymentBrowser (Capacitor плагин)
+            if (window.Capacitor.Plugins.PaymentBrowser) {
+                log('✅ PaymentBrowser плагин найден!');
+                
+                if (typeof window.Capacitor.Plugins.PaymentBrowser.open === 'function') {
+                    log('🎯 Вызываем PaymentBrowser.open...');
+                    const result = await window.Capacitor.Plugins.PaymentBrowser.open({ url: url });
+                    log('✅ PaymentBrowser.open успешно вызван!', result);
+                    log('═══════════════════════════════════════');
+                    return;
+                }
             }
             
-            log('✅ PaymentBrowser.open готов к вызову');
-            log('🎯 Вызываем PaymentBrowser.open...');
-            
-            const result = await window.Capacitor.Plugins.PaymentBrowser.open({ url: url });
-            
-            log('✅ PaymentBrowser.open успешно вызван!', result);
-            log('═══════════════════════════════════════');
+            error('PaymentBrowser плагин и PaymentNative JS Interface не найдены!');
+            log('🔄 Fallback на window.location');
+            window.location.href = url;
             return;
             
         } else {

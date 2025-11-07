@@ -98,11 +98,43 @@ public class PaymentActivity extends Activity {
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         
+        // ⚡ Критично для 3DS!
+        settings.setSupportMultipleWindows(false); // Запрещаем попапы - всё в одном окне
+        settings.setJavaScriptCanOpenWindowsAutomatically(false); // JS не может открыть новое окно
+        settings.setAllowFileAccess(false); // Безопасность
+        settings.setAllowContentAccess(true); // Разрешаем content://
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW); // HTTP + HTTPS
+        
+        // 🎭 User Agent - важно для некоторых платёжных систем
+        String userAgent = settings.getUserAgentString();
+        settings.setUserAgentString(userAgent + " PrizmaticApp/1.0");
+        
+        // 💾 Кэширование для стабильности
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setAppCacheEnabled(false); // Отключаем app cache (deprecated)
+        
+        Log.d(TAG, "✅ WebSettings настроены для 3DS");
+        Log.d(TAG, "🎭 User-Agent: " + settings.getUserAgentString());
+        
         // WebViewClient - перехватываем навигацию
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            @SuppressWarnings("deprecation")
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                // Deprecated метод для старых версий Android
+                return handleUrlLoading(url);
+            }
+            
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String loadUrl = request.getUrl().toString();
+                // Новый метод для Android 24+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    return handleUrlLoading(request.getUrl().toString());
+                }
+                return false;
+            }
+            
+            private boolean handleUrlLoading(String loadUrl) {
                 Log.d(TAG, "🔄 Навигация на: " + loadUrl);
                 
                 // Проверяем возврат в приложение
@@ -122,10 +154,36 @@ public class PaymentActivity extends Activity {
                     return true;
                 }
                 
-                Log.d(TAG, "➡️ Загружаем URL в текущем WebView");
-                // Все остальные URL открываем в текущем WebView
-                view.loadUrl(loadUrl);
-                return true;
+                // Проверяем специальные схемы (банковские приложения, intent://)
+                if (!loadUrl.startsWith("http://") && !loadUrl.startsWith("https://")) {
+                    Log.w(TAG, "⚠️ Нестандартная схема: " + loadUrl);
+                    Log.w(TAG, "🏦 Возможно, это банковское приложение");
+                    
+                    try {
+                        Intent intent;
+                        
+                        // Обработка intent:// схемы
+                        if (loadUrl.startsWith("intent://")) {
+                            intent = Intent.parseUri(loadUrl, Intent.URI_INTENT_SCHEME);
+                        } else {
+                            intent = new Intent(Intent.ACTION_VIEW, Uri.parse(loadUrl));
+                        }
+                        
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        Log.d(TAG, "✅ Запущено внешнее приложение");
+                        return true;
+                        
+                    } catch (Exception e) {
+                        Log.e(TAG, "❌ Не удалось открыть внешнее приложение: " + e.getMessage());
+                        return true;
+                    }
+                }
+                
+                Log.d(TAG, "➡️ Загружаем URL в WebView (return false = WebView обработает)");
+                // Возвращаем false - позволяем WebView обработать URL самостоятельно
+                // Это критично для 3DS редиректов!
+                return false;
             }
             
             @Override
@@ -148,6 +206,20 @@ public class PaymentActivity extends Activity {
                 Log.e(TAG, "URL: " + failingUrl);
                 Log.e(TAG, "Код: " + errorCode);
                 Log.e(TAG, "Описание: " + description);
+            }
+            
+            @Override
+            public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+                Log.e(TAG, "⚠️ SSL ОШИБКА!");
+                Log.e(TAG, "URL: " + error.getUrl());
+                Log.e(TAG, "Ошибка: " + error.toString());
+                
+                // ⚠️ НЕ используйте handler.proceed() в продакшене без проверок!
+                // Это небезопасно! Здесь только для диагностики.
+                // В реальном приложении покажите диалог пользователю.
+                
+                super.onReceivedSslError(view, handler, error);
+                // handler.cancel(); - отменяем загрузку при SSL ошибке
             }
         });
         

@@ -12,6 +12,7 @@ import android.util.Log;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -52,8 +53,15 @@ public class MainActivity extends BridgeActivity {
         }
         
         // Регистрируем наш PaymentPlugin
-        registerPlugin(PaymentPlugin.class);
-        Log.d(TAG, "PaymentPlugin registered");
+        // В Capacitor 6 плагины с @CapacitorPlugin должны автоматически обнаруживаться,
+        // но явная регистрация через registerPlugin() не помешает
+        try {
+            registerPlugin(PaymentPlugin.class);
+            Log.d(TAG, "✅ PaymentPlugin зарегистрирован через registerPlugin()");
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Ошибка при регистрации PaymentPlugin: " + e.getMessage());
+            // Плагин может быть обнаружен автоматически через @CapacitorPlugin аннотацию
+        }
         
         // Регистрируем launcher для камеры
         fileChooserLauncher = registerForActivityResult(
@@ -86,21 +94,67 @@ public class MainActivity extends BridgeActivity {
         Log.d(TAG, "onStart called, setting up WebView permissions");
         setupWebViewPermissions();
     }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume called");
+        
+        // Резервный механизм: пытаемся добавить PaymentJSInterface если ещё не добавлен
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            // Используем postDelayed чтобы убедиться что WebView полностью инициализирован
+            this.bridge.getWebView().postDelayed(() -> {
+                if (this.bridge != null && this.bridge.getWebView() != null) {
+                    Log.d(TAG, "🔄 onResume: Пытаемся добавить PaymentJSInterface (если ещё нет)");
+                    try {
+                        this.bridge.getWebView().addJavascriptInterface(new PaymentJSInterface(), "PaymentNative");
+                        Log.d(TAG, "✅ PaymentJSInterface добавлен в onResume");
+                    } catch (Exception e) {
+                        Log.w(TAG, "PaymentJSInterface уже добавлен или ошибка: " + e.getMessage());
+                    }
+                }
+            }, 300); // Небольшая задержка для гарантии готовности WebView
+        }
+    }
 
     private void setupWebViewPermissions() {
         // Проверяем, что bridge и WebView готовы
         if (this.bridge == null || this.bridge.getWebView() == null) {
-            Log.w(TAG, "Bridge or WebView not ready yet, will retry...");
-            // Пробуем ещё раз через небольшую задержку
-            this.bridge.getWebView().postDelayed(() -> {
-                if (this.bridge != null && this.bridge.getWebView() != null) {
-                    setupWebViewPermissionsInternal();
-                }
-            }, 100);
+            Log.w(TAG, "⚠️ Bridge или WebView не готовы, пропускаем setupWebViewPermissions");
+            Log.w(TAG, "bridge = " + this.bridge);
+            Log.w(TAG, "webView = " + (this.bridge != null ? this.bridge.getWebView() : "bridge is null"));
             return;
         }
         
+        Log.d(TAG, "✅ Bridge и WebView готовы, настраиваем permissions и PaymentJSInterface");
+        
         setupWebViewPermissionsInternal();
+        
+        // Добавляем JavaScript Interface для прямого вызова PaymentActivity
+        try {
+            this.bridge.getWebView().addJavascriptInterface(new PaymentJSInterface(), "PaymentNative");
+            Log.d(TAG, "✅✅✅ PaymentJSInterface успешно добавлен в WebView!");
+            Log.d(TAG, "Теперь из JS можно вызывать: window.PaymentNative.openPayment(url)");
+        } catch (Exception e) {
+            Log.e(TAG, "❌ Ошибка при добавлении PaymentJSInterface: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * JavaScript Interface для прямого вызова PaymentActivity
+     */
+    private class PaymentJSInterface {
+        @JavascriptInterface
+        public void openPayment(String url) {
+            Log.d(TAG, "💳 PaymentJSInterface.openPayment вызван из JS: " + url);
+            runOnUiThread(() -> {
+                Intent intent = new Intent(MainActivity.this, PaymentActivity.class);
+                intent.putExtra("url", url);
+                startActivity(intent);
+                Log.d(TAG, "✅ PaymentActivity запущена через JS Interface");
+            });
+        }
     }
 
     private void setupWebViewPermissionsInternal() {
