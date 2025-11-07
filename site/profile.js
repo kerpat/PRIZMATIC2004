@@ -11,7 +11,7 @@ import {
     markSupportMessagesRead,
 } from './api.js?v=13.5';
 import './sse-client.js?v=13.5';
-import { openSaveCardUrl } from './payment-helper.js?v=13.5';
+import { openSaveCardUrl } from './payment-helper.js?v=14.0';
 
 const state = {
     userId: null,

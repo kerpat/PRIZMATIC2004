@@ -11,7 +11,7 @@ import {
 } from './ui.js?v=13.5';
 import './sse-client.js?v=13.5';
 import { createQrScanner } from './qr-scanner.js?v=13.5';
-import { openPaymentUrl } from './payment-helper.js?v=13.5';
+import { openPaymentUrl } from './payment-helper.js?v=14.0';
 
 let qrScanner = null;
 
