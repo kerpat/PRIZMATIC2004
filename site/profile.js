@@ -1009,6 +1009,15 @@ async function bootstrap() {
         updateUserBanner(state.user);
     } catch (error) {
         console.error('[Profile] Failed to load user:', error);
+        
+        // Если пользователь не найден - очищаем и перенаправляем без alert
+        if (error.message && error.message.includes('not found')) {
+            console.warn('[Profile] Клиент не найден в базе, очищаем данные');
+            localStorage.clear();
+            window.location.replace('registration.html');
+            return;
+        }
+        
         alert('Не удалось загрузить профиль. Авторизуйтесь заново.');
         localStorage.clear();
         window.location.replace('registration.html');

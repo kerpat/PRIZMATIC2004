@@ -1170,6 +1170,7 @@ async function bootstrap() {
     try {
         const user = await getClient(userId);
         if (!user) {
+            console.warn('[Main] Пользователь не найден, очищаем localStorage');
             localStorage.clear();
             window.location.replace('registration.html');
             return;
@@ -1204,6 +1205,15 @@ async function bootstrap() {
         await refreshRentalView();
     } catch (error) {
         console.error('[Main] Критическая ошибка инициализации:', error);
+        
+        // Если пользователь не найден - очищаем и перенаправляем
+        if (error.message && error.message.includes('not found')) {
+            console.warn('[Main] Клиент не найден в базе, очищаем данные');
+            localStorage.clear();
+            window.location.replace('registration.html');
+            return;
+        }
+        
         alert('Не удалось загрузить данные. Попробуйте обновить страницу.');
     }
 }
