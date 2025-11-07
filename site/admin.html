@@ -10,15 +10,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=13.5">
-  <link rel="stylesheet" href="blend.css?v=13.5">
-  <link rel="stylesheet" href="admin.css?v=13.5">
+  <link rel="stylesheet" href="style.css?v=10.0">
+  <link rel="stylesheet" href="blend.css?v=10.0">
+  <link rel="stylesheet" href="admin.css?v=10.0">
 
   <!-- ⚡ ОПТИМИЗАЦИЯ: Легкие скрипты загружаются сразу -->
-  <script src="local-cache.js?v=13.5"></script>
-  <script src="db-proxy.js?v=13.5"></script>
-  <script src="db-client.js?v=13.5"></script>
-  <script src="loading-skeletons.js?v=13.5"></script>
+  <script src="local-cache.js"></script>
+  <script src="db-proxy.js"></script>
+  <script src="db-client.js"></script>
+  <script src="loading-skeletons.js"></script>
 
   <!-- ⚡ ОПТИМИЗАЦИЯ: Тяжёлые библиотеки грузятся АСИНХРОННО -->
   <script>
@@ -334,7 +334,7 @@
           <div class="section-header">
             <h2>Аренды</h2>
           </div>
-          <table id="rentals-table" class="admin-table">
+          <table id="rentals-table" class="admin-table table-wide-actions">
             <thead>
               <tr>
                 <th>Клиент</th>
@@ -345,6 +345,7 @@
                 <th>Просрочка</th>
                 <th>Сумма</th>
                 <th>Статус</th>
+                <th>Действия</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -530,9 +531,24 @@
       }
     });
   </script>
-  <script src="admin.js?v=13.5" defer></script>
+  <script src="admin.js" defer></script>
   <!-- Глобальные модальные окна (вынесены из секций для правильного позиционирования) -->
   
+  <!-- Модальное окно для действий с арендой -->
+  <div id="rental-actions-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Действия с арендой</h3>
+        <button id="rental-actions-close-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="rental-actions-content" style="display: flex; flex-direction: column; gap: 12px; align-items: stretch;">
+          <!-- Кнопки будут добавляться динамически -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Модальное окно для редактирования аренды -->
   <div id="rental-edit-modal" class="overlay hidden">
     <div class="modal" style="max-width: 500px;">
@@ -591,20 +607,11 @@
         <button id="payment-plan-close-btn" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <div>
-          <h4 style="margin-bottom: 12px;">Действия</h4>
-          <div id="rental-actions-inline" style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- Кнопки будут добавляться динамически -->
-          </div>
-        </div>
-        <hr style="margin: 24px 0;">
-        <div>
-          <h4 style="margin-bottom: 12px;">План платежей</h4>
-          <div id="payment-plan-content" style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- Список платежей будет здесь -->
-          </div>
+        <div id="payment-plan-content" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Список платежей будет здесь -->
         </div>
       </div>
+    </div>
   </div>
 
   <!-- New Modal for Return Processing (Step-by-Step) -->

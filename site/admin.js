@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     const filteredClients = mapClientsData.filter(client =>
-                        getDisplayName(client).toLowerCase().includes(query)
+                        client.name.toLowerCase().includes(query)
                     );
 
                     if (filteredClients.length === 0) {
@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     filteredClients.forEach((client, index) => {
                         const resultItem = document.createElement('div');
                         resultItem.className = 'search-result-item';
-                        resultItem.textContent = getDisplayName(client);
+                        resultItem.textContent = client.name;
                         resultItem.dataset.clientId = client.id;
                         resultItem.dataset.coords = `${client.location_geojson.coordinates[1]},${client.location_geojson.coordinates[0]}`;
                         resultItem.addEventListener('click', () => selectCourier(client));
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         myMap.setZoom(15, { duration: 500 });
                     });
 
-                    courierSearchInput.value = getDisplayName(client);
+                    courierSearchInput.value = client.name;
                     searchResults.style.display = 'none';
                     courierSearchInput.blur();
                 }
@@ -345,8 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: `client_${client.id}`,
                 geometry: { type: 'Point', coordinates: [client.location_geojson.coordinates[1], client.location_geojson.coordinates[0]] },
                 properties: {
-                    hintContent: `Курьер: ${getDisplayName(client)}`,
-                    balloonContent: `<strong>${getDisplayName(client)}</strong><br>ID: ${client.id}`
+                    hintContent: `Курьер: ${client.name}`,
+                    balloonContent: `<strong>${client.name}</strong><br>ID: ${client.id}`
                 },
                 options: { preset: 'islands#userIcon', iconColor: '#ff0000' }
             }));
@@ -417,68 +417,56 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {Object} { text: string, className: string }
      */
     function getStatusDisplay(status, type) {
-        const normalized = (status || '').toLowerCase();
         const statusMaps = {
             bike: {
-                available: { text: 'Свободен', className: 'status-success' },
-                rented: { text: 'Выдан', className: 'status-warning' },
-                in_service: { text: 'В ремонте', className: 'status-error' },
-                maintenance: { text: 'На обслуживании', className: 'status-info' },
-                out_of_order: { text: 'Неисправен', className: 'status-error' },
-                reserved: { text: 'Зарезервирован', className: 'status-info' },
-                unavailable: { text: 'Недоступен', className: 'status-neutral' },
-                charging: { text: 'Заряжается', className: 'status-info' },
-                lost: { text: 'Утерян', className: 'status-error' }
+                'available': { text: 'Свободен', className: 'status-success' },
+                'rented': { text: 'В аренде', className: 'status-warning' },
+                'in_service': { text: 'В ремонте', className: 'status-error' },
+                'maintenance': { text: 'Обслуживание', className: 'status-info' },
+                'out_of_order': { text: 'Неисправен', className: 'status-error' },
+                'reserved': { text: 'Зарезервирован', className: 'status-info' },
+                'unavailable': { text: 'Недоступен', className: 'status-neutral' }
             },
             rental: {
-                active: { text: 'Активна', className: 'status-success' },
-                awaiting_battery_assignment: { text: 'Ожидает оборудование', className: 'status-warning' },
-                awaiting_contract_signing: { text: 'Ждёт подписи договора', className: 'status-warning' },
-                awaiting_return_signature: { text: 'Ждёт подписи акта', className: 'status-warning' },
-                pending_assignment: { text: 'Ожидает выдачи', className: 'status-warning' },
-                pending_return: { text: 'Ожидает сдачи', className: 'status-warning' },
-                overdue: { text: 'Просрочена', className: 'status-error' },
-                completed: { text: 'Завершена', className: 'status-neutral' },
-                completed_by_admin: { text: 'Закрыта администратором', className: 'status-info' },
-                rejected: { text: 'Отменена', className: 'status-error' },
-                canceled: { text: 'Отменена', className: 'status-error' }
+                'active': { text: 'Активна', className: 'status-success' },
+                'awaiting_battery_assignment': { text: 'Ожидает АКБ', className: 'status-warning' },
+                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' },
+                'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
+                'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
+                'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },
+                'completed': { text: 'Завершена', className: 'status-neutral' },
+                'rejected': { text: 'Отклонена', className: 'status-error' },
+                'awaiting_return_signature': { text: 'Ожидает подписи акта', className: 'status-warning' }
             },
             client: {
-                approved: { text: 'Одобрен', className: 'status-success' },
-                rejected: { text: 'Отклонён', className: 'status-error' },
-                pending: { text: 'На проверке', className: 'status-warning' },
-                pending_ocr: { text: 'Обработка OCR', className: 'status-info' },
-                needs_confirmation: { text: 'Требует подтверждения', className: 'status-warning' },
-                not_set: { text: 'Не задан', className: 'status-neutral' }
+                'approved': { text: 'Одобрен', className: 'status-success' },
+                'rejected': { text: 'Отклонен', className: 'status-error' },
+                'pending': { text: 'На проверке', className: 'status-warning' },
+                'needs_confirmation': { text: 'Требует подтверждения', className: 'status-warning' },
+                'not_set': { text: 'Не задан', className: 'status-neutral' }
             },
             payment: {
-                succeeded: { text: 'Успешно', className: 'status-success' },
-                pending: { text: 'Ожидает подтверждения', className: 'status-warning' },
-                waiting_for_capture: { text: 'Ожидает списания', className: 'status-warning' },
-                in_progress: { text: 'Обрабатывается', className: 'status-warning' },
-                canceled: { text: 'Отменён', className: 'status-error' },
-                failed: { text: 'Ошибка', className: 'status-error' },
-                refunded: { text: 'Возврат средств', className: 'status-neutral' }
+                'succeeded': { text: 'Успешно', className: 'status-success' },
+                'pending': { text: 'Ожидает', className: 'status-warning' },
+                'canceled': { text: 'Отменён', className: 'status-error' },
+                'failed': { text: 'Ошибка', className: 'status-error' },
+                'refunded': { text: 'Возвращено', className: 'status-neutral' }
             },
             assignment: {
-                awaiting_battery_assignment: { text: 'Выдача оборудования', className: 'status-warning' },
-                pending_return: { text: 'Приём оборудования', className: 'status-warning' }
+                'pending_assignment': { text: 'Аренда', className: 'status-success' },
+                'pending_return': { text: 'Сдача', className: 'status-warning' }
             },
             battery: {
-                available: { text: 'Свободна', className: 'status-success' },
-                in_use: { text: 'Выдана', className: 'status-warning' },
-                charging: { text: 'Заряжается', className: 'status-info' },
-                damaged: { text: 'Повреждена', className: 'status-error' },
-                maintenance: { text: 'Обслуживание', className: 'status-info' },
-                unavailable: { text: 'Недоступна', className: 'status-neutral' }
+                'available': { text: 'Свободна', className: 'status-success' },
+                'in_use': { text: 'В использовании', className: 'status-warning' },
+                'damaged': { text: 'Повреждена', className: 'status-error' },
+                'maintenance': { text: 'Обслуживание', className: 'status-info' },
+                'unavailable': { text: 'Недоступна', className: 'status-neutral' }
             }
         };
 
         const typeMap = statusMaps[type] || {};
-        if (typeMap[normalized]) {
-            return typeMap[normalized];
-        }
-        return { text: 'Неизвестно', className: 'status-neutral' };
+        return typeMap[status] || { text: status || 'Неизвестно', className: 'status-neutral' };
     }
 
     // Payment type labels for admin panel
@@ -541,9 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
             if (error) throw error;
 
-            const recRaw = client?.recognized_passport_data || client?.extra?.recognized_data || {};
-            const rec = formatPassportData(recRaw);
-            const displayName = formatPersonName(client.name) || client.name || 'Не указано';
+            const rec = client?.recognized_passport_data || client?.extra?.recognized_data || {};
             if (recognizedDisplay) {
                 recognizedDisplay.innerHTML = '';
                 
@@ -554,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="display: grid; gap: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <strong style="min-width: 120px; color: var(--accent);">ФИО:</strong>
-                            <span style="font-size: 16px; font-weight: 600;">${displayName}</span>
+                            <span style="font-size: 16px; font-weight: 600;">${client.name || 'Не указано'}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <strong style="min-width: 120px; color: var(--accent);">Телефон:</strong>
@@ -607,73 +593,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
-                    // 2. Ищем папку в Storage (историческое хранилище на Supabase)
+                    // 2. Ищем папку в Storage
                     const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(folderId));
                     if (fErr) throw fErr;
 
-                    const realFiles = files ? files.filter(f =>
-                        f.name &&
-                        !f.name.startsWith('.') &&
+                    // Фильтруем системные файлы
+                    const realFiles = files ? files.filter(f => 
+                        f.name && 
+                        !f.name.startsWith('.') && 
                         f.name !== '.emptyFolderPlaceholder'
                     ) : [];
 
-                    const imageSources = [];
+                    console.log(`[Load Photos] Found ${realFiles.length} files:`, realFiles.map(f => f.name));
 
-                    if (realFiles.length > 0) {
-                        console.log(`[Load Photos] Found ${realFiles.length} Supabase files:`, realFiles.map(f => f.name));
-                        realFiles.forEach(f => {
-                            const { data } = supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`);
-                            if (data?.publicUrl) {
-                                imageSources.push({ url: data.publicUrl, label: f.name });
-                            }
-                        });
-                    } else {
-                        // Fallback для новых регистраций: ссылки из extra.uploaded_documents (VPS + MinIO)
-                        const docMap = client?.extra?.uploaded_documents;
-                        if (docMap && typeof docMap === 'object') {
-                            Object.entries(docMap).forEach(([field, url]) => {
-                                if (typeof url === 'string' && url.startsWith('http')) {
-                                    imageSources.push({ url, label: field });
-                                }
-                            });
-                        }
-                        console.log(`[Load Photos] Supabase empty, fallback items:`, imageSources.map(item => item.url));
-                    }
-
-                    if (imageSources.length === 0) {
+                    if (realFiles.length === 0) {
                         photosDiv.innerHTML = '<p style="color: #666;">Фото не найдены.</p>';
                         viewerImages = [];
                     } else {
                         photosDiv.innerHTML = '';
-                        viewerImages = imageSources.map(item => item.url);
+                        // 3. Строим публичные URL
+                        viewerImages = realFiles.map(f => supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`).data.publicUrl);
 
                         viewerIndex = 0;
-                        imageSources.forEach(({ url, label }) => {
-                            const wrapper = document.createElement('div');
-                            wrapper.className = 'client-photo-wrapper';
-
+                        viewerImages.forEach(u => {
                             const img = document.createElement('img');
-                            img.src = url;
+                            img.src = u;
                             img.className = 'client-photo-thumb';
-                            img.style.maxHeight = '200px';
+                            img.style.maxHeight = '200px'; // Добавьте в код
                             img.addEventListener('click', () => {
                                 if (imageViewerOverlay && imageViewerImg) {
-                                    imageViewerImg.src = url;
-                                    viewerIndex = viewerImages.indexOf(url);
+                                    imageViewerImg.src = u;
+                                    viewerIndex = viewerImages.indexOf(u);
                                     imageViewerOverlay.classList.remove('hidden');
                                 }
                             });
-
-                            const caption = document.createElement('div');
-                            caption.className = 'client-photo-caption';
-                            caption.textContent = label;
-
-                            wrapper.appendChild(img);
-                            wrapper.appendChild(caption);
-                            photosDiv.appendChild(wrapper);
+                            photosDiv.appendChild(img);
                         });
 
-                        // Add video if exists (по-прежнему хранится в Supabase)
+                        // Add video if exists
                         if (client?.extra?.video_selfie_storage_path) {
                             const videoUrl = supabase.storage.from('passports').getPublicUrl(client.extra.video_selfie_storage_path).data.publicUrl;
                             const video = document.createElement('video');
@@ -1500,47 +1457,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return phone;
     }
 
-    function normalizeNameToken(token = '') {
-        return token
-            .split('-')
-            .map((hyphenPart) =>
-                hyphenPart
-                    .split("'")
-                    .map((segment) => {
-                        const lower = segment.toLowerCase();
-                        if (!lower.length) return '';
-                        return lower.charAt(0).toUpperCase() + lower.slice(1);
-                    })
-                    .join("'")
-            )
-            .join('-');
-    }
-
-    function formatPersonName(value) {
-        if (!value || typeof value !== 'string') return null;
-        const trimmed = value.trim();
-        if (!trimmed) return null;
-        return trimmed
-            .split(/\s+/)
-            .map(normalizeNameToken)
-            .join(' ');
-    }
-
-    function formatPassportData(passport = {}) {
-        if (!passport || typeof passport !== 'object') return {};
-        const copy = { ...passport };
-        if (copy.full_name) copy.full_name = formatPersonName(copy.full_name) || copy.full_name;
-        if (copy.first_name) copy.first_name = formatPersonName(copy.first_name) || copy.first_name;
-        if (copy.last_name) copy.last_name = formatPersonName(copy.last_name) || copy.last_name;
-        if (copy.middle_name) copy.middle_name = formatPersonName(copy.middle_name) || copy.middle_name;
-        return copy;
-    }
-
-    function getDisplayName(client) {
-        if (!client) return '';
-        return formatPersonName(client.name) || client.name || '';
-    }
-
     async function loadClients() {
         clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
         try {
@@ -1563,7 +1479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const date = new Date(client.created_at).toLocaleDateString();
                 const status = client.verification_status || 'not_set';
                 const tags = client.extra?.tags || [];
-                const displayName = getDisplayName(client);
 
                 const verificationButtons = status === 'pending' || status === 'needs_confirmation'
                     ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
@@ -1571,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
 
                 tr.innerHTML = `
-                <td>${displayName}</td>
+                <td>${client.name}</td>
                 <td>${formatPhoneDisplay(client.phone)}</td>
                 <td>${createStatusBadge(status, 'client')}</td>
                 <td><div class="chips">${tagsHtml}</div></td>
@@ -1720,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '<tr><td colspan="8">Загрузка...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9">Загрузка...</td></tr>';
         try {
             const statusRuMap = {
                 'active': 'Активна',
@@ -1777,7 +1692,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     overdueCell = '—';
                 }
 
-                // --- Отрисовка строки аренды ---
+                // --- УПРОЩЕННАЯ ЛОГИКА: ОДНА КНОПКА "ДЕЙСТВИЯ" ---
+                const actionsCell = `<button type="button" class="rental-actions-btn" data-rental-id="${r.id}" data-rental-status="${r.status}" data-contract-url="${r.extra_data?.contract_document_url || ''}" data-return-url="${r.extra_data?.return_act_url || ''}">Действия</button>`;
+
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
                     <td>${r.clients?.phone || 'Н/Д'}</td>
@@ -1793,10 +1710,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${overdueCell}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
                     <td>${createStatusBadge(r.status, 'rental')}</td>
+                    <td class="table-actions">${actionsCell}</td>
                 `;
                 
-                // Показываем детали аренды по клику на строку
+                // Добавляем обработчик клика на строку (но не на кнопку)
                 tr.addEventListener('click', async (e) => {
+                    // Игнорируем клик по кнопке "Действия"
+                    if (e.target.closest('.rental-actions-btn')) return;
+                    
                     // Открываем план платежей
                     try {
                         const { data: rental, error } = await window.dbClient
@@ -1806,8 +1727,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             .single();
 
                         if (error) throw error;
-
-                        populateRentalActionButtons(rental);
 
                         const paymentPlan = await generatePaymentPlan(rental);
                         
@@ -1847,10 +1766,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }).join('');
 
                         const paymentPlanModal = document.getElementById('payment-plan-modal');
-                        const paymentPlanTitle = paymentPlanModal?.querySelector('.modal-header h3');
-                        if (paymentPlanTitle) {
-                            paymentPlanTitle.textContent = `Аренда #${rental.id}: действия и план платежей`;
-                        }
                         paymentPlanModal.classList.remove('hidden');
                     } catch (err) {
                         alert('Ошибка загрузки плана платежей: ' + err.message);
@@ -1864,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', () => {
             notifyOverdueRentals(data || []);
 
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="8">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
     }
 
@@ -1881,78 +1796,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentRentalBatteries = [];
 
-    const rentalActionsInline = document.getElementById('rental-actions-inline');
+    // Модалка действий с арендой
+    const rentalActionsModal = document.getElementById('rental-actions-modal');
+    const rentalActionsCloseBtn = document.getElementById('rental-actions-close-btn');
+    const rentalActionsContent = document.getElementById('rental-actions-content');
 
-    function populateRentalActionButtons(rentalData) {
-        if (!rentalActionsInline) return;
-
-        rentalActionsInline.innerHTML = '';
-
-        const planButton = document.createElement('button');
-        planButton.type = 'button';
-        planButton.className = 'btn btn-secondary scroll-payment-plan-btn';
-        planButton.style.width = '100%';
-        planButton.textContent = 'План платежей';
-        rentalActionsInline.appendChild(planButton);
-
-        const editButton = document.createElement('button');
-        editButton.className = 'btn btn-primary edit-rental-btn';
-        editButton.style.width = '100%';
-        editButton.textContent = 'Редактировать аренду';
-        editButton.dataset.id = rentalData.id;
-        rentalActionsInline.appendChild(editButton);
-
-        const contractUrl = rentalData.extra_data?.contract_document_url;
-        if (contractUrl) {
-            const contractLink = document.createElement('a');
-            contractLink.href = `/api/router?endpoint=view-document&rental=${rentalData.id}&type=contract`;
-            contractLink.target = '_blank';
-            contractLink.rel = 'noopener noreferrer';
-            contractLink.className = 'btn btn-secondary';
-            contractLink.style.width = '100%';
-            contractLink.style.textAlign = 'center';
-            contractLink.textContent = 'Акт приёма';
-            rentalActionsInline.appendChild(contractLink);
-        }
-
-        const returnUrl = rentalData.extra_data?.return_act_url;
-        if (returnUrl) {
-            const returnLink = document.createElement('a');
-            returnLink.href = `/api/router?endpoint=view-document&rental=${rentalData.id}&type=return_act`;
-            returnLink.target = '_blank';
-            returnLink.rel = 'noopener noreferrer';
-            returnLink.className = 'btn btn-secondary';
-            returnLink.style.width = '100%';
-            returnLink.style.textAlign = 'center';
-            returnLink.textContent = 'Акт сдачи';
-            rentalActionsInline.appendChild(returnLink);
-        }
-
-        if (rentalData.status === 'active') {
-            const endButton = document.createElement('button');
-            endButton.className = 'btn btn-danger end-rental-btn';
-            endButton.style.width = '100%';
-            endButton.textContent = 'Завершить аренду';
-            endButton.dataset.id = rentalData.id;
-            rentalActionsInline.appendChild(endButton);
-        }
+    if (rentalActionsCloseBtn) {
+        rentalActionsCloseBtn.addEventListener('click', () => {
+            rentalActionsModal.classList.add('hidden');
+        });
     }
 
-    if (rentalActionsInline) {
-        rentalActionsInline.addEventListener('click', async (e) => {
-            const scrollBtn = e.target.closest('.scroll-payment-plan-btn');
-            if (scrollBtn) {
-                const paymentPlanContent = document.getElementById('payment-plan-content');
-                if (paymentPlanContent) {
-                    paymentPlanContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-                return;
+    if (rentalActionsModal) {
+        rentalActionsModal.addEventListener('click', (e) => {
+            if (e.target === rentalActionsModal) {
+                rentalActionsModal.classList.add('hidden');
             }
+        });
+    }
 
-            const editBtn = e.target.closest('.edit-rental-btn');
-            if (editBtn) {
-                const rentalId = editBtn.dataset.id;
-
+    // Обработчик кликов внутри модалки действий
+    if (rentalActionsContent) {
+        rentalActionsContent.addEventListener('click', async (e) => {
+            const target = e.target;
+            
+            // Если кликнули на кнопку редактирования
+            if (target.classList.contains('edit-rental-btn')) {
+                const rentalId = target.dataset.id;
+                rentalActionsModal.classList.add('hidden');
+                
+                // Открываем модалку редактирования
                 try {
                     const { data: rentalData, error: rentalError } = await supabase
                         .from('rentals')
@@ -1989,6 +1862,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         rentalEndDateInput.value = date.toISOString().slice(0, 16);
                     }
 
+                    // Загружаем АКБ для этой аренды
                     const { data: batteries, error: battError } = await supabase
                         .from('rental_batteries')
                         .select('battery_id, batteries(serial_number)')
@@ -2006,28 +1880,291 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (err) {
                     alert('Ошибка загрузки данных аренды: ' + err.message);
                 }
+            }
+            // Если кликнули на кнопку завершения
+            else if (target.classList.contains('end-rental-btn')) {
+                const rentalId = target.dataset.id;
+                rentalActionsModal.classList.add('hidden');
+                
+                if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
+                    try {
+                        const { error } = await supabase
+                            .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
+                        if (error) throw error;
+                        alert('Аренда завершена!');
+                        loadRentals();
+                    } catch (err) {
+                        alert('Ошибка завершения аренды: ' + err.message);
+                    }
+                }
+            }
+            // Для ссылок - просто закрываем модалку
+            else if (target.tagName === 'A') {
+                rentalActionsModal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (rentalsTableBody) {
+        rentalsTableBody.addEventListener('click', async (e) => {
+            const actionsBtn = e.target.closest('.rental-actions-btn');
+            const editBtn = e.target.closest('.edit-rental-btn');
+            const endBtn = e.target.closest('.end-rental-btn');
+
+            // --- ОБРАБОТЧИК КНОПКИ "ДЕЙСТВИЯ" (НОВАЯ МОДАЛКА) ---
+            if (actionsBtn) {
+                const rentalId = actionsBtn.dataset.rentalId;
+                const rentalStatus = actionsBtn.dataset.rentalStatus;
+                const contractUrl = actionsBtn.dataset.contractUrl;
+                const returnUrl = actionsBtn.dataset.returnUrl;
+
+                // Очищаем содержимое модалки
+                rentalActionsContent.innerHTML = '';
+
+                // Кнопка "Редактировать"
+                const editButton = document.createElement('button');
+                editButton.className = 'btn btn-primary';
+                editButton.style.width = '100%';
+                editButton.textContent = 'Редактировать аренду';
+                editButton.dataset.id = rentalId;
+                editButton.classList.add('edit-rental-btn');
+                rentalActionsContent.appendChild(editButton);
+
+                // Ссылки на документы
+                if (contractUrl) {
+                    const contractLink = document.createElement('a');
+                    // Используем endpoint для просмотра документа
+                    contractLink.href = `/api/router?endpoint=view-document&rental=${rentalId}&type=contract`;
+                    contractLink.target = '_blank';
+                    contractLink.className = 'btn btn-secondary';
+                    contractLink.style.width = '100%';
+                    contractLink.style.textAlign = 'center';
+                    contractLink.textContent = 'Акт приёма';
+                    rentalActionsContent.appendChild(contractLink);
+                }
+
+                if (returnUrl) {
+                    const returnLink = document.createElement('a');
+                    // Используем endpoint для просмотра документа
+                    returnLink.href = `/api/router?endpoint=view-document&rental=${rentalId}&type=return_act`;
+                    returnLink.target = '_blank';
+                    returnLink.className = 'btn btn-secondary';
+                    returnLink.style.width = '100%';
+                    returnLink.style.textAlign = 'center';
+                    returnLink.textContent = 'Акт сдачи';
+                    rentalActionsContent.appendChild(returnLink);
+                }
+
+                // Кнопка "Завершить"
+                if (rentalStatus === 'active') {
+                    const endButton = document.createElement('button');
+                    endButton.className = 'btn btn-danger';
+                    endButton.style.width = '100%';
+                    endButton.textContent = 'Завершить аренду';
+                    endButton.dataset.id = rentalId;
+                    endButton.classList.add('end-rental-btn');
+                    rentalActionsContent.appendChild(endButton);
+                }
+
+                // Открываем модалку
+                rentalActionsModal.classList.remove('hidden');
                 return;
             }
 
-            const endBtn = e.target.closest('.end-rental-btn');
+            // --- ОБРАБОТЧИК КНОПКИ "РЕДАКТИРОВАТЬ" ---
+            if (editBtn) {
+                const rentalId = editBtn.dataset.id;
+                try {
+                    const { data: rentalData, error: rentalError } = await supabase
+                        .from('rentals')
+                        .select('*, bikes(*)')
+                        .eq('id', rentalId)
+                        .single();
+                    if (rentalError) throw rentalError;
+
+                    const { data: availableBikes, error: bikesError } = await supabase
+                        .from('bikes')
+                        .select('*')
+                        .eq('status', 'available');
+                    if (bikesError) throw bikesError;
+
+                    rentalBikeSelect.innerHTML = '';
+                    if (rentalData.bikes) {
+                        const currentBikeOption = new Option(`${rentalData.bikes.model_name} (#${rentalData.bikes.bike_code}) - Текущий`, rentalData.bike_id);
+                        rentalBikeSelect.add(currentBikeOption);
+                    }
+                    availableBikes.forEach(bike => {
+                        if (bike.id !== rentalData.bike_id) {
+                            const option = new Option(`${bike.model_name} (#${bike.bike_code})`, bike.id);
+                            rentalBikeSelect.add(option);
+                        }
+                    });
+
+                    rentalIdInput.value = rentalData.id;
+                    rentalBikeSelect.value = rentalData.bike_id;
+                    rentalStatusSelect.value = rentalData.status;
+
+                    if (rentalData.current_period_ends_at) {
+                        const date = new Date(rentalData.current_period_ends_at);
+                        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+                        rentalEndDateInput.value = date.toISOString().slice(0, 16);
+                    }
+
+                    // Загружаем АКБ для этой аренды
+                    const { data: batteries, error: battError } = await supabase
+                        .from('rental_batteries')
+                        .select('battery_id, batteries(serial_number)')
+                        .eq('rental_id', rentalId);
+
+                    if (!battError && batteries) {
+                        currentRentalBatteries = batteries.map(b => ({
+                            id: b.battery_id,
+                            serial: b.batteries?.serial_number || 'Неизвестно'
+                        }));
+                        renderRentalBatteriesList();
+                    }
+
+                    rentalEditModal.classList.remove('hidden');
+                } catch (err) {
+                    alert('Ошибка загрузки данных аренды: ' + err.message);
+                }
+            }
+
+            // --- ОБРАБОТЧИК КНОПКИ "ЗАВЕРШИТЬ" ---
             if (endBtn) {
                 const rentalId = endBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
                     try {
                         const { error } = await supabase
-                            .from('rentals')
-                            .update({ status: 'completed_by_admin' })
-                            .eq('id', rentalId);
+                            .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
                         if (error) throw error;
-                        alert('Аренда завершена!');
+                        alert('Аренда успешно завершена.');
                         loadRentals();
-                        const paymentPlanModalEl = document.getElementById('payment-plan-modal');
-                        if (paymentPlanModalEl) {
-                            paymentPlanModalEl.classList.add('hidden');
-                        }
                     } catch (err) {
                         alert('Ошибка завершения аренды: ' + err.message);
                     }
+                }
+            }
+        });
+    }
+
+    // Функция отображения списка АКБ
+    function renderRentalBatteriesList() {
+        if (!rentalEditBatteriesList) return;
+
+        if (currentRentalBatteries.length === 0) {
+            rentalEditBatteriesList.innerHTML = '<p style="color: #666; font-size: 14px;">АКБ не назначены</p>';
+        } else {
+            rentalEditBatteriesList.innerHTML = currentRentalBatteries.map(b =>
+                `<div style="padding: 8px 12px; background: var(--card-bg); border-radius: 6px; border: 1px solid var(--progress-bar-bg);">
+                    <strong>АКБ:</strong> ${b.serial}
+                </div>`
+            ).join('');
+        }
+    }
+
+    // Обработчик кнопки "Изменить АКБ"
+    if (rentalEditChangeBatteriesBtn) {
+        rentalEditChangeBatteriesBtn.addEventListener('click', async () => {
+            const rentalId = rentalIdInput.value;
+            if (!rentalId) return;
+
+            // Открываем существующее модальное окно выбора АКБ
+            if (assignBatteriesModal && assignBatteriesRentalIdInput) {
+                assignBatteriesRentalIdInput.value = rentalId;
+
+                // Получаем текущий велосипед аренды
+                const currentBikeId = rentalBikeSelect.value;
+                
+                // Загружаем доступные АКБ
+                try {
+                    const { data: batteries, error } = await supabase
+                        .from('batteries')
+                        .select('*')
+                        .eq('status', 'available');
+
+                    if (error) throw error;
+
+                    if (batterySelectList) {
+                        batterySelectList.innerHTML = '';
+                        // Ограничиваем отображение до 5 АКБ
+                        const limitedBatteries = batteries.slice(0, 5);
+                        limitedBatteries.forEach(battery => {
+                            const label = document.createElement('label');
+                            label.className = 'battery-checkbox-item';
+                            label.innerHTML = `
+                                <input type="checkbox" name="battery" value="${battery.id}">
+                                <span>${battery.serial_number} (${battery.capacity_wh || 'N/A'} Wh)</span>
+                            `;
+                            batterySelectList.appendChild(label);
+                        });
+
+                        // Показываем сообщение если АКБ больше 5
+                        if (batteries.length > 5) {
+                            const hint = document.createElement('p');
+                            hint.style.cssText = 'color: #666; font-size: 13px; margin: 10px 0 0 0; text-align: center;';
+                            hint.textContent = `Показано 5 из ${batteries.length} АКБ. Используйте поиск для фильтрации.`;
+                            batterySelectList.appendChild(hint);
+                        }
+                    }
+
+                    // Добавляем динамический поиск
+                    const searchInput = document.getElementById('battery-search-in-modal');
+                    if (searchInput) {
+                        // Сбрасываем значение поиска
+                        searchInput.value = '';
+
+                        // Удаляем старые обработчики (если есть)
+                        const newSearchInput = searchInput.cloneNode(true);
+                        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+
+                        // Добавляем новый обработчик
+                        newSearchInput.addEventListener('input', () => {
+                            const query = newSearchInput.value.toLowerCase().trim();
+                            batterySelectList.querySelectorAll('label').forEach(label => {
+                                const text = label.textContent.toLowerCase();
+                                label.style.display = text.includes(query) ? 'block' : 'none';
+                            });
+                        });
+                    }
+
+                    // ВАЖНО: Загружаем текущий велосипед и автоматически выбираем его
+                    if (batteryModalBikeSelect && currentBikeId) {
+                        // Получаем информацию о текущем велосипеде
+                        const { data: currentBike, error: bikeError } = await supabase
+                            .from('bikes')
+                            .select('*')
+                            .eq('id', currentBikeId)
+                            .single();
+                        
+                        if (!bikeError && currentBike) {
+                            // Заполняем select текущим велосипедом
+                            batteryModalBikeSelect.innerHTML = '';
+                            const option = document.createElement('option');
+                            option.value = currentBike.id;
+                            option.textContent = `${currentBike.model_name} (#${currentBike.bike_code}) - Текущий`;
+                            batteryModalBikeSelect.appendChild(option);
+                            batteryModalBikeSelect.value = currentBike.id;
+                            
+                            // Скрываем блок выбора велосипеда
+                            const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
+                            if (bikeSelectGroup) {
+                                bikeSelectGroup.style.display = 'none';
+                            }
+                        }
+                    }
+
+                    // Изменяем заголовок модального окна
+                    const modalTitle = assignBatteriesModal.querySelector('.modal-header h3');
+                    if (modalTitle) {
+                        modalTitle.textContent = 'Изменить аккумуляторы';
+                    }
+
+                    assignBatteriesModal.classList.remove('hidden');
+                    rentalEditModal.classList.add('hidden');
+
+                } catch (err) {
+                    alert('Ошибка загрузки АКБ: ' + err.message);
                 }
             }
         });
@@ -2865,7 +3002,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const query = window.dbClient
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
-                .in('status', ['awaiting_battery_assignment', 'pending_return'])
+                .in('status', ['pending_assignment', 'awaiting_battery_assignment', 'awaiting_contract_signing', 'pending_return'])
                 .order('created_at', { ascending: true });
 
             const { data, error } = await query;
@@ -2900,6 +3037,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
                 } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ОЖИДАЕТ АКБ
                     actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
+                } else if (assignment.status === 'awaiting_contract_signing') { // <-- ОЖИДАЕТ ПОДПИСАНИЯ
+                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
+                } else { // 'pending_assignment'
+                    actionButton = `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать вел.</button>`;
                 }
 
                 tr.innerHTML = `
@@ -2909,6 +3050,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
                     <td class="table-actions">
                         ${actionButton}
+                        ${assignment.status === 'pending_assignment' ? `<button class="btn btn-secondary reject-rental-btn" data-rental-id="${assignment.id}" style="background-color: #fff1f2; color: #e53e3e;">Отклонить</button>` : ''}
                     </td>
                 `;
                 assignmentsTableBody.appendChild(tr);
