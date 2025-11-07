@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (imageViewerOverlay && imageViewerImg) {
                                     imageViewerImg.src = url;
                                     viewerIndex = viewerImages.indexOf(url);
-                                    showModal(imageViewerOverlay);
+                                    imageViewerOverlay.classList.remove('hidden');
                                 }
                             });
 
@@ -801,14 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
         addExtensionBtn.addEventListener('click', () => addExtensionRow());
     }
 
-    // --- Универсальная функция для открытия модалок с принудительным reflow ---
-    function showModal(modalElement) {
-        if (!modalElement) return;
-        modalElement.classList.remove('hidden');
-        // Принудительный reflow - заставляет браузер немедленно перерисовать DOM
-        void modalElement.offsetHeight;
-    }
-
     // --- Authentication and Navigation ---
 
     async function checkSession() {
@@ -853,9 +845,6 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(bookingUpdateInterval);
             bookingUpdateInterval = null;
         }
-
-        // Закрываем ВСЕ модалки при смене секции
-        document.querySelectorAll('.overlay').forEach(overlay => overlay.classList.add('hidden'));
 
         // Скрываем все секции
         document.querySelectorAll('.admin-section').forEach(sec => sec.classList.add('hidden'));
@@ -988,7 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p style="font-size: 0.9rem; color: #888; margin: 0;">${data.short_description || ''}</p>
                 </div>
             `;
-            showModal(document.getElementById('tariff-preview-modal'));
+            document.getElementById('tariff-preview-modal').classList.remove('hidden');
         } catch (err) {
             alert('Ошибка предпросмотра: ' + err.message);
         }
@@ -1008,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="white-space: pre-wrap;">${data.description || ''}</div>
                 </div>
             `;
-            showModal(document.getElementById('tariff-preview-modal'));
+            document.getElementById('tariff-preview-modal').classList.remove('hidden');
         } catch (err) {
             alert('Ошибка предпросмотра: ' + err.message);
         }
@@ -1048,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const amount = refundBtn.dataset.amount;
                 refundPaymentIdInput.value = paymentId;
                 refundAmountInput.value = amount;
-                showModal(refundModal);
+                refundModal.classList.remove('hidden');
                 return;
             }
 
@@ -1114,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ` : ''}
         `;
 
-        showModal(paymentDetailsModal);
+        paymentDetailsModal.classList.remove('hidden');
     }
 
     // Close payment details modal
@@ -1290,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showBatteryModal(battery = null) {
         currentBatteryStep = 1;
-        showModal(batteryModal);
+        batteryModal.classList.remove('hidden');
 
         if (battery) {
             batteryModalTitle.textContent = 'Редактировать аккумулятор';
@@ -1862,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (paymentPlanTitle) {
                             paymentPlanTitle.textContent = `Аренда #${rental.id}: действия и план платежей`;
                         }
-                        showModal(paymentPlanModal);
+                        paymentPlanModal.classList.remove('hidden');
                     } catch (err) {
                         alert('Ошибка загрузки плана платежей: ' + err.message);
                     }
@@ -2013,7 +2002,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         renderRentalBatteriesList();
                     }
 
-                    showModal(rentalEditModal);
+                    rentalEditModal.classList.remove('hidden');
                 } catch (err) {
                     alert('Ошибка загрузки данных аренды: ' + err.message);
                 }
@@ -2490,8 +2479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const clientId = viewBtn.dataset.id;
                 await renderClientInfo(clientId);
                 clientInfoOverlay.classList.remove('hidden');
-                // Принудительный reflow - заставляет браузер перерисовать DOM
-                void clientInfoOverlay.offsetHeight;
             }
         });
     }
@@ -2556,7 +2543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentEditingId && balanceModal) {
                 balanceClientIdInput.value = currentEditingId;
                 if (clientInfoOverlay) clientInfoOverlay.classList.add('hidden');
-                showModal(balanceModal);
+                balanceModal.classList.remove('hidden');
             } else {
                 alert('Сначала выберите клиента.');
             }
@@ -2822,13 +2809,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (addTagFooterBtn) {
         addTagFooterBtn.addEventListener('click', () => {
-            showModal(document.getElementById('add-tag-modal'));
+            document.getElementById('add-tag-modal').classList.remove('hidden');
         });
     }
 
     if (addNoteFooterBtn) {
         addNoteFooterBtn.addEventListener('click', () => {
-            showModal(document.getElementById('add-note-modal'));
+            document.getElementById('add-note-modal').classList.remove('hidden');
         });
     }
 
@@ -3091,7 +3078,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    showModal(assignBikeModal);
+                    assignBikeModal.classList.remove('hidden');
                 } catch (err) {
                     alert('Не удалось загрузить список свободных велосипедов: ' + err.message);
                 }
@@ -3142,7 +3129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (serviceReasonGroup) serviceReasonGroup.classList.add('hidden');
 
                     // 3. Показываем модальное окно
-                    showModal(returnModal);
+                    returnModal.classList.remove('hidden');
                 } else {
                     console.error('Модальное окно для приемки не найдено!');
                     alert('Ошибка: не удалось открыть окно приемки велосипеда.');
@@ -3252,7 +3239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         modalTitle.textContent = 'Выберите велосипед и аккумуляторы';
                     }
 
-                    showModal(assignBatteriesModal);
+                    assignBatteriesModal.classList.remove('hidden');
             
                     // Load available bikes
                     try {
@@ -3344,7 +3331,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // Если была открыта форма редактирования аренды, возвращаемся к ней
             if (rentalEditModal && rentalIdInput && rentalIdInput.value) {
-                showModal(rentalEditModal);
+                rentalEditModal.classList.remove('hidden');
             }
         });
     }
@@ -3451,7 +3438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // Возвращаемся к окну редактирования аренды
-                    showModal(rentalEditModal);
+                    rentalEditModal.classList.remove('hidden');
                     loadRentals(); // Обновляем список аренд
 
                 } else {
@@ -3573,7 +3560,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 invoiceClientIdInput.value = currentEditingId;
                 // It's better to hide the info overlay before showing the invoice one
                 if (clientInfoOverlay) clientInfoOverlay.classList.add('hidden');
-                showModal(invoiceModal);
+                invoiceModal.classList.remove('hidden');
             } else {
                 alert('Сначала выберите клиента для выставления счета.');
             }
@@ -3762,7 +3749,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Open modal
     if (addClientBtn) {
         addClientBtn.addEventListener('click', () => {
-            showModal(addClientModal);
+            addClientModal.classList.remove('hidden');
             addClientForm.reset();
             currentClientStep = 1;
             updateClientStepDisplay();
@@ -4244,7 +4231,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tariffAddBtn) {
             tariffAddBtn.addEventListener('click', () => {
                 resetTariffModal();
-                showModal(tariffModal);
+                tariffModal.classList.remove('hidden');
             });
         }
 
@@ -4382,7 +4369,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 showTariffStep(1);
-                showModal(tariffModal);
+                tariffModal.classList.remove('hidden');
 
             } catch (err) {
                 alert('Ошибка загрузки тарифа: ' + err.message);
@@ -4458,7 +4445,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bikeAddBtn) {
             bikeAddBtn.addEventListener('click', () => {
                 resetBikeModal();
-                showModal(bikeModal);
+                bikeModal.classList.remove('hidden');
             });
         }
 
@@ -4563,7 +4550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 bikeTariffSelect.value = data.tariff_id || '';
 
                 showBikeStep(1);
-                showModal(bikeModal);
+                bikeModal.classList.remove('hidden');
 
             } catch (err) {
                 alert('Ошибка загрузки велосипеда: ' + err.message);
@@ -4776,7 +4763,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const editorElement = document.getElementById('template-editor');
         if (!editorElement) return;
         templatePreviewContent.innerHTML = editorElement.innerHTML;
-        showModal(templatePreviewOverlay);
+        templatePreviewOverlay.classList.remove('hidden');
     }
     function closeTemplatePreview() { if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
     if (templatePreviewBtn) templatePreviewBtn.addEventListener('click', openTemplatePreview);
@@ -4954,7 +4941,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        showModal(clientViewTariffDetailModal);
+        clientViewTariffDetailModal.classList.remove('hidden');
     }
 
     // Обработчики закрытия модальных окон
@@ -5031,7 +5018,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (setupBookingCostBtn) {
         setupBookingCostBtn.addEventListener('click', () => {
             loadBookingCost();
-            showModal(bookingCostModal);
+            bookingCostModal.classList.remove('hidden');
         });
     }
 
