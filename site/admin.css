@@ -1196,22 +1196,6 @@ select:focus::placeholder {
   /* Принудительно устанавливаем полную высоту */
 }
 
-/* Базовый z-index для всех модалок - должны быть над overlay (3000) */
-.modal {
-  z-index: 3050;
-}
-
-/* Повышенный z-index для модалок редактирования, чтобы они были над основной модалкой аренды */
-#rental-edit-modal,
-#assign-bike-modal,
-#assign-batteries-modal,
-#return-process-modal,
-#bike-modal,
-#battery-modal,
-#tariff-modal {
-  z-index: 3100 !important;
-}
-
 .overlay:not(.hidden) {
   opacity: 1;
   visibility: visible;
@@ -2041,7 +2025,6 @@ select:focus::placeholder {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 24px;
 }
 
 #admin-nav button {
@@ -2063,6 +2046,8 @@ select:focus::placeholder {
 #admin-nav button:hover svg,
 #admin-nav button.active svg {
     color: var(--accent-2); /* Darker icon color on hover/active */
+}
+  margin-bottom: 24px;
 }
 
 .tariff-option-item {

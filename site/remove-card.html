@@ -271,13 +271,13 @@
 
                 console.log('All clients:', response);
 
-                if (!response || !Array.isArray(response)) {
+                if (!response || !response.data) {
                     showStatus('Не удалось загрузить клиентов', 'error');
                     showLoading(false);
                     return;
                 }
 
-                allClientsData = response;
+                allClientsData = response.data;
                 
                 // Фильтруем клиентов с картами
                 const clientsWithCards = allClientsData.filter(client => 
@@ -325,13 +325,13 @@
 
                 console.log('Client data:', response);
 
-                if (!response) {
+                if (!response || !response.data) {
                     showStatus('Клиент не найден', 'error');
                     showLoading(false);
                     return;
                 }
 
-                userData = response;
+                userData = response.data;
 
                 // Показываем информацию о картах
                 displayCardInfo(userData);
@@ -488,7 +488,7 @@
                     data: {
                         yookassa_payment_method_id: null,
                         autopay_enabled: false,
-                        extra: {}
+                        extra: '{}'::jsonb
                     }
                 });
 

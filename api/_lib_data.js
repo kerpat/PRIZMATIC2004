@@ -347,7 +347,7 @@ module.exports = async (req, res) => {
             // ===== КЛИЕНТЫ =====
             case 'get-client':
                 result = await query(
-                    'SELECT id, name, phone, verification_status, balance_rub, city, yookassa_payment_method_id, autopay_enabled, extra FROM clients WHERE id = $1',
+                    'SELECT id, name, verification_status, balance_rub, city, yookassa_payment_method_id, extra FROM clients WHERE id = $1',
                     [params.userId]
                 );
                 if (result.data && result.data.length > 0) {
