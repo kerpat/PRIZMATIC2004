@@ -111,7 +111,7 @@ public class PaymentActivity extends Activity {
         
         // 💾 Кэширование для стабильности
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setAppCacheEnabled(false); // Отключаем app cache (deprecated)
+        // App cache deprecated и удален из Android API
         
         Log.d(TAG, "✅ WebSettings настроены для 3DS");
         Log.d(TAG, "🎭 User-Agent: " + settings.getUserAgentString());

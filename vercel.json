@@ -93,6 +93,10 @@
       "destination": "/api/router?endpoint=upload-support-attachment"
     },
     {
+      "source": "/api/storage-download",
+      "destination": "/api/router?endpoint=storage-download"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/site/$1"
     }

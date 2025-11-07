@@ -24,6 +24,7 @@ const viewDocumentHandler = require('./_lib_view-document');
 const realtimeHandler = require('./_lib_realtime');
 const uploadSupportAttachmentHandler = require('./_lib_upload-support-attachment');
 const supportAttachmentHandler = require('./_lib_support-attachment');
+const storageDownloadHandler = require('./_lib_storage_download');
 
 module.exports = async (req, res) => {
     // CORS
@@ -129,6 +130,9 @@ module.exports = async (req, res) => {
 
             case 'support-attachment':
                 return supportAttachmentHandler(req, res);
+
+            case 'storage-download':
+                return storageDownloadHandler(req, res);
 
             default:
                 return res.status(404).json({

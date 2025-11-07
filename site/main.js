@@ -527,10 +527,13 @@ async function handleExtendConfirm(event) {
         }
 
         if (response?.status === 'succeeded' || response?.status === 'pending') {
-            alert('Продление выполнено. Страница обновится автоматически.');
             closeModalById('extend-modal');
+            
+            // Ждем обработки webhook'ом
+            await new Promise(resolve => setTimeout(resolve, 3000));
             await refreshUser();
             await refreshRentalView();
+            alert('Продление выполнено успешно!');
             return;
         }
 
@@ -704,10 +707,33 @@ async function checkoutTariff(tariff, option, { trigger } = {}) {
         }
         
         // Если статус платежа "succeeded" или "pending", аренда может быть уже создана
+        // Это происходит при оплате с привязанной карты
         if (response?.status === 'succeeded' || response?.status === 'pending') {
-            showToast('rent-success-toast');
             closeModalById('tariff-detail-modal');
             closeModalById('tariff-modal');
+            
+            // Ждем создания аренды через webhook и SSE уведомление
+            // Проверяем каждые 500ms в течение 10 секунд
+            const maxAttempts = 20; // 10 секунд (20 * 500ms)
+            let attempt = 0;
+            
+            while (attempt < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                attempt++;
+                
+                // Проверяем, появилась ли аренда
+                const rental = await getActiveRental(state.user.id);
+                if (rental && rental.status === 'awaiting_battery_assignment') {
+                    console.log('[Main] Аренда создана webhook\'ом, обновляем UI');
+                    showToast('rent-success-toast');
+                    await refreshRentalView();
+                    return;
+                }
+            }
+            
+            // Если не дождались, все равно обновляем
+            console.warn('[Main] Не дождались создания аренды от webhook, обновляем UI');
+            showToast('rent-success-toast');
             await refreshRentalView();
             return;
         }
@@ -780,6 +806,8 @@ async function handleTopup(event) {
                 if (amountInput) {
                     amountInput.value = '';
                 }
+                // Даем время webhook'у обработать платеж
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 await refreshUser();
                 return;
             }
@@ -787,6 +815,8 @@ async function handleTopup(event) {
             if (normalizedStatus === 'waiting_for_capture' || normalizedStatus === 'pending') {
                 alert('Платёж отправлен на обработку. Пополнение появится на балансе в течение нескольких минут.');
                 closeModalById('topup-modal');
+                // Даем время webhook'у обработать платеж
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 await refreshUser();
                 return;
             }
