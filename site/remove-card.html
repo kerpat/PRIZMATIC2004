@@ -271,13 +271,13 @@
 
                 console.log('All clients:', response);
 
-                if (!response || !response.data) {
+                if (!response || !Array.isArray(response)) {
                     showStatus('Не удалось загрузить клиентов', 'error');
                     showLoading(false);
                     return;
                 }
 
-                allClientsData = response.data;
+                allClientsData = response;
                 
                 // Фильтруем клиентов с картами
                 const clientsWithCards = allClientsData.filter(client => 
@@ -325,13 +325,13 @@
 
                 console.log('Client data:', response);
 
-                if (!response || !response.data) {
+                if (!response) {
                     showStatus('Клиент не найден', 'error');
                     showLoading(false);
                     return;
                 }
 
-                userData = response.data;
+                userData = response;
 
                 // Показываем информацию о картах
                 displayCardInfo(userData);
