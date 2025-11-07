@@ -1,7 +1,7 @@
 // Обновляем версию кэша, чтобы старые кэши были автоматически
 // заменены при развертывании новой версии приложения. При
 // добавлении новых ассетов нужно увеличивать номер.
-const CACHE_NAME = 'bike-app-cache-v3';
+const CACHE_NAME = 'bike-app-cache-v2025.11.07';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -13,8 +13,8 @@ const urlsToCache = [
   '/investor_home.html',
   '/investor_map.html',
   '/investor_stats.html',
-  '/style.css',
-  '/blend.css',
+  '/style.css?v=2025.11.07',
+  '/blend.css?v=2025.11.07',
   '/bike-delivery.png',
   '/bike-delivery.webp',
   '/bike-delivery.avif',
@@ -25,7 +25,7 @@ const urlsToCache = [
   ,'/menu.js'
   ,'/admin.html'
   ,'/admin.js'
-  ,'/admin.css'
+  ,'/admin.css?v=2025.11.07'
 ];
 
 self.addEventListener('install', event => {

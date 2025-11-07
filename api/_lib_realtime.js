@@ -26,19 +26,23 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'userId is required' });
   }
 
-  // Проверяем существование пользователя
-  try {
-    console.log(`[Realtime] Verifying user with ID: ${userId}`);
-    const userQuery = await query('SELECT id FROM clients WHERE id = $1', [userId]);
-    console.log(`[Realtime] User query found ${userQuery.rowCount} rows.`);
+  // Проверяем существование пользователя (пропускаем проверку для админа)
+  if (userId !== 'admin') {
+    try {
+      console.log(`[Realtime] Verifying user with ID: ${userId}`);
+      const userQuery = await query('SELECT id FROM clients WHERE id = $1', [userId]);
+      console.log(`[Realtime] User query found ${userQuery.rowCount} rows.`);
 
-    if (userQuery.rowCount === 0) {
-      console.log(`[Realtime] User not found for ID: ${userId}. Returning 404.`);
-      return res.status(404).json({ error: 'User not found' });
+      if (userQuery.rowCount === 0) {
+        console.log(`[Realtime] User not found for ID: ${userId}. Returning 404.`);
+        return res.status(404).json({ error: 'User not found' });
+      }
+    } catch (error) {
+      console.error('Error checking user:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-  } catch (error) {
-    console.error('Error checking user:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+  } else {
+    console.log(`[Realtime] Admin connection allowed for ID: ${userId}`);
   }
 
   // Устанавливаем SSE заголовки
@@ -128,6 +132,48 @@ async function checkUserUpdates(connection) {
   const { userId } = connection;
 
   try {
+    // Для админа проверяем новые сообщения поддержки
+    if (userId === 'admin') {
+      const supportMessagesQuery = await query(`
+        SELECT id, client_id, anonymous_chat_id, message_text, sender, created_at
+        FROM support_messages
+        WHERE created_at > NOW() - INTERVAL '10 seconds'
+        ORDER BY created_at DESC
+        LIMIT 50
+      `);
+
+      for (const row of supportMessagesQuery.rows) {
+        updates.push({
+          type: 'support_message',
+          data: row,
+          client_id: row.client_id,
+          anonymous_chat_id: row.anonymous_chat_id,
+          timestamp: Date.now()
+        });
+      }
+
+      return updates;
+    }
+
+    // Для обычных пользователей - проверяем сообщения поддержки, адресованные им
+    const supportMessagesQuery = await query(`
+      SELECT id, client_id, anonymous_chat_id, message_text, sender, created_at
+      FROM support_messages
+      WHERE (client_id = $1 OR anonymous_chat_id = $1)
+      AND created_at > NOW() - INTERVAL '10 seconds'
+      AND sender = 'admin'
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [userId]);
+
+    for (const row of supportMessagesQuery.rows) {
+      updates.push({
+        type: 'support_message',
+        data: row,
+        timestamp: Date.now()
+      });
+    }
+
     // Проверяем изменения в аренде пользователя
     const rentalQuery = await query(`
       SELECT r.*, 

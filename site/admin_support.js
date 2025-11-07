@@ -286,6 +286,45 @@ document.addEventListener('DOMContentLoaded', () => {
         await sendAdminMessage(text);
     }
 
+    // SSE клиент для админа
+    let adminSSEClient = null;
+
+    function connectAdminSSE() {
+        if (typeof window.SSEClient !== 'undefined') {
+            // Используем специальный ID 'admin' для админского SSE подключения
+            adminSSEClient = new window.SSEClient('admin');
+            
+            adminSSEClient.on('support_message', async (data) => {
+                console.log('Получено новое сообщение поддержки в админке:', data);
+                // Обновляем список чатов
+                await loadChats();
+                // Если открыт чат, к которому пришло сообщение, обновляем историю
+                if (state.activeChatId) {
+                    const messageClientId = data.client_id || data.anonymous_chat_id;
+                    if (messageClientId === state.activeChatId) {
+                        await loadChatHistory({ id: state.activeChatId, isAnonymous: state.activeChatIsAnonymous });
+                    }
+                }
+            });
+            
+            adminSSEClient.on('connected', (data) => {
+                console.log('SSE соединение установлено в админке поддержки:', data);
+            });
+            
+            adminSSEClient.connect();
+        } else {
+            console.warn('SSEClient не доступен в админке, используем polling');
+            startPolling();
+        }
+    }
+
+    function disconnectAdminSSE() {
+        if (adminSSEClient) {
+            adminSSEClient.disconnect();
+            adminSSEClient = null;
+        }
+    }
+
     function startPolling() {
         stopPolling();
         state.pollTimer = setInterval(() => {
@@ -314,7 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderEmptyHistory('Выберите чат слева, чтобы начать переписку.');
         }
     });
-    startPolling();
+    
+    // Подключаемся к SSE для real-time обновлений
+    connectAdminSSE();
 
     if (sendBtn) {
         sendBtn.addEventListener('click', (event) => {
@@ -338,14 +379,56 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Функция сжатия изображений
+    async function compressImage(file, maxWidth = 1920, quality = 0.8) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Пропорциональное изменение размера
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        resolve(new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        }));
+                    }, 'image/jpeg', quality);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
     // Handle file uploads for admin support
     async function handleFileUpload(files) {
         if (!files || files.length === 0 || !state.activeChatId) return;
         
         for (const file of files) {
             try {
+                let processedFile = file;
+                
+                // Сжимаем изображения
+                if (file.type.startsWith('image/')) {
+                    processedFile = await compressImage(file);
+                }
+                
                 const formData = new FormData();
-                formData.append('file', file);
+                formData.append('file', processedFile);
                 if (!state.activeChatIsAnonymous) {
                     formData.append('clientId', state.activeChatId);
                 } else {
@@ -433,9 +516,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 bubble.innerHTML = `
                     <div class="chat-file-content">
                         <a href="${fileUrl}" target="_blank">
-                            <img src="${fileUrl}" alt="Вложение" class="chat-image-preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                            <img src="${fileUrl}" alt="Фото" class="chat-image-preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
                         </a>
-                        <div class="chat-file-name">Изображение</div>
                     </div>
                 `;
             } else if (isVideo) {
@@ -445,12 +527,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             <source src="${fileUrl}" type="video/${fileExtension}">
                             Ваш браузер не поддерживает видео.
                         </video>
-                        <div class="chat-file-name">Видео</div>
                     </div>
                 `;
             } else {
-                // For other file types, show a download link
-                const fileName = extractFileName(fileUrl);
+                // Определяем тип файла для отображения
+                let fileLabel = '📎 Файл';
+                if (['pdf'].includes(fileExtension)) {
+                    fileLabel = '📄 PDF';
+                } else if (['doc', 'docx'].includes(fileExtension)) {
+                    fileLabel = '📝 Документ';
+                } else if (['mp3', 'wav', 'ogg', 'm4a'].includes(fileExtension)) {
+                    fileLabel = '🎵 Аудио';
+                } else if (['zip', 'rar', '7z'].includes(fileExtension)) {
+                    fileLabel = '📦 Архив';
+                }
+                
                 bubble.innerHTML = `
                     <div class="chat-file-content">
                         <a href="${fileUrl}" target="_blank" class="chat-file-link" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f9fd; border-radius: 8px; text-decoration: none; color: #1CB5E0;">
@@ -459,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg>
-                            <span>${fileName}</span>
+                            <span>${fileLabel}</span>
                         </a>
                     </div>
                 `;
@@ -493,5 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.addEventListener('beforeunload', stopPolling);
+    window.addEventListener('beforeunload', () => {
+        disconnectAdminSSE();
+        stopPolling();
+    });
 });

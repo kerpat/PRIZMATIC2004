@@ -632,7 +632,18 @@ function addChatMessage(message) {
                 </div>
             `;
         } else {
-            const fileName = extractSupportFileName(text);
+            // Определяем тип файла для отображения
+            let fileLabel = '📎 Файл';
+            if (['pdf'].includes(fileExt)) {
+                fileLabel = '📄 PDF';
+            } else if (['doc', 'docx'].includes(fileExt)) {
+                fileLabel = '📝 Документ';
+            } else if (['mp3', 'wav', 'ogg', 'm4a'].includes(fileExt)) {
+                fileLabel = '🎵 Аудио';
+            } else if (['zip', 'rar', '7z'].includes(fileExt)) {
+                fileLabel = '📦 Архив';
+            }
+            
             contentHtml = `
                 <div class="chat-file-content">
                     <a href="${text}" target="_blank" class="chat-file-link">
@@ -641,7 +652,7 @@ function addChatMessage(message) {
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
-                        <span>${fileName}</span>
+                        <span>${fileLabel}</span>
                     </a>
                 </div>
             `;
@@ -751,13 +762,55 @@ function initializeSupportChat() {
     loadSupportMessages();
 }
 
+// Функция сжатия изображений
+async function compressImage(file, maxWidth = 1920, quality = 0.8) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Пропорциональное изменение размера
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    resolve(new File([blob], file.name, {
+                        type: 'image/jpeg',
+                        lastModified: Date.now(),
+                    }));
+                }, 'image/jpeg', quality);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 async function handleFileUpload(files) {
     if (!files || files.length === 0) return;
 
     for (const file of files) {
         try {
+            let processedFile = file;
+            
+            // Сжимаем изображения
+            if (file.type.startsWith('image/')) {
+                processedFile = await compressImage(file);
+            }
+            
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', processedFile);
             
             // Проверяем, что у нас есть либо userId, либо anonymousChatId
             if (state.userId) {
@@ -790,6 +843,19 @@ async function handleFileUpload(files) {
 
             const result = await response.json();
             if (result?.publicUrl) {
+                // Определяем тип файла и отправляем сразу без названия
+                let fileType = 'Файл';
+                if (file.type.startsWith('image/')) {
+                    fileType = '📷 Фото';
+                } else if (file.type.startsWith('video/')) {
+                    fileType = '🎥 Видео';
+                } else if (file.type.startsWith('audio/')) {
+                    fileType = '🎵 Аудио';
+                } else if (file.type === 'application/pdf') {
+                    fileType = '📄 PDF';
+                }
+                
+                // Отправляем URL как текст (будет отображаться как ссылка с типом файла)
                 await sendChatMessage(result.publicUrl);
             }
         } catch (error) {
@@ -1052,6 +1118,17 @@ function connectProfileSSE(userId) {
         profileSSEClient.on('balance_update', (data) => {
             console.log('Получено обновление баланса в профиле:', data);
             // Обновление баланса на странице профиля может реализоваться позже
+        });
+        
+        profileSSEClient.on('support_message', async (data) => {
+            console.log('Получено новое сообщение поддержки в профиле:', data);
+            // Обновляем чат, если модальное окно поддержки открыто
+            const supportModal = document.getElementById('support-modal');
+            if (supportModal && !supportModal.classList.contains('hidden')) {
+                await loadSupportMessages();
+            }
+            // Обновляем счетчик уведомлений
+            await updateNotifications();
         });
         
         profileSSEClient.on('connected', (data) => {
