@@ -421,36 +421,36 @@ document.addEventListener('DOMContentLoaded', () => {
             bike: {
                 'available': { text: 'Свободен', className: 'status-success' },
                 'rented': { text: 'В аренде', className: 'status-warning' },
-                'in_service': { text: 'В ремонте', className: 'status-error' },
-                'maintenance': { text: 'Обслуживание', className: 'status-info' },
+                'in_service': { text: 'Ремонт', className: 'status-error' },
+                'maintenance': { text: 'ТО', className: 'status-info' },
                 'out_of_order': { text: 'Неисправен', className: 'status-error' },
-                'reserved': { text: 'Зарезервирован', className: 'status-info' },
+                'reserved': { text: 'Резерв', className: 'status-info' },
                 'unavailable': { text: 'Недоступен', className: 'status-neutral' }
             },
             rental: {
                 'active': { text: 'Активна', className: 'status-success' },
-                'awaiting_battery_assignment': { text: 'Ожидает АКБ', className: 'status-warning' },
-                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' },
-                'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
-                'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
-                'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },
+                'awaiting_battery_assignment': { text: 'Ждет АКБ', className: 'status-warning' },
+                'awaiting_contract_signing': { text: 'Ждет подпись', className: 'status-warning' },
+                'completed_by_admin': { text: 'Завершил адм.', className: 'status-info' },
+                'pending_assignment': { text: 'Ждет велик', className: 'status-warning' },
+                'pending_return': { text: 'Ждет сдачу', className: 'status-warning' },
                 'completed': { text: 'Завершена', className: 'status-neutral' },
                 'rejected': { text: 'Отклонена', className: 'status-error' },
-                'awaiting_return_signature': { text: 'Ожидает подписи акта', className: 'status-warning' }
+                'awaiting_return_signature': { text: 'Ждет подп. акт', className: 'status-warning' }
             },
             client: {
                 'approved': { text: 'Одобрен', className: 'status-success' },
                 'rejected': { text: 'Отклонен', className: 'status-error' },
-                'pending': { text: 'На проверке', className: 'status-warning' },
-                'needs_confirmation': { text: 'Требует подтверждения', className: 'status-warning' },
+                'pending': { text: 'Проверяется', className: 'status-warning' },
+                'needs_confirmation': { text: 'Ждет подтв.', className: 'status-warning' },
                 'not_set': { text: 'Не задан', className: 'status-neutral' }
             },
             payment: {
                 'succeeded': { text: 'Успешно', className: 'status-success' },
-                'pending': { text: 'Ожидает', className: 'status-warning' },
+                'pending': { text: 'Ожидание', className: 'status-warning' },
                 'canceled': { text: 'Отменён', className: 'status-error' },
                 'failed': { text: 'Ошибка', className: 'status-error' },
-                'refunded': { text: 'Возвращено', className: 'status-neutral' }
+                'refunded': { text: 'Возврат', className: 'status-neutral' }
             },
             assignment: {
                 'pending_assignment': { text: 'Аренда', className: 'status-success' },
@@ -458,9 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             battery: {
                 'available': { text: 'Свободна', className: 'status-success' },
-                'in_use': { text: 'В использовании', className: 'status-warning' },
+                'in_use': { text: 'Использ.', className: 'status-warning' },
                 'damaged': { text: 'Повреждена', className: 'status-error' },
-                'maintenance': { text: 'Обслуживание', className: 'status-info' },
+                'maintenance': { text: 'ТО', className: 'status-info' },
                 'unavailable': { text: 'Недоступна', className: 'status-neutral' }
             }
         };
@@ -1677,15 +1677,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.querySelector('#rentals-table tbody');
         tbody.innerHTML = '<tr><td colspan="9">Загрузка...</td></tr>';
         try {
-            const statusRuMap = {
-                'active': 'Активна',
-                'awaiting_contract_signing': 'Ожидает подписания',
-                'completed_by_admin': 'Завершено админом',
-                'pending_assignment': 'Ожидает велосипед',
-                'completed': 'Завершена',
-                'rejected': 'Отклонена'
-            };
-
             const query = window.dbClient
                 .from('rentals')
                 .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone), rental_batteries(batteries(serial_number))')

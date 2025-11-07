@@ -583,10 +583,10 @@
           <div class="form-group">
             <label for="rental-edit-status">Статус</label>
             <select id="rental-edit-status" class="form-control">
-              <option value="awaiting_contract_signing">Ожидает подписания</option>
+              <option value="awaiting_contract_signing">Ждет подпись</option>
               <option value="active">Активна</option>
               <option value="completed">Завершена</option>
-              <option value="completed_by_admin">Завершено админом</option>
+              <option value="completed_by_admin">Завершил адм.</option>
               <option value="rejected">Отклонена</option>
             </select>
           </div>
@@ -886,9 +886,9 @@
             <select id="bike-status" class="form-control" required>
               <option value="available">Свободен</option>
               <option value="rented">В аренде</option>
-              <option value="reserved">Зарезервирован</option>
-              <option value="in_service">На обслуживании</option>
-              <option value="maintenance">Обслуживание</option>
+              <option value="reserved">Резерв</option>
+              <option value="in_service">Ремонт</option>
+              <option value="maintenance">ТО</option>
               <option value="out_of_order">Неисправен</option>
               <option value="unavailable">Недоступен</option>
             </select>
@@ -971,10 +971,11 @@
           <div class="form-group" style="margin-bottom: 20px;">
             <label for="battery-status">Текущий статус</label>
             <select id="battery-status" class="form-control" required>
-              <option value="available">Свободен</option>
-              <option value="in_use">В аренде</option>
-              <option value="charging">На зарядке</option>
-              <option value="maintenance">На обслуживании</option>
+              <option value="available">Свободна</option>
+              <option value="in_use">Использ.</option>
+              <option value="damaged">Повреждена</option>
+              <option value="maintenance">ТО</option>
+              <option value="unavailable">Недоступна</option>
             </select>
             <small style="color: #666; margin-top: 5px; display: block;">Статус можно изменить позже</small>
           </div>
@@ -1478,11 +1479,11 @@
             <div class="form-group">
               <label for="new-client-status">Статус верификации</label>
               <select id="new-client-status" class="form-control">
-                <option value="pending">Ожидает проверки</option>
+                <option value="pending">Проверяется</option>
                 <option value="approved">Одобрен</option>
                 <option value="rejected">Отклонен</option>
-                <option value="pending_ocr">Ожидает OCR</option>
-                <option value="ocr_complete">OCR завершен</option>
+                <option value="pending_ocr">Ждет OCR</option>
+                <option value="ocr_complete">OCR готов</option>
               </select>
             </div>
             
