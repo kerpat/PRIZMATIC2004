@@ -595,16 +595,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
-                    // 2. Ищем папку в Storage
-                    const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(folderId));
-                    if (fErr) throw fErr;
+                    // 2. Получаем список файлов из MinIO через API
+                    const listResponse = await fetch('/api/admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'list-storage-files',
+                            bucket: 'passports',
+                            prefix: String(folderId)
+                        })
+                    });
+                    
+                    if (!listResponse.ok) {
+                        throw new Error(`Failed to list files: ${listResponse.status}`);
+                    }
+                    
+                    const listData = await listResponse.json();
+                    const files = listData.files || [];
 
                     // Фильтруем системные файлы
-                    const realFiles = files ? files.filter(f => 
+                    const realFiles = files.filter(f => 
                         f.name && 
                         !f.name.startsWith('.') && 
                         f.name !== '.emptyFolderPlaceholder'
-                    ) : [];
+                    );
 
                     console.log(`[Load Photos] Found ${realFiles.length} files:`, realFiles.map(f => f.name));
 
@@ -613,8 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         viewerImages = [];
                     } else {
                         photosDiv.innerHTML = '';
-                        // 3. Строим публичные URL
-                        viewerImages = realFiles.map(f => supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`).data.publicUrl);
+                        // 3. Строим публичные URL через наш API
+                        viewerImages = realFiles.map(f => {
+                            const filePath = `${folderId}/${f.name}`;
+                            return `/api/storage-download?bucket=passports&path=${encodeURIComponent(filePath)}`;
+                        });
 
                         viewerIndex = 0;
                         viewerImages.forEach(u => {
@@ -634,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         // Add video if exists
                         if (client?.extra?.video_selfie_storage_path) {
-                            const videoUrl = supabase.storage.from('passports').getPublicUrl(client.extra.video_selfie_storage_path).data.publicUrl;
+                            const videoUrl = `/api/storage-download?bucket=passports&path=${encodeURIComponent(client.extra.video_selfie_storage_path)}`;
                             const video = document.createElement('video');
                             video.src = videoUrl;
                             video.controls = true;
