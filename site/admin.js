@@ -595,14 +595,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
-                    // 2. Получаем список файлов из MinIO через API
-                    // Важно: добавляем "/" в конец чтобы искать внутри папки, а не саму папку
+                    // 2. Получаем ВСЕ файлы из корня бакета passports (без prefix)
+                    // Потому что файлы сохраняются в корне, а не в папках по userId
                     const listResponse = await authedFetch('/api/admin', {
                         method: 'POST',
                         body: JSON.stringify({
                             action: 'list-storage-files',
                             bucket: 'passports',
-                            prefix: `${folderId}/`
+                            prefix: '' // Ищем в корне бакета
                         })
                     });
                     
@@ -611,17 +611,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     const listData = await listResponse.json();
-                    const files = listData.files || [];
+                    const allFiles = listData.files || [];
 
                     console.log(`[Load Photos] Raw API response:`, listData);
-                    console.log(`[Load Photos] Files before filter:`, files);
+                    console.log(`[Load Photos] All files in bucket:`, allFiles.length);
 
-                    // Фильтруем системные файлы
-                    const realFiles = files.filter(f => 
-                        f.name && 
-                        !f.name.startsWith('.') && 
-                        f.name !== '.emptyFolderPlaceholder'
-                    );
+                    // Фильтруем файлы которые относятся к этому userId
+                    // Имя файла содержит sanitized userId (дефисы заменены на подчеркивания)
+                    const sanitizedUserId = folderId.replace(/-/g, '_');
+                    
+                    const realFiles = allFiles.filter(f => {
+                        if (!f.name || f.name.startsWith('.') || f.name === '.emptyFolderPlaceholder') {
+                            return false;
+                        }
+                        // Проверяем что имя файла содержит userId (с дефисами или подчеркиваниями)
+                        return f.name.includes(folderId) || f.name.includes(sanitizedUserId);
+                    });
 
                     console.log(`[Load Photos] Found ${realFiles.length} files after filter:`, realFiles);
 
@@ -631,10 +636,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         photosDiv.innerHTML = '';
                         // 3. Строим публичные URL через наш API
-                        // Используем f.path который содержит полный путь включая папку
+                        // Файлы лежат в корне бакета, используем просто имя файла
                         viewerImages = realFiles.map(f => {
-                            const filePath = f.path || f.name; // path содержит полный путь, name - только имя файла
-                            return `/api/storage-download?bucket=passports&path=${encodeURIComponent(filePath)}`;
+                            const fileName = f.name; // Файл в корне бакета
+                            return `/api/storage-download?bucket=passports&path=${encodeURIComponent(fileName)}`;
                         });
 
                         viewerIndex = 0;
