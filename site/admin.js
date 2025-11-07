@@ -596,12 +596,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
                     // 2. Получаем список файлов из MinIO через API
+                    // Важно: добавляем "/" в конец чтобы искать внутри папки, а не саму папку
                     const listResponse = await authedFetch('/api/admin', {
                         method: 'POST',
                         body: JSON.stringify({
                             action: 'list-storage-files',
                             bucket: 'passports',
-                            prefix: String(folderId)
+                            prefix: `${folderId}/`
                         })
                     });
                     
@@ -627,8 +628,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         photosDiv.innerHTML = '';
                         // 3. Строим публичные URL через наш API
+                        // Используем f.path который содержит полный путь включая папку
                         viewerImages = realFiles.map(f => {
-                            const filePath = `${folderId}/${f.name}`;
+                            const filePath = f.path || f.name; // path содержит полный путь, name - только имя файла
                             return `/api/storage-download?bucket=passports&path=${encodeURIComponent(filePath)}`;
                         });
 
