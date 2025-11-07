@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -11,6 +12,7 @@ import android.util.Log;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -42,6 +44,16 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate called");
+        
+        // Включаем WebView debugging для Chrome DevTools (chrome://inspect)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true);
+            Log.d(TAG, "WebView debugging enabled");
+        }
+        
+        // Регистрируем наш PaymentPlugin
+        registerPlugin(PaymentPlugin.class);
+        Log.d(TAG, "PaymentPlugin registered");
         
         // Регистрируем launcher для камеры
         fileChooserLauncher = registerForActivityResult(

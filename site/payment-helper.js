@@ -1,129 +1,165 @@
 /**
  * 🔧 Payment Helper - Открывает оплату БЕЗ выкидывания из приложения
- * Использует InAppBrowser через Capacitor для полного контроля над всеми редиректами
+ * Использует нативный PaymentBrowser для Android
  */
 
-function isNativeApp() {
-    return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+function log(message, data = null) {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    if (data) {
+        console.log(`[${timestamp}] [PaymentHelper] ${message}`, data);
+    } else {
+        console.log(`[${timestamp}] [PaymentHelper] ${message}`);
+    }
 }
 
-// Получаем InAppBrowser из правильного места
-function getInAppBrowser() {
-    // Вариант 1: Через глобальный cordova объект
-    if (window.cordova && window.cordova.InAppBrowser) {
-        return window.cordova.InAppBrowser;
+function error(message, data = null) {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
+    if (data) {
+        console.error(`[${timestamp}] [PaymentHelper] ❌ ${message}`, data);
+    } else {
+        console.error(`[${timestamp}] [PaymentHelper] ❌ ${message}`);
     }
+}
+
+function isNativeApp() {
+    const result = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+    log(`isNativeApp check: ${result}`);
+    return result;
+}
+
+function checkEnvironment() {
+    const env = {
+        hasWindow: typeof window !== 'undefined',
+        hasCapacitor: !!window.Capacitor,
+        isNativePlatform: window.Capacitor ? window.Capacitor.isNativePlatform() : false,
+        hasPlugins: !!(window.Capacitor && window.Capacitor.Plugins),
+        availablePlugins: window.Capacitor && window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins) : [],
+        hasPaymentBrowser: !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PaymentBrowser),
+        userAgent: navigator.userAgent
+    };
     
-    // Вариант 2: Через Capacitor Plugins
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.InAppBrowser) {
-        return window.Capacitor.Plugins.InAppBrowser;
-    }
-    
-    // Вариант 3: Глобальный window.open с InAppBrowser
-    // После установки плагина window.open перезаписывается
-    return null;
+    log('🔍 Environment check:', env);
+    return env;
 }
 
 export async function openPaymentUrl(url) {
+    log('═══════════════════════════════════════');
+    log('🚀 openPaymentUrl вызван');
+    log('📍 URL:', url);
+    
     if (!url) {
-        console.error('[PaymentHelper] URL не указан');
+        error('URL не указан!');
         return;
     }
 
-    console.log('[PaymentHelper] Открытие платежа:', { 
-        url, 
-        isNativeApp: isNativeApp(),
-        hasCordova: !!window.cordova,
-        hasInAppBrowser: !!getInAppBrowser()
-    });
+    // Проверяем окружение
+    const env = checkEnvironment();
 
     try {
         if (isNativeApp()) {
-            const InAppBrowser = getInAppBrowser();
+            log('✅ Обнаружено нативное приложение');
             
-            // Используем InAppBrowser если доступен
-            if (InAppBrowser) {
-                console.log('[PaymentHelper] Используем InAppBrowser');
-                
-                const options = 'location=yes,hideurlbar=no,toolbarcolor=#2d6a4f,closebuttoncaption=Закрыть,hidenavigationbuttons=no,clearcache=yes,clearsessioncache=yes,shouldPauseOnSuspend=no';
-                
-                const browserRef = InAppBrowser.open(url, '_blank', options);
-                
-                if (browserRef) {
-                    browserRef.addEventListener('exit', () => {
-                        console.log('[PaymentHelper] InAppBrowser закрыт');
-                        window.location.reload();
-                    });
-                    
-                    browserRef.addEventListener('loadstart', (event) => {
-                        console.log('[PaymentHelper] Загрузка:', event.url);
-                        
-                        // Автозакрытие при возврате
-                        if (event.url && (
-                            event.url.includes('payment-return') || 
-                            event.url.includes('prizmatic://') ||
-                            event.url.includes('prizmatic-2004.vercel.app')
-                        )) {
-                            console.log('[PaymentHelper] Возврат обнаружен, закрываем');
-                            setTimeout(() => browserRef.close(), 1000);
-                        }
-                    });
-                }
-                
+            // Проверяем наличие Capacitor
+            if (!window.Capacitor) {
+                error('window.Capacitor не найден!');
+                log('🔄 Fallback на window.location');
+                window.location.href = url;
                 return;
             }
             
-            // Fallback: используем перезаписанный window.open (если InAppBrowser установлен)
-            // После установки плагина window.open автоматически становится InAppBrowser
-            console.log('[PaymentHelper] Используем window.open (InAppBrowser fallback)');
+            log('✅ window.Capacitor найден');
             
-            const browserRef = window.open(
-                url, 
-                '_blank', 
-                'location=yes,hideurlbar=no,toolbarcolor=#2d6a4f,closebuttoncaption=Закрыть,hidenavigationbuttons=no,clearcache=yes,clearsessioncache=yes'
-            );
-            
-            if (browserRef) {
-                // Пытаемся добавить слушатели если доступны
-                if (typeof browserRef.addEventListener === 'function') {
-                    browserRef.addEventListener('exit', () => {
-                        console.log('[PaymentHelper] Браузер закрыт');
-                        window.location.reload();
-                    });
-                    
-                    browserRef.addEventListener('loadstart', (event) => {
-                        if (event.url && (event.url.includes('payment-return') || event.url.includes('prizmatic'))) {
-                            setTimeout(() => browserRef.close(), 1000);
-                        }
-                    });
-                }
+            // Проверяем наличие Plugins
+            if (!window.Capacitor.Plugins) {
+                error('window.Capacitor.Plugins не найден!');
+                log('🔄 Fallback на window.location');
+                window.location.href = url;
+                return;
             }
+            
+            log('✅ window.Capacitor.Plugins найден');
+            log('📦 Доступные плагины:', Object.keys(window.Capacitor.Plugins));
+            
+            // Проверяем наличие PaymentBrowser
+            if (!window.Capacitor.Plugins.PaymentBrowser) {
+                error('PaymentBrowser плагин не найден!');
+                log('🔄 Fallback на window.location');
+                window.location.href = url;
+                return;
+            }
+            
+            log('✅ PaymentBrowser плагин найден!');
+            
+            // Проверяем метод open
+            if (typeof window.Capacitor.Plugins.PaymentBrowser.open !== 'function') {
+                error('PaymentBrowser.open не является функцией!', {
+                    type: typeof window.Capacitor.Plugins.PaymentBrowser.open,
+                    value: window.Capacitor.Plugins.PaymentBrowser.open
+                });
+                log('🔄 Fallback на window.location');
+                window.location.href = url;
+                return;
+            }
+            
+            log('✅ PaymentBrowser.open готов к вызову');
+            log('🎯 Вызываем PaymentBrowser.open...');
+            
+            const result = await window.Capacitor.Plugins.PaymentBrowser.open({ url: url });
+            
+            log('✅ PaymentBrowser.open успешно вызван!', result);
+            log('═══════════════════════════════════════');
+            return;
+            
         } else {
-            // Web версия
+            log('ℹ️ Web окружение (не нативное приложение)');
+            log('🔄 Используем window.location');
             window.location.href = url;
+            log('═══════════════════════════════════════');
         }
-    } catch (error) {
-        console.error('[PaymentHelper] Ошибка открытия платежа:', error);
-        // Последний fallback
+        
+    } catch (err) {
+        error('Исключение при открытии платежа:', {
+            message: err.message,
+            stack: err.stack,
+            name: err.name
+        });
+        log('🔄 Final fallback на window.location');
         window.location.href = url;
+        log('═══════════════════════════════════════');
     }
 }
 
 export async function openSaveCardUrl(url) {
+    log('💳 openSaveCardUrl вызван (перенаправление на openPaymentUrl)');
     return openPaymentUrl(url);
 }
 
 export async function closePaymentBrowser() {
-    if (isNativeApp()) {
-        console.log('[PaymentHelper] Попытка закрыть браузер');
-    }
+    log('🔒 closePaymentBrowser вызван (Activity закроется автоматически)');
 }
 
+// Экспортируем для отладки
 if (typeof window !== 'undefined') {
     window.PaymentHelper = {
         openPaymentUrl,
         openSaveCardUrl,
         closePaymentBrowser,
-        isNativeApp
+        isNativeApp,
+        checkEnvironment,
+        getDebugInfo: () => {
+            const info = {
+                isNativeApp: isNativeApp(),
+                hasCapacitor: !!window.Capacitor,
+                hasPlugins: !!(window.Capacitor && window.Capacitor.Plugins),
+                hasPaymentBrowser: !!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PaymentBrowser),
+                availablePlugins: window.Capacitor && window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins) : []
+            };
+            log('📊 Debug Info:', info);
+            return info;
+        }
     };
+    
+    // Выводим начальную информацию
+    log('🎬 PaymentHelper инициализирован');
+    checkEnvironment();
 }
