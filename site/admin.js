@@ -461,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'in_use': { text: 'Использ.', className: 'status-warning' },
                 'damaged': { text: 'Повреждена', className: 'status-error' },
                 'maintenance': { text: 'ТО', className: 'status-info' },
+                'returned': { text: 'Принят', className: 'status-success' },
                 'unavailable': { text: 'Недоступна', className: 'status-neutral' }
             }
         };
@@ -1025,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentDetailsContent = document.getElementById('payment-details-content');
 
     if (paymentsTableBody) {
-        paymentsTableBody.addEventListener('click', (e) => {
+        paymentsTableBody.addEventListener('click', async (e) => {
             // Handle refund button click
             const refundBtn = e.target.closest('.refund-btn');
             if (refundBtn) {
@@ -1035,6 +1036,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 refundPaymentIdInput.value = paymentId;
                 refundAmountInput.value = amount;
                 refundModal.classList.remove('hidden');
+                return;
+            }
+
+            // Handle delete button click
+            const deleteBtn = e.target.closest('.delete-payment-btn');
+            if (deleteBtn) {
+                e.stopPropagation();
+                const paymentId = deleteBtn.dataset.paymentId;
+                
+                if (confirm(`⚠️ Вы уверены, что хотите удалить этот платеж?\n\nID платежа: ${paymentId}\n\nЭто действие необратимо!`)) {
+                    try {
+                        const { error } = await supabase
+                            .from('payments')
+                            .delete()
+                            .eq('id', paymentId);
+                        
+                        if (error) throw error;
+                        
+                        alert('✅ Платеж успешно удален!');
+                        loadPayments(); // Обновляем список платежей
+                    } catch (err) {
+                        alert('❌ Ошибка удаления платежа: ' + err.message);
+                    }
+                }
                 return;
             }
 
@@ -1951,6 +1976,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+            // Если кликнули на кнопку удаления
+            else if (target.classList.contains('delete-rental-btn')) {
+                const rentalId = target.dataset.id;
+                rentalActionsModal.classList.add('hidden');
+                
+                if (confirm(`⚠️ ВНИМАНИЕ! Это удалит аренду и все связанные данные.\n\nВы уверены, что хотите удалить аренду с ID ${rentalId}?`)) {
+                    try {
+                        // Удаляем связанные платежи
+                        const { error: paymentsError } = await supabase
+                            .from('payments')
+                            .delete()
+                            .eq('rental_id', rentalId);
+                        if (paymentsError) throw paymentsError;
+                        
+                        // Удаляем связанные АКБ
+                        const { error: batteriesError } = await supabase
+                            .from('rental_batteries')
+                            .delete()
+                            .eq('rental_id', rentalId);
+                        if (batteriesError) throw batteriesError;
+                        
+                        // Удаляем аренду
+                        const { error: rentalError } = await supabase
+                            .from('rentals')
+                            .delete()
+                            .eq('id', rentalId);
+                        if (rentalError) throw rentalError;
+                        
+                        alert('✅ Аренда и все связанные данные успешно удалены!');
+                        loadRentals();
+                    } catch (err) {
+                        alert('❌ Ошибка удаления аренды: ' + err.message);
+                    }
+                }
+            }
             // Для ссылок - просто закрываем модалку
             else if (target.tagName === 'A') {
                 rentalActionsModal.classList.add('hidden');
@@ -2018,6 +2078,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     endButton.classList.add('end-rental-btn');
                     rentalActionsContent.appendChild(endButton);
                 }
+
+                // Кнопка "Удалить аренду"
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn btn-danger';
+                deleteButton.style.width = '100%';
+                deleteButton.style.backgroundColor = '#dc3545';
+                deleteButton.style.borderColor = '#dc3545';
+                deleteButton.textContent = '🗑️ Удалить аренду';
+                deleteButton.dataset.id = rentalId;
+                deleteButton.classList.add('delete-rental-btn');
+                rentalActionsContent.appendChild(deleteButton);
 
                 // Открываем модалку
                 rentalActionsModal.classList.remove('hidden');
@@ -2459,9 +2530,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Get payment method label
                 const methodLabel = paymentMethodLabels[p.method] || p.method || '—';
 
-                const actionsCell = (p.status === 'succeeded' && p.status !== 'refunded' && p.yookassa_payment_id && !p.yookassa_payment_id.startsWith('manual'))
-                    ? `<button type="button" class="refund-btn" data-payment-id="${p.yookassa_payment_id}" data-amount="${p.amount_rub}">Вернуть</button>`
-                    : '';
+                const actionsCell = `
+                    ${(p.status === 'succeeded' && p.status !== 'refunded' && p.yookassa_payment_id && !p.yookassa_payment_id.startsWith('manual'))
+                        ? `<button type="button" class="refund-btn" data-payment-id="${p.yookassa_payment_id}" data-amount="${p.amount_rub}">Вернуть</button>`
+                        : ''}
+                    <button type="button" class="delete-payment-btn" data-payment-id="${p.id}" title="Удалить платеж" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px; padding: 2px 4px;">❌</button>
+                `;
 
                 const tr = document.createElement('tr');
                 const dateObj = p.created_at ? new Date(p.created_at) : null;
