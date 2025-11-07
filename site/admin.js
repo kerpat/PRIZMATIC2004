@@ -596,9 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
 
                     // 2. Получаем список файлов из MinIO через API
-                    const listResponse = await fetch('/api/admin', {
+                    const listResponse = await authedFetch('/api/admin', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'list-storage-files',
                             bucket: 'passports',
