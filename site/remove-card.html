@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗑️ Отвязка карты</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: #2d2d2d;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border: 2px solid #3d3d3d;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: #3d3d3d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4d4d4d;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+        }
+
+        .status.info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196f3;
+            color: #2196f3;
+        }
+
+        .card-info {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .card-info.show {
+            display: block;
+        }
+
+        .card-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .card-detail span:first-child {
+            color: #999;
+        }
+
+        .warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid #ff9800;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #ff9800;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #3d3d3d;
+            border-top: 3px solid #ff6b6b;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Отвязка карты</h1>
+        <p class="subtitle">Тестовая страница для удаления автоплатежей</p>
+
+        <div class="form-group">
+            <label for="userId">🆔 User ID (telegram_user_id)</label>
+            <input type="text" id="userId" placeholder="Введите ID пользователя" required>
+        </div>
+
+        <button class="btn btn-secondary" onclick="loadUserCards()">📋 Загрузить карты пользователя</button>
+
+        <div class="card-info" id="cardInfo"></div>
+
+        <div class="warning" id="warning" style="display: none;">
+            ⚠️ Вы уверены? Это действие удалит автоплатеж и нельзя будет отменить!
+        </div>
+
+        <div class="form-group" id="cardSelectGroup" style="display: none;">
+            <label for="cardSelect">💳 Выберите карту для удаления</label>
+            <select id="cardSelect">
+                <option value="">-- Выберите карту --</option>
+            </select>
+        </div>
+
+        <button class="btn btn-danger" id="removeBtn" onclick="removeCard()" style="display: none;">
+            🗑️ Удалить карту и отключить автоплатеж
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #999;">Загрузка...</p>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script type="module">
+        import { apiRequest } from './api.js';
+
+        let userData = null;
+
+        window.loadUserCards = async function() {
+            const userId = document.getElementById('userId').value.trim();
+            
+            if (!userId) {
+                showStatus('Введите ID пользователя', 'error');
+                return;
+            }
+
+            showLoading(true);
+            hideStatus();
+
+            try {
+                // Получаем данные пользователя
+                const response = await apiRequest('/api/data', {
+                    action: 'get',
+                    telegram_user_id: userId
+                });
+
+                console.log('User data:', response);
+
+                if (!response || !response.user) {
+                    showStatus('Пользователь не найден', 'error');
+                    showLoading(false);
+                    return;
+                }
+
+                userData = response.user;
+
+                // Показываем информацию о картах
+                displayCardInfo(userData);
+                
+                showLoading(false);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Ошибка загрузки: ' + error.message, 'error');
+                showLoading(false);
+            }
+        };
+
+        function displayCardInfo(user) {
+            const cardInfo = document.getElementById('cardInfo');
+            const cardSelect = document.getElementById('cardSelect');
+            const warning = document.getElementById('warning');
+            const removeBtn = document.getElementById('removeBtn');
+            const cardSelectGroup = document.getElementById('cardSelectGroup');
+
+            // Очищаем предыдущие данные
+            cardInfo.innerHTML = '';
+            cardSelect.innerHTML = '<option value="">-- Выберите карту --</option>';
+
+            if (!user.saved_payment_method_id) {
+                cardInfo.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #999;">
+                        ℹ️ У пользователя нет привязанных карт
+                    </div>
+                `;
+                cardInfo.classList.add('show');
+                cardSelectGroup.style.display = 'none';
+                removeBtn.style.display = 'none';
+                warning.style.display = 'none';
+                return;
+            }
+
+            // Показываем информацию о карте
+            cardInfo.innerHTML = `
+                <div class="card-detail">
+                    <span>💳 Последние цифры:</span>
+                    <span><strong>${user.card_last4 || 'N/A'}</strong></span>
+                </div>
+                <div class="card-detail">
+                    <span>🏦 Тип карты:</span>
+                    <span>${user.card_type || 'N/A'}</span>
+                </div>
+                <div class="card-detail">
+                    <span>🔑 Payment Method ID:</span>
+                    <span style="font-family: monospace; font-size: 11px;">${user.saved_payment_method_id}</span>
+                </div>
+                <div class="card-detail">
+                    <span>🔄 Автоплатеж:</span>
+                    <span style="color: ${user.auto_payment_enabled ? '#4caf50' : '#ff6b6b'};">
+                        ${user.auto_payment_enabled ? '✅ Включен' : '❌ Отключен'}
+                    </span>
+                </div>
+            `;
+
+            cardInfo.classList.add('show');
+
+            // Добавляем опцию в select
+            cardSelect.innerHTML += `
+                <option value="${user.saved_payment_method_id}">
+                    💳 ${user.card_type || 'Card'} •••• ${user.card_last4 || 'XXXX'}
+                </option>
+            `;
+
+            // Показываем элементы управления
+            cardSelectGroup.style.display = 'block';
+            warning.style.display = 'block';
+            removeBtn.style.display = 'block';
+
+            showStatus('✅ Карты загружены', 'success');
+        }
+
+        window.removeCard = async function() {
+            const userId = document.getElementById('userId').value.trim();
+            const paymentMethodId = document.getElementById('cardSelect').value;
+
+            if (!userId || !paymentMethodId) {
+                showStatus('Выберите карту для удаления', 'error');
+                return;
+            }
+
+            if (!confirm('Вы уверены, что хотите удалить эту карту и отключить автоплатеж?')) {
+                return;
+            }
+
+            showLoading(true);
+            hideStatus();
+
+            try {
+                // Обновляем данные пользователя - удаляем карту
+                const response = await apiRequest('/api/data', {
+                    action: 'update',
+                    telegram_user_id: userId,
+                    saved_payment_method_id: null,
+                    card_type: null,
+                    card_last4: null,
+                    auto_payment_enabled: false
+                });
+
+                console.log('Remove response:', response);
+
+                showStatus('✅ Карта успешно удалена и автоплатеж отключен!', 'success');
+                
+                // Перезагружаем данные
+                setTimeout(() => {
+                    loadUserCards();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('❌ Ошибка удаления: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        };
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // Экспортируем в window для использования в onclick
+        window.showStatus = showStatus;
+        window.hideStatus = hideStatus;
+        window.showLoading = showLoading;
+    </script>
+</body>
+</html>

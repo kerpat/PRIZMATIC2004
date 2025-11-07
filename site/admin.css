@@ -1196,6 +1196,17 @@ select:focus::placeholder {
   /* Принудительно устанавливаем полную высоту */
 }
 
+/* Повышенный z-index для модалок редактирования, чтобы они были над основной модалкой аренды */
+#rental-edit-modal,
+#assign-bike-modal,
+#assign-batteries-modal,
+#return-process-modal,
+#bike-modal,
+#battery-modal,
+#tariff-modal {
+  z-index: 3100 !important;
+}
+
 .overlay:not(.hidden) {
   opacity: 1;
   visibility: visible;

@@ -1888,12 +1888,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         rentalActionsInline.innerHTML = '';
 
-        const planButton = document.createElement('button');
-        planButton.type = 'button';
-        planButton.className = 'btn btn-secondary scroll-payment-plan-btn';
-        planButton.style.width = '100%';
-        planButton.textContent = 'План платежей';
-        rentalActionsInline.appendChild(planButton);
+        // Убираем кнопку "План платежей" - она теперь не нужна
 
         const editButton = document.createElement('button');
         editButton.className = 'btn btn-primary edit-rental-btn';
@@ -1940,15 +1935,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (rentalActionsInline) {
         rentalActionsInline.addEventListener('click', async (e) => {
-            const scrollBtn = e.target.closest('.scroll-payment-plan-btn');
-            if (scrollBtn) {
-                const paymentPlanContent = document.getElementById('payment-plan-content');
-                if (paymentPlanContent) {
-                    paymentPlanContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-                return;
-            }
-
+            // Убираем обработчик для кнопки "План платежей"
+            
             const editBtn = e.target.closest('.edit-rental-btn');
             if (editBtn) {
                 const rentalId = editBtn.dataset.id;
