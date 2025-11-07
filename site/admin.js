@@ -28,26 +28,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tariff elements
     const tariffTableBody = document.querySelector('#tariffs-table tbody');
-    const tariffAddBtn = document.getElementById('tariff-add-btn');
-    const tariffModal = document.getElementById('tariff-modal');
-    const tariffModalTitle = document.getElementById('tariff-modal-title');
-    const tariffModalCloseBtn = document.getElementById('tariff-modal-close-btn');
+    const tariffForm = document.getElementById('tariff-form');
+    const tariffFormTitle = document.getElementById('tariff-form-title');
     const tariffIdInput = document.getElementById('tariff-id');
     const tariffTitleInput = document.getElementById('tariff-title');
     const tariffShortDescriptionInput = document.getElementById('tariff-short-description');
     const tariffDescriptionInput = document.getElementById('tariff-description');
     const tariffActiveCheckbox = document.getElementById('tariff-active');
+    const tariffCancelBtn = document.getElementById('tariff-cancel-btn');
     const extensionsList = document.getElementById('extensions-list');
     const addExtensionBtn = document.getElementById('add-extension-btn');
     const contractTemplateSelect = document.getElementById('contract-template-select');
-
-    // Tariff modal step navigation
-    const tariffPrevBtn = document.getElementById('tariff-prev-btn');
-    const tariffNextBtn = document.getElementById('tariff-next-btn');
-    const tariffSaveBtn = document.getElementById('tariff-save-btn');
-    const tariffStep1 = document.getElementById('tariff-step-1');
-    const tariffStep2 = document.getElementById('tariff-step-2');
-    const tariffStep3 = document.getElementById('tariff-step-3');
 
     // Client elements
     const clientsTableBody = document.querySelector('#clients-table tbody');
@@ -77,9 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bike elements
     const bikesTableBody = document.querySelector('#bikes-table tbody');
     const bikeAddBtn = document.getElementById('bike-add-btn');
-    const bikeModal = document.getElementById('bike-modal');
-    const bikeModalTitle = document.getElementById('bike-modal-title');
-    const bikeModalCloseBtn = document.getElementById('bike-modal-close-btn');
+    const bikeForm = document.getElementById('bike-form');
+    const bikeFormTitle = document.getElementById('bike-form-title');
     const bikeIdInput = document.getElementById('bike-id');
     const bikeCodeInput = document.getElementById('bike-code');
     const bikeModelInput = document.getElementById('bike-model');
@@ -90,56 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const bikeRegistrationNumberInput = document.getElementById('bike-registration-number');
     const bikeIotDeviceIdInput = document.getElementById('bike-iot-device-id');
     const bikeAdditionalEquipmentInput = document.getElementById('bike-additional-equipment');
+    const bikeCancelBtn = document.getElementById('bike-cancel-btn');
     const bikeTariffSelect = document.getElementById('bike-tariff-select');
-
-    // Bike modal step navigation
-    const bikePrevBtn = document.getElementById('bike-prev-btn');
-    const bikeNextBtn = document.getElementById('bike-next-btn');
-    const bikeSaveBtn = document.getElementById('bike-save-btn');
-    const bikeStep1 = document.getElementById('bike-step-1');
-    const bikeStep2 = document.getElementById('bike-step-2');
-    const bikeStep3 = document.getElementById('bike-step-3');
-
-    // Battery elements (НОВЫЙ БЛОК)
-    const batteriesSection = document.getElementById('batteries-section');
-    const batteriesTableBody = document.querySelector('#batteries-table tbody');
-    const batteryAddBtn = document.getElementById('battery-add-btn');
-    const batteryModal = document.getElementById('battery-modal');
-    const batteryModalTitle = document.getElementById('battery-modal-title');
-    const batteryModalCloseBtn = document.getElementById('battery-modal-close-btn');
-    const batteryIdInput = document.getElementById('battery-id');
-    const batterySerialNumberInput = document.getElementById('battery-serial-number');
-    const batteryCapacityInput = document.getElementById('battery-capacity');
-    const batteryDescriptionInput = document.getElementById('battery-description');
-    const batteryStatusSelect = document.getElementById('battery-status');
-    const batteryPrevBtn = document.getElementById('battery-prev-btn');
-    const batteryNextBtn = document.getElementById('battery-next-btn');
-    const batterySaveBtn = document.getElementById('battery-save-btn');
-    const batteryStep1 = document.getElementById('battery-step-1');
-    const batteryStep2 = document.getElementById('battery-step-2');
-    const batteryStep3 = document.getElementById('battery-step-3');
-
-    // Battery Assignment Modal elements (НОВЫЙ БЛОК)
-    const assignBatteriesModal = document.getElementById('assign-batteries-modal');
-    const assignBatteriesRentalIdInput = document.getElementById('assign-batteries-rental-id');
-    const batteryModalBikeSelect = document.getElementById('battery-modal-bike-select');
-    const batterySearchInModal = document.getElementById('battery-search-in-modal');
-    const batterySelectList = document.getElementById('battery-select-list');
-    const assignBatteriesCancelBtn = document.getElementById('assign-batteries-cancel-btn');
-    const assignBatteriesSubmitBtn = document.getElementById('assign-batteries-submit-btn');
-
-    // Booking Cost Setup elements (НОВЫЙ БЛОК)
-    const setupBookingCostBtn = document.getElementById('setup-booking-cost-btn');
-    const bookingCostModal = document.getElementById('booking-cost-modal');
-    const bookingCostCancelBtn = document.getElementById('booking-cost-cancel-btn');
-    const bookingCostSaveBtn = document.getElementById('booking-cost-save-btn');
-    const bookingCostInput = document.getElementById('booking-cost-input');
-
-    // Отладка: проверяем что все элементы найдены
-    console.log('DOM элементы для АКБ:');
-    console.log('assignBatteriesModal:', assignBatteriesModal);
-    console.log('assignBatteriesRentalIdInput:', assignBatteriesRentalIdInput);
-    console.log('batterySelectList:', batterySelectList);
 
     // Assignment elements
     const assignmentsTableBody = document.querySelector('#assignments-table tbody');
@@ -182,8 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let clientsData = []; // Кэш данных клиентов для просмотра/редактирования
     let currentEditingId = null;
     let currentEditingExtra = null;
-    let bookingUpdateInterval = null; // Таймер для обновления броней
-    // Редактор шаблонов - обычный contenteditable
+    let templateEditorInstance = null; // TipTap editor instance
 
     // --- Map Logic (НОВЫЙ БЛОК) ---
     const adminMapSection = document.getElementById('admin-map-section');
@@ -193,19 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapClientsData = []; // Храним данные клиентов для поиска на карте
 
     // Инициализация карты (вызывается один раз)
-    async function initAdminMap() {
+    function initAdminMap() {
         if (mapInitialized || !document.getElementById('admin-map-container')) {
             return;
         }
-
-        // Загружаем Yandex Maps, если ещё не загружена
-        await window.loadYandexMaps();
-
         mapInitialized = true; // Ставим флаг, что карта создана
 
         ymaps.ready(() => {
             myMap = new ymaps.Map("admin-map-container", {
-                center: [55.76, 37.64], // Москва
+                center: [55.028682, 82.903748], // Новосибирск
                 zoom: 10,
                 controls: [] // Отключаем все стандартные элементы управления
             });
@@ -235,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     const filteredClients = mapClientsData.filter(client =>
-                        getDisplayName(client).toLowerCase().includes(query)
+                        client.name.toLowerCase().includes(query)
                     );
 
                     if (filteredClients.length === 0) {
@@ -247,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     filteredClients.forEach((client, index) => {
                         const resultItem = document.createElement('div');
                         resultItem.className = 'search-result-item';
-                        resultItem.textContent = getDisplayName(client);
+                        resultItem.textContent = client.name;
                         resultItem.dataset.clientId = client.id;
                         resultItem.dataset.coords = `${client.location_geojson.coordinates[1]},${client.location_geojson.coordinates[0]}`;
                         resultItem.addEventListener('click', () => selectCourier(client));
@@ -301,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         myMap.setZoom(15, { duration: 500 });
                     });
 
-                    courierSearchInput.value = getDisplayName(client);
+                    courierSearchInput.value = client.name;
                     searchResults.style.display = 'none';
                     courierSearchInput.blur();
                 }
@@ -345,8 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: `client_${client.id}`,
                 geometry: { type: 'Point', coordinates: [client.location_geojson.coordinates[1], client.location_geojson.coordinates[0]] },
                 properties: {
-                    hintContent: `Курьер: ${getDisplayName(client)}`,
-                    balloonContent: `<strong>${getDisplayName(client)}</strong><br>ID: ${client.id}`
+                    hintContent: `Курьер: ${client.name}`,
+                    balloonContent: `<strong>${client.name}</strong><br>ID: ${client.id}`
                 },
                 options: { preset: 'islands#userIcon', iconColor: '#ff0000' }
             }));
@@ -361,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getBikeIconColor(status) {
         switch (status) {
-            case 'available': return '#40A4DF';
+            case 'available': return '#26b999';
             case 'rented': return '#1e98ff';
             case 'in_service': return '#f5a623';
             default: return '#777777';
@@ -369,25 +306,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // --- Конец блока для карты ---
 
-    if (typeof window.CONFIG === 'undefined') {
-        console.error('CONFIG is not loaded! Make sure config.js is loaded before admin.js');
-        alert('Configuration error. Please check console.');
-        return;
-    }
+    // --- Supabase Initialization ---
+    const SUPABASE_URL = 'https://gbabrtcnegjhherbczuj.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYWJydGNuZWdqaGhlcmJjenVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMzQ0MTAsImV4cCI6MjA3NDcxMDQxMH0.muedJjHjqZsCUv6wtiiGoTao9t1T69lTl6p5G57_otU';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const supabase = window.supabase.createClient();
-
+    // Вспомогательная функция для выполнения fetch-запросов с аутентификацией
     async function authedFetch(url, options = {}) {
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session || !session.access_token) {
+        if (!session) {
             alert('Ваша сессия истекла. Пожалуйста, войдите заново.');
             throw new Error('Нет активной сессии для выполнения запроса.');
         }
 
         const headers = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${session.access_token}`
         };
 
         const config = {
@@ -398,6 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
         };
 
+        // For Vercel environment, use relative path.
         const baseUrl = window.location.origin;
         return fetch(new URL(url, baseUrl), config);
     }
@@ -417,89 +354,49 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {Object} { text: string, className: string }
      */
     function getStatusDisplay(status, type) {
-        const normalized = (status || '').toLowerCase();
         const statusMaps = {
             bike: {
-                available: { text: 'Свободен', className: 'status-success' },
-                rented: { text: 'Выдан', className: 'status-warning' },
-                in_service: { text: 'В ремонте', className: 'status-error' },
-                maintenance: { text: 'На обслуживании', className: 'status-info' },
-                out_of_order: { text: 'Неисправен', className: 'status-error' },
-                reserved: { text: 'Зарезервирован', className: 'status-info' },
-                unavailable: { text: 'Недоступен', className: 'status-neutral' },
-                charging: { text: 'Заряжается', className: 'status-info' },
-                lost: { text: 'Утерян', className: 'status-error' }
+                'available': { text: 'Свободен', className: 'status-success' },
+                'rented': { text: 'В аренде', className: 'status-warning' },
+                'in_service': { text: 'В ремонте', className: 'status-error' },
+                'maintenance': { text: 'Обслуживание', className: 'status-info' },
+                'out_of_order': { text: 'Неисправен', className: 'status-error' },
+                'reserved': { text: 'Зарезервирован', className: 'status-info' },
+                'unavailable': { text: 'Недоступен', className: 'status-neutral' }
             },
             rental: {
-                active: { text: 'Активна', className: 'status-success' },
-                awaiting_battery_assignment: { text: 'Ожидает оборудование', className: 'status-warning' },
-                awaiting_contract_signing: { text: 'Ждёт подписи договора', className: 'status-warning' },
-                awaiting_return_signature: { text: 'Ждёт подписи акта', className: 'status-warning' },
-                pending_assignment: { text: 'Ожидает выдачи', className: 'status-warning' },
-                pending_return: { text: 'Ожидает сдачи', className: 'status-warning' },
-                overdue: { text: 'Просрочена', className: 'status-error' },
-                completed: { text: 'Завершена', className: 'status-neutral' },
-                completed_by_admin: { text: 'Закрыта администратором', className: 'status-info' },
-                rejected: { text: 'Отменена', className: 'status-error' },
-                canceled: { text: 'Отменена', className: 'status-error' }
+                'active': { text: 'Активна', className: 'status-success' },
+                'awaiting_contract_signing': { text: 'Ожидает подписания', className: 'status-warning' },
+                'completed_by_admin': { text: 'Завершено админом', className: 'status-info' },
+                'pending_assignment': { text: 'Ожидает велосипед', className: 'status-warning' },
+                'pending_return': { text: 'Ожидает сдачи', className: 'status-warning' },
+                'completed': { text: 'Завершена', className: 'status-neutral' },
+                'rejected': { text: 'Отклонена', className: 'status-error' },
+                'awaiting_return_signature': { text: 'Ожидает подписи акта', className: 'status-warning' }
             },
             client: {
-                approved: { text: 'Одобрен', className: 'status-success' },
-                rejected: { text: 'Отклонён', className: 'status-error' },
-                pending: { text: 'На проверке', className: 'status-warning' },
-                pending_ocr: { text: 'Обработка OCR', className: 'status-info' },
-                needs_confirmation: { text: 'Требует подтверждения', className: 'status-warning' },
-                not_set: { text: 'Не задан', className: 'status-neutral' }
+                'approved': { text: 'Одобрен', className: 'status-success' },
+                'rejected': { text: 'Отклонен', className: 'status-error' },
+                'pending': { text: 'На проверке', className: 'status-warning' },
+                'needs_confirmation': { text: 'Требует подтверждения', className: 'status-warning' },
+                'not_set': { text: 'Не задан', className: 'status-neutral' }
             },
             payment: {
-                succeeded: { text: 'Успешно', className: 'status-success' },
-                pending: { text: 'Ожидает подтверждения', className: 'status-warning' },
-                waiting_for_capture: { text: 'Ожидает списания', className: 'status-warning' },
-                in_progress: { text: 'Обрабатывается', className: 'status-warning' },
-                canceled: { text: 'Отменён', className: 'status-error' },
-                failed: { text: 'Ошибка', className: 'status-error' },
-                refunded: { text: 'Возврат средств', className: 'status-neutral' }
+                'succeeded': { text: 'Успешно', className: 'status-success' },
+                'pending': { text: 'Ожидает', className: 'status-warning' },
+                'canceled': { text: 'Отменён', className: 'status-error' },
+                'failed': { text: 'Ошибка', className: 'status-error' },
+                'refunded': { text: 'Возвращено', className: 'status-neutral' }
             },
             assignment: {
-                awaiting_battery_assignment: { text: 'Выдача оборудования', className: 'status-warning' },
-                pending_return: { text: 'Приём оборудования', className: 'status-warning' }
-            },
-            battery: {
-                available: { text: 'Свободна', className: 'status-success' },
-                in_use: { text: 'Выдана', className: 'status-warning' },
-                charging: { text: 'Заряжается', className: 'status-info' },
-                damaged: { text: 'Повреждена', className: 'status-error' },
-                maintenance: { text: 'Обслуживание', className: 'status-info' },
-                unavailable: { text: 'Недоступна', className: 'status-neutral' }
+                'pending_assignment': { text: 'Аренда', className: 'status-success' },
+                'pending_return': { text: 'Сдача', className: 'status-warning' }
             }
         };
 
         const typeMap = statusMaps[type] || {};
-        if (typeMap[normalized]) {
-            return typeMap[normalized];
-        }
-        return { text: 'Неизвестно', className: 'status-neutral' };
+        return typeMap[status] || { text: status || 'Неизвестно', className: 'status-neutral' };
     }
-
-    // Payment type labels for admin panel
-    const paymentTypeLabels = {
-        'rental': 'Аренда',
-        'renewal': 'Продление аренды',
-        'top-up': 'Пополнение баланса',
-        'booking': 'Бронирование',
-        'refund_to_balance': 'Возврат на баланс',
-        'adjustment': 'Корректировка баланса',
-        'balance_debit': 'Списание с баланса',
-        'invoice': 'Оплата по счету'
-    };
-
-    // Payment method labels for admin panel
-    const paymentMethodLabels = {
-        'card': 'Карта',
-        'sbp': 'СБП',
-        'balance': 'Баланс',
-        'yoo_money': 'ЮMoney'
-    };
 
     /**
      * Creates a status badge HTML element
@@ -514,69 +411,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Tariff Extensions Logic ---
 
-    // Словарь для перевода ключей распознанных данных
-    const fieldTranslations = {
-        'gender': 'Пол',
-        'number': 'Номер',
-        'series': 'Серия',
-        'full_name': 'ФИО',
-        'name': 'ФИО',
-        'last_name': 'Фамилия',
-        'birth_date': 'Дата рождения',
-        'first_name': 'Имя',
-        'issue_date': 'Дата выдачи',
-        'birth_place': 'Место рождения',
-        'middle_name': 'Отчество',
-        'issuing_authority': 'Кем выдан',
-        'registration_address': 'Адрес регистрации',
-        // Дополнительные поля
-        'passport_series': 'Серия и номер паспорта',
-        'passport_issued_by': 'Кем выдан',
-        'passport_issue_date': 'Дата выдачи'
-    };
-
     // Helper: render client info modal (view + edit + photos + lightbox)
     async function renderClientInfo(clientId) {
         try {
             const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
             if (error) throw error;
 
-            const recRaw = client?.recognized_passport_data || client?.extra?.recognized_data || {};
-            const rec = formatPassportData(recRaw);
-            const displayName = formatPersonName(client.name) || client.name || 'Не указано';
+            const rec = client?.recognized_passport_data || client?.extra?.recognized_data || {};
             if (recognizedDisplay) {
                 recognizedDisplay.innerHTML = '';
-                
-                // Сначала показываем ФИО и телефон клиента
-                const headerInfo = document.createElement('div');
-                headerInfo.style.cssText = 'background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid var(--accent);';
-                headerInfo.innerHTML = `
-                    <div style="display: grid; gap: 8px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <strong style="min-width: 120px; color: var(--accent);">ФИО:</strong>
-                            <span style="font-size: 16px; font-weight: 600;">${displayName}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <strong style="min-width: 120px; color: var(--accent);">Телефон:</strong>
-                            <span style="font-size: 16px; font-weight: 600;">${formatPhoneDisplay(client.phone) || 'Не указано'}</span>
-                        </div>
-                    </div>
-                `;
-                recognizedDisplay.appendChild(headerInfo);
-                
-                // Потом паспортные данные
                 const keys = Object.keys(rec);
                 if (keys.length === 0) {
-                    const noDataMsg = document.createElement('p');
-                    noDataMsg.textContent = 'Паспортных данных нет.';
-                    noDataMsg.style.color = '#666';
-                    recognizedDisplay.appendChild(noDataMsg);
+                    recognizedDisplay.innerHTML = '<p>Данных распознавания нет.</p>';
                 } else {
                     keys.forEach(k => {
                         const row = document.createElement('div');
                         row.className = 'info-row';
-                        const label = fieldTranslations[k] || k;
-                        row.innerHTML = `<strong>${label}:</strong><span>${rec[k] ?? ''}</span>`;
+                        row.innerHTML = `<strong>${k}:</strong><span>${rec[k] ?? ''}</span>`;
                         recognizedDisplay.appendChild(row);
                     });
                 }
@@ -586,9 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 Object.keys(rec).forEach(k => {
                     const item = document.createElement('div');
                     item.className = 'form-group';
-                    const val = (rec[k] ?? '').toString().replace(/"/g, '&quot;');
-                    const label = fieldTranslations[k] || k;
-                    item.innerHTML = `<label>${label}</label><input type="text" name="${k}" value="${val}">`;
+                    const val = (rec[k] ?? '').toString().replace(/"/g,'&quot;');
+                    item.innerHTML = `<label>${k}</label><input type="text" name="${k}" value="${val}">`;
                     recognizedEditForm.appendChild(item);
                 });
                 recognizedEditForm.classList.add('hidden');
@@ -596,84 +446,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
             }
 
-            // ---> Загрузка фото клиента <---
+            // ---> ИСПРАВЛЕНИЕ №2: Используем Telegram ID для поиска фото <---
             const photosDiv = document.getElementById('photo-links');
             if (photosDiv) {
                 photosDiv.innerHTML = 'Загрузка...';
                 try {
-                    // 1. Проверяем Telegram ID в extra, иначе используем user_id
+                    // 1. Извлекаем Telegram ID из колонки extra
                     const telegramId = client?.extra?.telegram_user_id;
-                    const folderId = telegramId || client.id; // Fallback to user_id
 
-                    console.log(`[Load Photos] Using folder: ${folderId} (telegram: ${!!telegramId}, user_id: ${client.id})`);
-
-                    // 2. Ищем папку в Storage (историческое хранилище на Supabase)
-                    const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(folderId));
-                    if (fErr) throw fErr;
-
-                    const realFiles = files ? files.filter(f =>
-                        f.name &&
-                        !f.name.startsWith('.') &&
-                        f.name !== '.emptyFolderPlaceholder'
-                    ) : [];
-
-                    const imageSources = [];
-
-                    if (realFiles.length > 0) {
-                        console.log(`[Load Photos] Found ${realFiles.length} Supabase files:`, realFiles.map(f => f.name));
-                        realFiles.forEach(f => {
-                            const { data } = supabase.storage.from('passports').getPublicUrl(`${folderId}/${f.name}`);
-                            if (data?.publicUrl) {
-                                imageSources.push({ url: data.publicUrl, label: f.name });
-                            }
-                        });
-                    } else {
-                        // Fallback для новых регистраций: ссылки из extra.uploaded_documents (VPS + MinIO)
-                        const docMap = client?.extra?.uploaded_documents;
-                        if (docMap && typeof docMap === 'object') {
-                            Object.entries(docMap).forEach(([field, url]) => {
-                                if (typeof url === 'string' && url.startsWith('http')) {
-                                    imageSources.push({ url, label: field });
-                                }
-                            });
-                        }
-                        console.log(`[Load Photos] Supabase empty, fallback items:`, imageSources.map(item => item.url));
+                    if (!telegramId) {
+                        throw new Error('Telegram ID не найден в данных клиента.');
                     }
 
-                    if (imageSources.length === 0) {
-                        photosDiv.innerHTML = '<p style="color: #666;">Фото не найдены.</p>';
+                    // 2. Ищем папку в Storage по Telegram ID
+                    const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(telegramId));
+                    if (fErr) throw fErr;
+
+                    if (!files || files.length === 0) {
+                        photosDiv.innerHTML = '<p>Фото не найдены.</p>';
                         viewerImages = [];
                     } else {
                         photosDiv.innerHTML = '';
-                        viewerImages = imageSources.map(item => item.url);
+                        // 3. Строим публичные URL, используя Telegram ID
+                        viewerImages = files.map(f => supabase.storage.from('passports').getPublicUrl(`${telegramId}/${f.name}`).data.publicUrl);
 
                         viewerIndex = 0;
-                        imageSources.forEach(({ url, label }) => {
-                            const wrapper = document.createElement('div');
-                            wrapper.className = 'client-photo-wrapper';
-
+                        viewerImages.forEach(u => {
                             const img = document.createElement('img');
-                            img.src = url;
+                            img.src = u;
                             img.className = 'client-photo-thumb';
-                            img.style.maxHeight = '200px';
+                            img.style.maxHeight = '200px'; // Добавьте в код
                             img.addEventListener('click', () => {
                                 if (imageViewerOverlay && imageViewerImg) {
-                                    imageViewerImg.src = url;
-                                    viewerIndex = viewerImages.indexOf(url);
+                                    imageViewerImg.src = u;
+                                    viewerIndex = viewerImages.indexOf(u);
                                     imageViewerOverlay.classList.remove('hidden');
                                 }
                             });
-
-                            const caption = document.createElement('div');
-                            caption.className = 'client-photo-caption';
-                            caption.textContent = label;
-
-                            wrapper.appendChild(img);
-                            wrapper.appendChild(caption);
-                            photosDiv.appendChild(wrapper);
+                            photosDiv.appendChild(img);
                         });
 
-                        // Add video if exists (по-прежнему хранится в Supabase)
+                        // Add video if exists
                         if (client?.extra?.video_selfie_storage_path) {
                             const videoUrl = supabase.storage.from('passports').getPublicUrl(client.extra.video_selfie_storage_path).data.publicUrl;
                             const video = document.createElement('video');
@@ -697,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clientInfoSaveBtn.onclick = async () => {
                     const formData = new FormData(recognizedEditForm);
                     const updated = {};
-                    for (const [k, v] of formData.entries()) updated[k] = String(v);
+                    for (const [k,v] of formData.entries()) updated[k] = String(v);
                     const { error: uerr } = await supabase.from('clients').update({ recognized_passport_data: updated }).eq('id', currentEditingId);
                     if (uerr) { alert('Ошибка сохранения: ' + uerr.message); return; }
                     // refresh view
@@ -705,8 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Object.keys(updated).forEach(k => {
                         const r = document.createElement('div');
                         r.className = 'info-row';
-                        const label = fieldTranslations[k] || k;
-                        r.innerHTML = `<strong>${label}:</strong><span>${updated[k]}</span>`;
+                        r.innerHTML = `<strong>${k}:</strong><span>${updated[k]}</span>`;
                         recognizedDisplay.appendChild(r);
                     });
                     clientInfoEditToggle.click();
@@ -782,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(extArr)) {
             extArr.forEach(ext => {
                 const d = ext?.days || ext?.duration;
-                const c = ext?.price_rub || ext?.cost || ext?.price;
+                const c = ext?.cost || ext?.price;
                 addExtensionRow(d || '', c || '');
             });
         }
@@ -792,9 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!extensionsList) return [];
         return Array.from(extensionsList.querySelectorAll('.extension-row')).map(row => {
             const days = parseInt(row.querySelector('.ext-days').value, 10);
-            const price_rub = parseInt(row.querySelector('.ext-price').value, 10);
-            return { days, price_rub };
-        }).filter(ext => !isNaN(ext.days) && !isNaN(ext.price_rub) && ext.days > 0 && ext.price_rub >= 0);
+            const cost = parseInt(row.querySelector('.ext-price').value, 10);
+            return { days, cost };
+        }).filter(ext => !isNaN(ext.days) && !isNaN(ext.cost) && ext.days > 0 && ext.cost >= 0);
     }
 
     if (addExtensionBtn) {
@@ -840,12 +652,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function selectSection(name) {
         const adminAppContainer = document.getElementById('admin-app'); // Находим главный контейнер
 
-        // Перед сменой секции всегда останавливаем таймер броней
-        if (bookingUpdateInterval) {
-            clearInterval(bookingUpdateInterval);
-            bookingUpdateInterval = null;
-        }
-
         // Скрываем все секции
         document.querySelectorAll('.admin-section').forEach(sec => sec.classList.add('hidden'));
 
@@ -856,9 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'rentals': { element: rentalsSection, loader: loadRentals },
             'payments': { element: paymentsSection, loader: loadPayments },
             'bikes': { element: bikesSection, loader: loadBikes },
-            'batteries': { element: batteriesSection, loader: loadBatteries }, // <-- ДОБАВЬ ЭТУ СТРОКУ
             'assignments': { element: assignmentsSection, loader: loadAssignments },
-            'bookings': { element: document.getElementById('bookings-section'), loader: loadBookings }, // +++ ДОБАВИТЬ ЭТУ СТРОКУ +++
             'templates': { element: templatesSection, loader: loadTemplates },
             'admin-map': { element: adminMapSection, loader: initAdminMap }, // <-- ИЗМЕНЕНИЕ
         };
@@ -867,17 +671,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (section && section.element) {
             section.element.classList.remove('hidden'); // Показываем нужную секцию
             if (section.loader) {
-                // Если loader асинхронный, ждём его
-                Promise.resolve(section.loader()).catch(err => {
-                    console.error(`Error loading section ${name}:`, err);
-                });
+                section.loader(); // Вызываем её загрузчик/инициализатор
             }
         }
 
         // --- НОВЫЙ КОД: УПРАВЛЕНИЕ ШИРИНОЙ КОНТЕЙНЕРА ---
-        // Если выбрана секция 'rentals' ИЛИ 'bikes' ИЛИ 'bookings', добавляем класс, иначе — убираем.
+        // Если выбрана секция 'rentals' ИЛИ 'bikes', добавляем класс, иначе — убираем.
         if (adminAppContainer) {
-            if (name === 'rentals' || name === 'bikes' || name === 'bookings') {
+            if (name === 'rentals' || name === 'bikes') {
                 adminAppContainer.classList.add('wide-content');
             } else {
                 adminAppContainer.classList.remove('wide-content');
@@ -889,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatExtensionsForDisplay(exts) {
         if (!Array.isArray(exts) || exts.length === 0) return 'Не заданы';
-        return exts.map(e => `${e.days} дн. - ${e.price_rub || e.cost || 0} ₽`).join('<br>');
+        return exts.map(e => `${e.days} дн. - ${e.cost} ₽`).join('<br>');
     }
 
     async function loadTariffs() {
@@ -922,7 +723,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Old tariff form handler removed - now using modal
+    tariffForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        let tariffId = tariffIdInput.value;
+        const extArr = getExtensionsFromForm();
+        if (extArr.length === 0) {
+            alert('Необходимо добавить хотя бы одно продление (дни и стоимость).');
+            return;
+        }
+        const newTariffData = {
+            title: tariffTitleInput.value,
+            description: tariffDescriptionInput.value,
+            short_description: tariffShortDescriptionInput.value,
+            is_active: tariffActiveCheckbox.checked,
+            price_rub: extArr.length > 0 ? extArr[0].cost : 0, // for legacy compatibility
+            duration_days: extArr.length > 0 ? extArr[0].days : 0, // for legacy compatibility
+            extensions: extArr
+        };
+        if (!tariffId) {
+            newTariffData.slug = tariffTitleInput.value.trim().toLowerCase().replace(/\s+/g, '-');
+        }
+        try {
+            const result = tariffId
+                ? await supabase.from('tariffs').update(newTariffData).eq('id', tariffId)
+                : await supabase.from('tariffs').insert([newTariffData]);
+            if (result.error) throw result.error;
+            await loadTariffs();
+            resetTariffForm();
+        } catch (err) {
+            alert('Ошибка сохранения тарифа: ' + err.message);
+        }
+    });
 
     tariffTableBody.addEventListener('click', async (e) => {
         const nameLink = e.target.closest('.tariff-name-link');
@@ -941,9 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const editBtn = e.target.closest('.edit-tariff-btn');
         if (editBtn) {
-            if (window.editTariffModal) {
-                window.editTariffModal(editBtn.dataset.id);
-            }
+            editTariff(editBtn.dataset.id);
             return;
         }
 
@@ -963,7 +792,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Old tariff form functions removed - now using modal
+    async function editTariff(id) {
+        try {
+            const { data, error } = await supabase.from('tariffs').select('*').eq('id', id).single();
+            if (error) throw error;
+            tariffIdInput.value = data.id;
+            tariffTitleInput.value = data.title;
+            document.getElementById('tariff-short-description').value = data.short_description || '';
+            tariffDescriptionInput.value = data.description || '';
+            tariffActiveCheckbox.checked = data.is_active;
+            renderExtensions(data.extensions);
+            tariffFormTitle.textContent = 'Редактировать тариф';
+            tariffCancelBtn.classList.remove('hidden');
+        } catch (err) {
+            alert('Ошибка загрузки тарифа для редактирования: ' + err.message);
+        }
+    }
+
+    function resetTariffForm() {
+        tariffForm.reset();
+        tariffIdInput.value = '';
+        if (extensionsList) extensionsList.innerHTML = '';
+        tariffFormTitle.textContent = 'Создать новый тариф';
+        tariffCancelBtn.classList.add('hidden');
+    }
+
+    tariffCancelBtn.addEventListener('click', resetTariffForm);
 
     async function previewTariffCard(id) {
         try {
@@ -1022,101 +876,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const refundReasonInput = document.getElementById('refund-reason');
     const paymentsTableBody = document.querySelector('#payments-table tbody');
 
-    // --- Payment Details Modal ---
-    const paymentDetailsModal = document.getElementById('payment-details-modal');
-    const paymentDetailsCloseBtn = document.getElementById('payment-details-close-btn');
-    const paymentDetailsContent = document.getElementById('payment-details-content');
-
     if (paymentsTableBody) {
         paymentsTableBody.addEventListener('click', (e) => {
-            // Handle refund button click
             const refundBtn = e.target.closest('.refund-btn');
             if (refundBtn) {
-                e.stopPropagation();
                 const paymentId = refundBtn.dataset.paymentId;
                 const amount = refundBtn.dataset.amount;
                 refundPaymentIdInput.value = paymentId;
                 refundAmountInput.value = amount;
                 refundModal.classList.remove('hidden');
-                return;
-            }
-
-            // Handle row click to show payment details
-            const row = e.target.closest('tr');
-            if (row && row.dataset.paymentData) {
-                const payment = JSON.parse(row.dataset.paymentData);
-                showPaymentDetails(payment);
-            }
-        });
-    }
-
-    // Function to show payment details modal
-    function showPaymentDetails(payment) {
-        if (!paymentDetailsContent || !paymentDetailsModal) return;
-
-        const typeLabel = paymentTypeLabels[payment.payment_type] || payment.payment_type || '—';
-        const methodLabel = paymentMethodLabels[payment.method] || payment.method || '—';
-        const statusDisplay = getStatusDisplay(payment.status, 'payment');
-        const dateObj = payment.created_at ? new Date(payment.created_at) : null;
-        const dateStr = dateObj ? dateObj.toLocaleString('ru-RU') : '—';
-
-        paymentDetailsContent.innerHTML = `
-            <div class="info-row">
-                <strong>ID платежа:</strong>
-                <span>${payment.id}</span>
-            </div>
-            <div class="info-row">
-                <strong>Клиент:</strong>
-                <span>${payment.client}</span>
-            </div>
-            <div class="info-row">
-                <strong>Сумма:</strong>
-                <span>${payment.amount} ₽</span>
-            </div>
-            <div class="info-row">
-                <strong>Тип платежа:</strong>
-                <span>${typeLabel}</span>
-            </div>
-            <div class="info-row">
-                <strong>Способ оплаты:</strong>
-                <span class="payment-method-badge ${payment.method || ''}">${methodLabel}</span>
-            </div>
-            <div class="info-row">
-                <strong>Статус:</strong>
-                <span class="status-badge ${statusDisplay.className}">${statusDisplay.text}</span>
-            </div>
-            <div class="info-row">
-                <strong>Дата создания:</strong>
-                <span>${dateStr}</span>
-            </div>
-            ${payment.description ? `
-            <div class="info-row">
-                <strong>Описание:</strong>
-                <span>${payment.description}</span>
-            </div>
-            ` : ''}
-            ${payment.yookassa_payment_id ? `
-            <div class="info-row">
-                <strong>ID ЮKassa:</strong>
-                <span>${payment.yookassa_payment_id}</span>
-            </div>
-            ` : ''}
-        `;
-
-        paymentDetailsModal.classList.remove('hidden');
-    }
-
-    // Close payment details modal
-    if (paymentDetailsCloseBtn) {
-        paymentDetailsCloseBtn.addEventListener('click', () => {
-            paymentDetailsModal.classList.add('hidden');
-        });
-    }
-
-    if (paymentDetailsModal) {
-        paymentDetailsModal.addEventListener('click', (e) => {
-            if (e.target === paymentDetailsModal) {
-                paymentDetailsModal.classList.add('hidden');
             }
         });
     }
@@ -1169,31 +937,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Bikes CRUD ---
-    // --- Bikes CRUD ---
-    // Old bike form functions removed - now using modal
+    async function showBikeForm(bike = null) {
+        bikeForm.classList.remove('hidden');
+        bikeFormTitle.classList.remove('hidden');
 
-    // Load tariffs for bike select
-    async function loadTariffsForBikeSelect() {
+        // ---> НОВАЯ ЛОГИКА ЗАГРУЗКИ ТАРИФОВ <---
         if (bikeTariffSelect) {
             try {
                 const { data: tariffs, error } = await supabase.from('tariffs').select('id, title').eq('is_active', true);
                 if (error) throw error;
 
-                bikeTariffSelect.innerHTML = '<option value="">— Не выбран —</option>';
+                bikeTariffSelect.innerHTML = '<option value="">-- Не выбран --</option>'; // Очистка и дефолт
                 tariffs.forEach(tariff => {
                     const option = document.createElement('option');
                     option.value = tariff.id;
                     option.textContent = tariff.title;
                     bikeTariffSelect.appendChild(option);
                 });
+
             } catch (err) {
-                console.error("Ошибка загрузки тарифов:", err);
+                console.error("Ошибка загрузки тарифов в форму:", err);
+                bikeTariffSelect.innerHTML = '<option value="">Ошибка загрузки тарифов</option>';
             }
+        }
+        // ---> КОНЕЦ НОВОЙ ЛОГИКИ <---
+        if (bike) {
+            bikeFormTitle.textContent = 'Редактировать велосипед';
+            bikeIdInput.value = bike.id;
+            bikeCodeInput.value = bike.bike_code;
+            bikeModelInput.value = bike.model_name;
+            bikeCitySelect.value = bike.city || '';
+            bikeStatusSelect.value = bike.status;
+            // ---> Устанавливаем выбранный тариф, если он есть
+            if (bikeTariffSelect) {
+                bikeTariffSelect.value = bike.tariff_id || '';
+            }
+            bikeFrameNumberInput.value = bike.frame_number || '';
+            bikeBatteryNumbersInput.value = Array.isArray(bike.battery_numbers) ? bike.battery_numbers.join(', ') : (bike.battery_numbers || '');
+            bikeRegistrationNumberInput.value = bike.registration_number || '';
+            bikeIotDeviceIdInput.value = bike.iot_device_id || '';
+            bikeAdditionalEquipmentInput.value = bike.additional_equipment || '';
+        } else {
+            bikeFormTitle.textContent = 'Новый велосипед';
+            bikeForm.reset();
+            bikeIdInput.value = '';
+            bikeCitySelect.value = 'Новосибирск'; // default city
+            bikeFrameNumberInput.value = '';
+            bikeBatteryNumbersInput.value = '';
+            bikeRegistrationNumberInput.value = '';
+            bikeIotDeviceIdInput.value = '';
+            bikeAdditionalEquipmentInput.value = '';
         }
     }
 
-    // Load tariffs when page loads
-    loadTariffsForBikeSelect();
+    function hideBikeForm() {
+        bikeForm.classList.add('hidden');
+        bikeFormTitle.classList.add('hidden');
+        bikeForm.reset();
+        bikeIdInput.value = '';
+        bikeFrameNumberInput.value = '';
+        bikeBatteryNumbersInput.value = '';
+        bikeRegistrationNumberInput.value = '';
+        bikeIotDeviceIdInput.value = '';
+        bikeAdditionalEquipmentInput.value = '';
+    }
 
     async function loadBikes() {
         if (!bikesTableBody) return;
@@ -1236,22 +1043,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>`;
                 bikesTableBody.appendChild(tr);
             });
-        } catch (err) {
+        } catch (err)
+        {
             console.error('Ошибка загрузки велосипедов:', err);
             bikesTableBody.innerHTML = `<tr><td colspan="7">Ошибка: ${err.message}</td></tr>`;
         }
     }
 
-    // Old bike form handlers removed - now using modal
+    if (bikeAddBtn) {
+        bikeAddBtn.addEventListener('click', () => showBikeForm());
+    }
+    if (bikeCancelBtn) {
+        bikeCancelBtn.addEventListener('click', hideBikeForm);
+    }
 
-    // Old bike form submit handler removed - now using modal
+    if (bikeForm) {
+        bikeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = bikeIdInput.value;
+            const batteryNumbers = bikeBatteryNumbersInput.value.split(',').map(s => s.trim()).filter(s => s);
+            const bikeData = {
+                bike_code: bikeCodeInput.value,
+                model_name: bikeModelInput.value,
+                city: bikeCitySelect.value,
+                status: bikeStatusSelect.value,
+                tariff_id: bikeTariffSelect.value ? parseInt(bikeTariffSelect.value, 10) : null, // <-- ВОТ ЭТА СТРОКА
+                frame_number: bikeFrameNumberInput.value,
+                battery_numbers: batteryNumbers,
+                registration_number: bikeRegistrationNumberInput.value,
+                iot_device_id: bikeIotDeviceIdInput.value,
+                additional_equipment: bikeAdditionalEquipmentInput.value,
+            };
+
+            try {
+                const { error } = id
+                    ? await supabase.from('bikes').update(bikeData).eq('id', id)
+                    : await supabase.from('bikes').insert([bikeData]);
+                if (error) throw error;
+                await loadBikes();
+                hideBikeForm();
+            } catch (err) {
+                alert('Ошибка сохранения велосипеда: ' + err.message);
+            }
+        });
+    }
 
     if (bikesTableBody) {
         bikesTableBody.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-bike-btn');
             if (editBtn) {
-                if (window.editBikeModal) {
-                    window.editBikeModal(editBtn.dataset.id);
+                const id = editBtn.dataset.id;
+                const { data, error } = await supabase.from('bikes').select('*').eq('id', id).single();
+                if (error) {
+                    alert('Не удалось загрузить данные велосипеда: ' + error.message);
+                } else {
+                    showBikeForm(data);
                 }
                 return;
             }
@@ -1272,451 +1118,107 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- НОВЫЙ БЛОК: Batteries CRUD ---
-
-    let currentBatteryStep = 1;
-    let originalSerialNumber = null; // Track original serial number for edit mode
-
-    function showBatteryModal(battery = null) {
-        currentBatteryStep = 1;
-        batteryModal.classList.remove('hidden');
-
-        if (battery) {
-            batteryModalTitle.textContent = 'Редактировать аккумулятор';
-            batteryIdInput.value = battery.id;
-            batterySerialNumberInput.value = battery.serial_number;
-            originalSerialNumber = battery.serial_number; // Store original
-            batteryCapacityInput.value = battery.capacity_wh || '';
-            batteryDescriptionInput.value = battery.description || '';
-            batteryStatusSelect.value = battery.status;
-        } else {
-            batteryModalTitle.textContent = 'Новый аккумулятор';
-            batteryIdInput.value = '';
-            batterySerialNumberInput.value = '';
-            originalSerialNumber = null; // Reset for new battery
-            batteryCapacityInput.value = '';
-            batteryDescriptionInput.value = '';
-            batteryStatusSelect.value = 'available';
-        }
-
-        updateBatteryStepDisplay();
-    }
-
-    function hideBatteryModal() {
-        batteryModal.classList.add('hidden');
-        currentBatteryStep = 1;
-        batteryIdInput.value = '';
-        batterySerialNumberInput.value = '';
-        batteryCapacityInput.value = '';
-        batteryDescriptionInput.value = '';
-        batteryStatusSelect.value = 'available';
-    }
-
-    function updateBatteryStepDisplay() {
-        // Hide all steps
-        batteryStep1.classList.add('hidden');
-        batteryStep2.classList.add('hidden');
-        batteryStep3.classList.add('hidden');
-
-        // Show current step
-        if (currentBatteryStep === 1) batteryStep1.classList.remove('hidden');
-        if (currentBatteryStep === 2) batteryStep2.classList.remove('hidden');
-        if (currentBatteryStep === 3) batteryStep3.classList.remove('hidden');
-
-        // Update step indicators
-        document.querySelectorAll('#battery-modal .step-indicator').forEach((indicator, index) => {
-            const circle = indicator.querySelector('.step-circle');
-            if (index + 1 < currentBatteryStep) {
-                circle.classList.add('completed');
-                circle.classList.remove('active');
-            } else if (index + 1 === currentBatteryStep) {
-                circle.classList.add('active');
-                circle.classList.remove('completed');
-            } else {
-                circle.classList.remove('active', 'completed');
-            }
-        });
-
-        // Update buttons
-        batteryPrevBtn.classList.toggle('hidden', currentBatteryStep === 1);
-        batteryNextBtn.classList.toggle('hidden', currentBatteryStep === 3);
-        batterySaveBtn.classList.toggle('hidden', currentBatteryStep !== 3);
-    }
-
-    async function loadBatteries() {
-        if (!batteriesTableBody) return;
-        batteriesTableBody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
-        try {
-            const { data, error } = await supabase.from('batteries').select('*').order('id', { ascending: true });
-            if (error) throw error;
-
-            batteriesTableBody.innerHTML = '';
-            if (!data || data.length === 0) {
-                batteriesTableBody.innerHTML = '<tr><td colspan="6">Аккумуляторы еще не добавлены.</td></tr>';
-                return;
-            }
-
-            data.forEach(battery => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${battery.id}</td>
-                    <td>${battery.serial_number}</td>
-                    <td>${battery.capacity_wh || '—'}</td>
-                    <td>${battery.description || '—'}</td>
-                    <td>${createStatusBadge(battery.status, 'battery')}</td>
-                    <td class="table-actions">
-                        <button type="button" class="edit-battery-btn" data-id="${battery.id}">Ред.</button>
-                        <button type="button" class="delete-battery-btn" data-id="${battery.id}">Удалить</button>
-                    </td>`;
-                batteriesTableBody.appendChild(tr);
-            });
-        } catch (err) {
-            console.error('Ошибка загрузки аккумуляторов:', err);
-            batteriesTableBody.innerHTML = `<tr><td colspan="6">Ошибка: ${err.message}</td></tr>`;
-        }
-    }
-
-    if (batteryAddBtn) batteryAddBtn.addEventListener('click', () => showBatteryModal());
-    if (batteryModalCloseBtn) batteryModalCloseBtn.addEventListener('click', hideBatteryModal);
-
-    if (batteryPrevBtn) {
-        batteryPrevBtn.addEventListener('click', () => {
-            if (currentBatteryStep > 1) {
-                currentBatteryStep--;
-                updateBatteryStepDisplay();
-            }
-        });
-    }
-
-    if (batteryNextBtn) {
-        batteryNextBtn.addEventListener('click', () => {
-            // Validate current step
-            if (currentBatteryStep === 1) {
-                if (!batterySerialNumberInput.value.trim()) {
-                    alert('Пожалуйста, укажите серийный номер');
-                    return;
-                }
-            }
-
-            if (currentBatteryStep < 3) {
-                currentBatteryStep++;
-                updateBatteryStepDisplay();
-            }
-        });
-    }
-
-    if (batterySaveBtn) {
-        batterySaveBtn.addEventListener('click', async () => {
-            const id = batteryIdInput.value;
-            const serialNumber = batterySerialNumberInput.value.trim();
-
-            // Validate serial number
-            if (!serialNumber) {
-                alert('Серийный номер обязателен');
-                return;
-            }
-
-            const batteryData = {
-                serial_number: serialNumber,
-                capacity_wh: batteryCapacityInput.value ? parseInt(batteryCapacityInput.value, 10) : null,
-                description: batteryDescriptionInput.value.trim() || null,
-                status: batteryStatusSelect.value,
-            };
-
-            try {
-                // Check if serial number already exists
-                // Only check if: 1) new battery OR 2) editing and serial number changed
-                const serialNumberChanged = id && originalSerialNumber !== serialNumber;
-
-                if (!id || serialNumberChanged) {
-                    const { data: existing } = await supabase
-                        .from('batteries')
-                        .select('id')
-                        .eq('serial_number', serialNumber)
-                        .maybeSingle();
-
-                    if (existing && existing.id !== parseInt(id)) {
-                        alert(`Аккумулятор с серийным номером "${serialNumber}" уже существует`);
-                        return;
-                    }
-                }
-
-                const { error } = id
-                    ? await supabase.from('batteries').update(batteryData).eq('id', id)
-                    : await supabase.from('batteries').insert([batteryData]);
-
-                if (error) throw error;
-                await loadBatteries();
-                hideBatteryModal();
-            } catch (err) {
-                alert('Ошибка сохранения аккумулятора: ' + err.message);
-            }
-        });
-    }
-
-    if (batteriesTableBody) {
-        batteriesTableBody.addEventListener('click', async (e) => {
-            const editBtn = e.target.closest('.edit-battery-btn');
-            if (editBtn) {
-                const id = editBtn.dataset.id;
-                const { data, error } = await supabase.from('batteries').select('*').eq('id', id).single();
-                if (error) alert('Не удалось загрузить данные: ' + error.message);
-                else showBatteryModal(data);
-                return;
-            }
-            const deleteBtn = e.target.closest('.delete-battery-btn');
-            if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                if (confirm(`Удалить аккумулятор с ID ${id}?`)) {
-                    try {
-                        const { error } = await supabase.from('batteries').delete().eq('id', id);
-                        if (error) throw error;
-                        await loadBatteries();
-                    } catch (err) {
-                        alert('Ошибка удаления: ' + err.message);
-                    }
-                }
-            }
-        });
-    }
-
-    // --- КОНЕЦ БЛОКА Batteries CRUD ---
-
     // --- Clients Logic ---
 
-    // Helper: format phone for display
-    function formatPhoneDisplay(phone) {
-        if (!phone) return '';
-        
-        // Remove all non-digits
-        const cleaned = phone.replace(/\D/g, '');
-        
-        // Format as +7 (XXX) XXX-XX-XX
-        if (cleaned.length === 11 && cleaned.startsWith('7')) {
-            return `+7 (${cleaned.substring(1, 4)}) ${cleaned.substring(4, 7)}-${cleaned.substring(7, 9)}-${cleaned.substring(9, 11)}`;
-        }
-        
-        // Return as-is if format is unexpected
-        return phone;
-    }
-
-    function normalizeNameToken(token = '') {
-        return token
-            .split('-')
-            .map((hyphenPart) =>
-                hyphenPart
-                    .split("'")
-                    .map((segment) => {
-                        const lower = segment.toLowerCase();
-                        if (!lower.length) return '';
-                        return lower.charAt(0).toUpperCase() + lower.slice(1);
-                    })
-                    .join("'")
-            )
-            .join('-');
-    }
-
-    function formatPersonName(value) {
-        if (!value || typeof value !== 'string') return null;
-        const trimmed = value.trim();
-        if (!trimmed) return null;
-        return trimmed
-            .split(/\s+/)
-            .map(normalizeNameToken)
-            .join(' ');
-    }
-
-    function formatPassportData(passport = {}) {
-        if (!passport || typeof passport !== 'object') return {};
-        const copy = { ...passport };
-        if (copy.full_name) copy.full_name = formatPersonName(copy.full_name) || copy.full_name;
-        if (copy.first_name) copy.first_name = formatPersonName(copy.first_name) || copy.first_name;
-        if (copy.last_name) copy.last_name = formatPersonName(copy.last_name) || copy.last_name;
-        if (copy.middle_name) copy.middle_name = formatPersonName(copy.middle_name) || copy.middle_name;
-        return copy;
-    }
-
-    function getDisplayName(client) {
-        if (!client) return '';
-        return formatPersonName(client.name) || client.name || '';
-    }
-
     async function loadClients() {
-        clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
-        try {
-            const { data, error } = await supabase
-                .from('clients')
-                .select('*')
-                .order('created_at', { ascending: false });
+    clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
+    try {
+        const { data, error } = await supabase
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            clientsData = data || [];
-            clientsTableBody.innerHTML = '';
+        if (error) throw error;
+        clientsData = data || []; 
+        clientsTableBody.innerHTML = '';
 
-            if (clientsData.length === 0) {
-                clientsTableBody.innerHTML = '<tr><td colspan="8">Клиенты не найдены.</td></tr>';
-                return;
-            }
+        if (clientsData.length === 0) {
+            clientsTableBody.innerHTML = '<tr><td colspan="8">Клиенты не найдены.</td></tr>';
+            return;
+        }
 
-            clientsData.forEach(client => {
-                const tr = document.createElement('tr');
-                const date = new Date(client.created_at).toLocaleDateString();
-                const status = client.verification_status || 'not_set';
-                const tags = client.extra?.tags || [];
-                const displayName = getDisplayName(client);
+        clientsData.forEach(client => {
+            const tr = document.createElement('tr');
+            const date = new Date(client.created_at).toLocaleDateString();
+            const status = client.verification_status || 'not_set';
+            const tags = client.extra?.tags || [];
 
-                const verificationButtons = status === 'pending' || status === 'needs_confirmation'
-                    ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
-                    : '';
-                const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
+            const verificationButtons = status === 'pending' || status === 'needs_confirmation'
+    ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
+    : '';
+            const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
 
-                tr.innerHTML = `
-                <td>${displayName}</td>
-                <td>${formatPhoneDisplay(client.phone)}</td>
+            tr.innerHTML = `
+                <td>${client.name}</td>
+                <td>${client.phone || ''}</td>
                 <td>${createStatusBadge(status, 'client')}</td>
                 <td><div class="chips">${tagsHtml}</div></td>
                 <td>${date}</td>
                 <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
                 <td>${verificationButtons}</td>
                 <td><button type="button" class="delete-client-btn btn-danger" data-id="${client.id}" style="background-color:#e53e3e;color:white;">Удалить</button></td>`;
-                clientsTableBody.appendChild(tr);
-            });
-        } catch (err) {
-            console.error('Ошибка загрузки клиентов:', err);
-            clientsTableBody.innerHTML = `<tr><td colspan="9">Ошибка: ${err.message}</td></tr>`;
-        }
-    }
-
-    clientsTableBody.addEventListener('click', async (e) => {
-        const target = e.target;
-        const clientId = target.dataset.id;
-
-        if (!clientId) return;
-
-        let newStatus = '';
-        if (target.classList.contains('approve-btn')) newStatus = 'approved';
-        if (target.classList.contains('reject-btn')) newStatus = 'rejected';
-
-        if (newStatus) {
-            if (!confirm(`Вы уверены, что хотите изменить статус клиента #${clientId} на "${newStatus}"?`)) return;
-
-            try {
-                const { error } = await supabase
-                    .from('clients')
-                    .update({ verification_status: newStatus })
-                    .eq('id', clientId);
-
-                if (error) throw error;
-
-                // --- ВОТ ЭТУ СТРОЧКУ НУЖНО ДОБАВИТЬ ---
-                // Отправляем запрос на сервер, чтобы он послал уведомление
-                authedFetch('/api/admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'notify-verification', userId: clientId, status: newStatus })
-                });
-                // --- КОНЕЦ ДОБАВЛЕНИЯ ---
-
-                alert('Статус клиента успешно обновлен!');
-                loadClients(); // Перезагружаем список, чтобы увидеть изменения
-            } catch (err) {
-                alert(`Ошибка обновления статуса: ${err.message}`);
-            }
-            return;
-        }
-
-        if (target.classList.contains('delete-client-btn')) {
-            if (confirm(`ВНИМАНИЕ!\n\nВы уверены, что хотите НАВСЕГДА удалить клиента с ID ${clientId}?\n\nЭто действие также удалит всю его историю аренд и платежей. Отменить это будет невозможно.`)) {
-                try {
-                    target.disabled = true;
-                    target.textContent = 'Удаление...';
-
-                    // Сначала удаляем связанные записи, чтобы избежать ошибок внешнего ключа
-                    await supabase.from('payments').delete().eq('client_id', clientId);
-                    await supabase.from('rentals').delete().eq('user_id', clientId);
-
-                    // Наконец, удаляем самого клиента
-                    const { error } = await supabase.from('clients').delete().eq('id', clientId);
-                    if (error) throw error;
-
-                    alert('Клиент успешно удален.');
-                    loadClients(); // Обновляем список
-                } catch (err) {
-                    alert(`Ошибка удаления: ${err.message}`);
-                    target.disabled = false;
-                    target.textContent = 'Удалить';
-                }
-            }
-        }
-    });
-    // --- Rentals and Payments Loaders ---
-
-    // Функция расчета просрочки аренды
-    function calculateOverdue(currentPeriodEndsAt) {
-        if (!currentPeriodEndsAt) {
-            return { days: 0, hours: 0, minutes: 0, isOverdue: false };
-        }
-
-        const now = new Date();
-        const endDate = new Date(currentPeriodEndsAt);
-        const diffMs = now - endDate;
-
-        if (diffMs <= 0) {
-            // Просрочки нет
-            return { days: 0, hours: 0, minutes: 0, isOverdue: false };
-        }
-
-        // Есть просрочка, считаем дни, часы, минуты
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-        return { days, hours, minutes, isOverdue: true };
-    }
-
-    // Функция отправки уведомлений о просрочках
-    async function notifyOverdueRentals(rentals) {
-        // Фильтруем активные аренды с просрочкой
-        const overdueRentals = rentals.filter(r => {
-            if (r.status !== 'active') return false;
-            const overdue = calculateOverdue(r.current_period_ends_at);
-            return overdue.isOverdue;
+            clientsTableBody.appendChild(tr);
         });
+    } catch (err) {
+        console.error('Ошибка загрузки клиентов:', err);
+        clientsTableBody.innerHTML = `<tr><td colspan="9">Ошибка: ${err.message}</td></tr>`;
+    }
+}
+  
+clientsTableBody.addEventListener('click', async (e) => {
+    const target = e.target;
+    const clientId = target.dataset.id;
 
-        if (overdueRentals.length === 0) {
-            console.log('Нет просрочек для уведомления');
-            return;
+    if (!clientId) return;
+
+    let newStatus = '';
+    if (target.classList.contains('approve-btn')) newStatus = 'approved';
+    if (target.classList.contains('reject-btn')) newStatus = 'rejected';
+
+    if (newStatus) {
+        if (!confirm(`Вы уверены, что хотите изменить статус клиента #${clientId} на "${newStatus}"?`)) return;
+        
+        try {
+            const { error } = await supabase
+                .from('clients')
+                .update({ verification_status: newStatus })
+                .eq('id', clientId);
+
+            if (error) throw error;
+            
+            alert('Статус клиента успешно обновлен!');
+            loadClients(); // Перезагружаем список, чтобы увидеть изменения
+        } catch (err) {
+            alert(`Ошибка обновления статуса: ${err.message}`);
         }
+        return;
+    }
 
-        console.log(`Найдено ${overdueRentals.length} просрочек, отправляем уведомления...`);
-
-        // Отправляем уведомления для каждой просрочки
-        for (const rental of overdueRentals) {
-            const overdue = calculateOverdue(rental.current_period_ends_at);
-            const messageText = `⚠️ У вас просрочка аренды велосипеда: ${overdue.days} дней ${overdue.hours} часов.\n\nЕсли просрочка превысит 1 день, с вашей карты спишется сумма за 7 дней аренды.`;
-
+    if (target.classList.contains('delete-client-btn')) {
+        if (confirm(`ВНИМАНИЕ!\n\nВы уверены, что хотите НАВСЕГДА удалить клиента с ID ${clientId}?\n\nЭто действие также удалит всю его историю аренд и платежей. Отменить это будет невозможно.`)) {
             try {
-                const response = await authedFetch('/api/admin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'notify-overdue',
-                        rentalId: rental.id,
-                        messageText: messageText
-                    })
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log(`✅ Уведомление для аренды ${rental.id}:`, result.message);
-                } else {
-                    console.error(`❌ Ошибка уведомления для аренды ${rental.id}`);
-                }
+                target.disabled = true;
+                target.textContent = 'Удаление...';
+                
+                // Сначала удаляем связанные записи, чтобы избежать ошибок внешнего ключа
+                await supabase.from('payments').delete().eq('client_id', clientId);
+                await supabase.from('rentals').delete().eq('user_id', clientId);
+                
+                // Наконец, удаляем самого клиента
+                const { error } = await supabase.from('clients').delete().eq('id', clientId);
+                if (error) throw error;
+                
+                alert('Клиент успешно удален.');
+                loadClients(); // Обновляем список
             } catch (err) {
-                console.error(`Ошибка отправки уведомления для аренды ${rental.id}:`, err);
+                alert(`Ошибка удаления: ${err.message}`);
+                target.disabled = false;
+                target.textContent = 'Удалить';
             }
         }
     }
+});
+    // --- Rentals and Payments Loaders ---
 
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
@@ -1731,144 +1233,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 'rejected': 'Отклонена'
             };
 
-            const query = window.dbClient
+            const { data, error } = await supabase
                 .from('rentals')
-                .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone), rental_batteries(batteries(serial_number))')
+                .select('id, user_id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, extra_data, clients (name, phone)')
                 .order('starts_at', { ascending: false });
 
-            const { data, error } = await query;
-
-            if (error) {
-                throw new Error(error?.message || 'Не удалось загрузить аренды');
-            }
-            const rentals = Array.isArray(data) ? data : [];
-            console.groupCollapsed('[admin] loadRentals debug');
-            console.log('total:', rentals.length);
-            console.log('rows:', rentals);
-            console.groupEnd();
-
-            if (rentals.length === 0) {
-                const { data: rawRentals, error: rawError } = await window.dbClient
-                    .from('rentals')
-                    .select('id, status, created_at')
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-                console.groupCollapsed('[admin] loadRentals raw fallback');
-                console.log('rawError:', rawError);
-                console.log('rawRentals:', rawRentals);
-                console.groupEnd();
-            }
-
+            if (error) throw error;
             tbody.innerHTML = '';
-            rentals.forEach(r => {
+            (data || []).forEach(r => {
                 const tr = document.createElement('tr');
                 const start = r.starts_at ? new Date(r.starts_at).toLocaleString('ru-RU') : '—';
                 const end = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
 
-                // Расчет просрочки
-                const overdue = calculateOverdue(r.current_period_ends_at);
-                let overdueCell = '';
-                if (r.status === 'active' && overdue.isOverdue) {
-                    overdueCell = `<span style="color: #c92a2a; font-weight: 700; font-size: 0.95rem;">⚠️ ${overdue.days} дн ${overdue.hours} ч ${overdue.minutes} мин</span>`;
-                    tr.classList.add('overdue-rental'); // Добавляем CSS класс вместо inline-стиля
-                } else if (r.status === 'active') {
-                    overdueCell = `<span style="color: #2b8a3e; font-weight: 600;">✓ В порядке</span>`;
-                } else {
-                    overdueCell = '—';
+                // --- НОВАЯ ЛОГИКА ДЛЯ КНОПОК ДЕЙСТВИЙ ---
+                let actionsCell = `<button type="button" class="edit-rental-btn" data-id="${r.id}">Ред.</button>`;
+
+                // Получаем ссылки из extra_data
+                const contractUrl = r.extra_data?.contract_document_url;
+                const returnActUrl = r.extra_data?.return_act_url;
+
+                if (contractUrl) {
+                    actionsCell += ` <a href="${contractUrl}" target="_blank" class="btn-link">Акт приёма</a>`;
+                }
+                if (returnActUrl) {
+                    actionsCell += ` <a href="${returnActUrl}" target="_blank" class="btn-link">Акт сдачи</a>`;
                 }
 
-                // --- Отрисовка строки аренды ---
+                if (r.status === 'active') {
+                    actionsCell += ` <button type="button" class="end-rental-btn" data-id="${r.id}">Завершить</button>`;
+                }
+
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
                     <td>${r.clients?.phone || 'Н/Д'}</td>
-                    <td>
-                        <div>Велосипед: ${r.bike_id || '—'}</div>
-                        ${r.rental_batteries && r.rental_batteries.length > 0
-                        ? `<small style="color: #666;">АКБ: ${r.rental_batteries.map(rb => rb.batteries.serial_number).join(', ')}</small>`
-                        : ''
-                    }
-                    </td>
+                    <td>${r.bike_id || '—'}</td>
                     <td>${start}</td>
                     <td>${end}</td>
-                    <td>${overdueCell}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
                     <td>${createStatusBadge(r.status, 'rental')}</td>
+                    <td class="table-actions">${actionsCell}</td>
                 `;
-                
-                // Показываем детали аренды по клику на строку
-                tr.addEventListener('click', async (e) => {
-                    // Открываем план платежей
-                    try {
-                        const { data: rental, error } = await window.dbClient
-                            .from('rentals')
-                            .select('*, clients(name, phone), tariffs(duration_days, price_rub)')
-                            .eq('id', r.id)
-                            .single();
-
-                        if (error) throw error;
-
-                        populateRentalActionButtons(rental);
-
-                        const paymentPlan = await generatePaymentPlan(rental);
-                        
-                        const paymentPlanContent = document.getElementById('payment-plan-content');
-                        paymentPlanContent.innerHTML = paymentPlan.map((payment) => {
-                            let statusText = '';
-                            let statusIcon = '';
-
-                            if (payment.status === 'paid') {
-                                statusText = 'Оплачено';
-                                statusIcon = '✓';
-                            } else if (payment.status === 'overdue') {
-                                statusText = 'Просрочено';
-                                statusIcon = '✕';
-                            } else {
-                                statusText = 'Ожидается';
-                                statusIcon = '⏳';
-                            }
-
-                            return `
-                                <div style="padding: 16px; background: ${payment.status === 'paid' ? '#f0f9ff' : payment.status === 'overdue' ? '#fee' : '#fafafa'}; border-radius: 12px; border-left: 4px solid ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#ccc'};">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                        <div style="font-weight: 700; font-size: 14px; color: var(--dark-green);">
-                                            ${payment.period}
-                                        </div>
-                                        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: white; border-radius: 999px; font-size: 12px; font-weight: 600; color: ${payment.status === 'paid' ? 'var(--accent)' : payment.status === 'overdue' ? '#e53e3e' : '#666'};">
-                                            <span>${statusIcon}</span>
-                                            <span>${statusText}</span>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666;">
-                                        <span>${payment.date}</span>
-                                        <span style="font-weight: 600; color: var(--dark-green);">${payment.amount} ₽</span>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
-
-                        const paymentPlanModal = document.getElementById('payment-plan-modal');
-                        const paymentPlanTitle = paymentPlanModal?.querySelector('.modal-header h3');
-                        if (paymentPlanTitle) {
-                            paymentPlanTitle.textContent = `Аренда #${rental.id}: действия и план платежей`;
-                        }
-                        paymentPlanModal.classList.remove('hidden');
-                    } catch (err) {
-                        alert('Ошибка загрузки плана платежей: ' + err.message);
-                    }
-                });
-                
                 tbody.appendChild(tr);
             });
-
-            // Отправляем уведомления просрочникам
-            notifyOverdueRentals(data || []);
-
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="8">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
     }
 
-    // --- Логика для редактирования и управления арендой (ОБЪЕДИНЕННЫЙ БЛОК) ---
+// --- Логика для редактирования и управления арендой (ОБЪЕДИНЕННЫЙ БЛОК) ---
     const rentalEditModal = document.getElementById('rental-edit-modal');
     const rentalEditCancelBtn = document.getElementById('rental-edit-cancel-btn');
     const rentalEditSaveBtn = document.getElementById('rental-edit-save-btn');
@@ -1876,83 +1288,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const rentalBikeSelect = document.getElementById('rental-edit-bike');
     const rentalEndDateInput = document.getElementById('rental-edit-end-date');
     const rentalStatusSelect = document.getElementById('rental-edit-status');
-    const rentalEditBatteriesList = document.getElementById('rental-edit-batteries-list');
-    const rentalEditChangeBatteriesBtn = document.getElementById('rental-edit-change-batteries-btn');
 
-    let currentRentalBatteries = [];
-
-    const rentalActionsInline = document.getElementById('rental-actions-inline');
-
-    function populateRentalActionButtons(rentalData) {
-        if (!rentalActionsInline) return;
-
-        rentalActionsInline.innerHTML = '';
-
-        const planButton = document.createElement('button');
-        planButton.type = 'button';
-        planButton.className = 'btn btn-secondary scroll-payment-plan-btn';
-        planButton.style.width = '100%';
-        planButton.textContent = 'План платежей';
-        rentalActionsInline.appendChild(planButton);
-
-        const editButton = document.createElement('button');
-        editButton.className = 'btn btn-primary edit-rental-btn';
-        editButton.style.width = '100%';
-        editButton.textContent = 'Редактировать аренду';
-        editButton.dataset.id = rentalData.id;
-        rentalActionsInline.appendChild(editButton);
-
-        const contractUrl = rentalData.extra_data?.contract_document_url;
-        if (contractUrl) {
-            const contractLink = document.createElement('a');
-            contractLink.href = `/api/router?endpoint=view-document&rental=${rentalData.id}&type=contract`;
-            contractLink.target = '_blank';
-            contractLink.rel = 'noopener noreferrer';
-            contractLink.className = 'btn btn-secondary';
-            contractLink.style.width = '100%';
-            contractLink.style.textAlign = 'center';
-            contractLink.textContent = 'Акт приёма';
-            rentalActionsInline.appendChild(contractLink);
-        }
-
-        const returnUrl = rentalData.extra_data?.return_act_url;
-        if (returnUrl) {
-            const returnLink = document.createElement('a');
-            returnLink.href = `/api/router?endpoint=view-document&rental=${rentalData.id}&type=return_act`;
-            returnLink.target = '_blank';
-            returnLink.rel = 'noopener noreferrer';
-            returnLink.className = 'btn btn-secondary';
-            returnLink.style.width = '100%';
-            returnLink.style.textAlign = 'center';
-            returnLink.textContent = 'Акт сдачи';
-            rentalActionsInline.appendChild(returnLink);
-        }
-
-        if (rentalData.status === 'active') {
-            const endButton = document.createElement('button');
-            endButton.className = 'btn btn-danger end-rental-btn';
-            endButton.style.width = '100%';
-            endButton.textContent = 'Завершить аренду';
-            endButton.dataset.id = rentalData.id;
-            rentalActionsInline.appendChild(endButton);
-        }
-    }
-
-    if (rentalActionsInline) {
-        rentalActionsInline.addEventListener('click', async (e) => {
-            const scrollBtn = e.target.closest('.scroll-payment-plan-btn');
-            if (scrollBtn) {
-                const paymentPlanContent = document.getElementById('payment-plan-content');
-                if (paymentPlanContent) {
-                    paymentPlanContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-                return;
-            }
-
+    if (rentalsTableBody) {
+        rentalsTableBody.addEventListener('click', async (e) => {
             const editBtn = e.target.closest('.edit-rental-btn');
+            const endBtn = e.target.closest('.end-rental-btn');
+
+            // --- ОБРАБОТЧИК КНОПКИ "РЕДАКТИРОВАТЬ" ---
             if (editBtn) {
                 const rentalId = editBtn.dataset.id;
-
                 try {
                     const { data: rentalData, error: rentalError } = await supabase
                         .from('rentals')
@@ -1989,42 +1333,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         rentalEndDateInput.value = date.toISOString().slice(0, 16);
                     }
 
-                    const { data: batteries, error: battError } = await supabase
-                        .from('rental_batteries')
-                        .select('battery_id, batteries(serial_number)')
-                        .eq('rental_id', rentalId);
-
-                    if (!battError && batteries) {
-                        currentRentalBatteries = batteries.map(b => ({
-                            id: b.battery_id,
-                            serial: b.batteries?.serial_number || 'Неизвестно'
-                        }));
-                        renderRentalBatteriesList();
-                    }
-
                     rentalEditModal.classList.remove('hidden');
                 } catch (err) {
                     alert('Ошибка загрузки данных аренды: ' + err.message);
                 }
-                return;
             }
 
-            const endBtn = e.target.closest('.end-rental-btn');
+            // --- ОБРАБОТЧИК КНОПКИ "ЗАВЕРШИТЬ" ---
             if (endBtn) {
                 const rentalId = endBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
                     try {
                         const { error } = await supabase
-                            .from('rentals')
-                            .update({ status: 'completed_by_admin' })
-                            .eq('id', rentalId);
+                            .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
                         if (error) throw error;
-                        alert('Аренда завершена!');
+                        alert('Аренда успешно завершена.');
                         loadRentals();
-                        const paymentPlanModalEl = document.getElementById('payment-plan-modal');
-                        if (paymentPlanModalEl) {
-                            paymentPlanModalEl.classList.add('hidden');
-                        }
                     } catch (err) {
                         alert('Ошибка завершения аренды: ' + err.message);
                     }
@@ -2035,79 +1359,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (rentalEditCancelBtn) {
         rentalEditCancelBtn.addEventListener('click', () => rentalEditModal.classList.add('hidden'));
-    }
-
-    // Обработчик закрытия модального окна плана платежей
-    const paymentPlanModal = document.getElementById('payment-plan-modal');
-    const paymentPlanCloseBtn = document.getElementById('payment-plan-close-btn');
-
-    if (paymentPlanCloseBtn) {
-        paymentPlanCloseBtn.addEventListener('click', () => paymentPlanModal.classList.add('hidden'));
-    }
-
-    if (paymentPlanModal) {
-        paymentPlanModal.addEventListener('click', (e) => {
-            if (e.target === paymentPlanModal) paymentPlanModal.classList.add('hidden');
-        });
-    }
-
-    // Функция генерации плана платежей на основе РЕАЛЬНОЙ истории
-    async function generatePaymentPlan(rental) {
-        const plan = [];
-        const today = new Date();
-
-        // Получаем ВСЕ платежи по этой аренде
-        const { data: payments, error } = await supabase
-            .from('payments')
-            .select('*')
-            .eq('rental_id', rental.id)
-            .in('payment_type', ['rental', 'renewal'])
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('Ошибка загрузки платежей:', error);
-            console.error('Детали ошибки:', error.message, error.details, error.hint);
-            return [];
-        }
-
-        // Обрабатываем каждый платеж
-        payments.forEach((payment, index) => {
-            const paymentDate = new Date(payment.created_at);
-            const isPaid = payment.status === 'succeeded';
-            
-            // Определяем статус
-            let status = isPaid ? 'paid' : 'overdue';
-
-            plan.push({
-                period: index === 0 ? 'Первый платеж' : `${index + 1}-й платеж`,
-                date: paymentDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                amount: Math.abs(payment.amount_rub),
-                status: status,
-                description: payment.description || ''
-            });
-        });
-
-        // Добавляем СЛЕДУЮЩИЙ ожидаемый платеж
-        if (rental.current_period_ends_at) {
-            const nextPaymentDate = new Date(rental.current_period_ends_at);
-            
-            // Только если дата в будущем
-            if (nextPaymentDate > today) {
-                // Берем сумму последнего успешного платежа, иначе базовую цену тарифа
-                const lastSuccessfulPayment = payments.filter(p => p.status === 'succeeded').pop();
-                const expectedAmount = lastSuccessfulPayment ? Math.abs(lastSuccessfulPayment.amount_rub) : (rental.tariffs?.price_rub || 0);
-                
-                plan.push({
-                    period: `${plan.length + 1}-й платеж`,
-                    date: nextPaymentDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-                    amount: expectedAmount,
-                    status: 'pending',
-                    description: 'Ожидается автоплатеж'
-                });
-            }
-        }
-
-        return plan;
     }
 
     if (rentalEditSaveBtn) {
@@ -2165,14 +1416,20 @@ document.addEventListener('DOMContentLoaded', () => {
             data: {
                 labels: labels,
                 datasets: [{
-                            label: 'Доход',
-                            data: chartData,
-                            backgroundColor: 'rgba(13, 115, 119, 0.1)',   // --accent (dark-green) with opacity
-                            borderColor: 'rgba(13, 115, 119, 1)',         // --accent (dark-green)
-                            borderWidth: 3,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: 'rgba(13, 115, 119, 1)', // --accent (dark-green)
+                    label: 'Доход по дням, ₽',
+                    data: chartData,
+                    // --- ИЗМЕНЕНИЕ №2: Замена красного цвета на темно-зеленый для "сегодня" ---
+                    backgroundColor: (context) => {
+                        const label = labels[context.dataIndex];
+                        // Если сегодня - используем темно-зеленый, в остальные дни - обычный зеленый.
+                        return label === today ? 'rgba(8, 56, 48, 0.8)' : 'rgba(38, 185, 153, 0.6)';
+                    },
+                    borderColor: (context) => {
+                        const label = labels[context.dataIndex];
+                        return label === today ? 'rgba(8, 56, 48, 1)' : 'rgba(38, 185, 153, 1)';
+                    },
+                    borderWidth: 1,
+                    borderRadius: 4,
                 }]
             },
             options: {
@@ -2196,28 +1453,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+    
     async function loadPayments() {
         const tbody = document.querySelector('#payments-table tbody');
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="7">Загрузка...</td></tr>';
         try {
-            const { data, error } = await window.dbClient
+            const { data, error } = await supabase
                 .from('payments')
-                .select('id, client_id, amount_rub, payment_type, method, status, created_at, description, clients(name), yookassa_payment_id')
-                .order('created_at', { ascending: false })
-                .limit(200);
-            if (error) throw new Error(error?.message || 'Не удалось загрузить платежи');
-            console.groupCollapsed('[admin] loadPayments');
-            console.log('rows:', data);
-            console.groupEnd();
+                .select('id, yookassa_payment_id, amount_rub, payment_method_title, payment_type, status, created_at, description, clients (name)')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
             tbody.innerHTML = '';
             (data || []).forEach(p => {
-                // Get payment type label
-                const typeLabel = paymentTypeLabels[p.payment_type] || p.payment_type || '—';
+                // Получаем данные для каждой колонки
+                let method = p.payment_method_title || '—';
+                const description = p.description || '—';           // Это "Начало аренды"
 
-                // Get payment method label
-                const methodLabel = paymentMethodLabels[p.method] || p.method || '—';
+                // Улучшенная логика отображения метода оплаты
+                if (p.payment_type === 'balance') {
+                    method = 'С баланса приложения';
+                } else if (p.payment_method_title === 'Saved method') {
+                    method = 'Карта/SBP клиента';
+                } else if (p.payment_method_title && p.payment_method_title !== '—') {
+                    method = p.payment_method_title; // Оставляем как есть для других случаев
+                } else {
+                    method = '—';
+                }
 
                 const actionsCell = (p.status === 'succeeded' && p.status !== 'refunded' && p.yookassa_payment_id && !p.yookassa_payment_id.startsWith('manual'))
                     ? `<button type="button" class="refund-btn" data-payment-id="${p.yookassa_payment_id}" data-amount="${p.amount_rub}">Вернуть</button>`
@@ -2228,29 +1490,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateStr = dateObj ? dateObj.toLocaleDateString('ru-RU') : '—';
                 const timeStr = dateObj ? dateObj.toLocaleTimeString('ru-RU') : '';
 
-                // Make row clickable to show details
-                tr.style.cursor = 'pointer';
-                tr.dataset.paymentId = p.id;
-
-                // Store payment data for modal
-                tr.dataset.paymentData = JSON.stringify({
-                    id: p.id,
-                    client: p.clients?.name || 'Н/Д',
-                    amount: p.amount_rub,
-                    payment_type: p.payment_type,
-                    method: p.method,
-                    status: p.status,
-                    created_at: p.created_at,
-                    description: p.description,
-                    yookassa_payment_id: p.yookassa_payment_id
-                });
-
-                // Build table row with separate payment_type and method columns
+                // Собираем строку таблицы с новой колонкой
                 tr.innerHTML = `
                     <td>${p.clients?.name || 'Н/Д'}</td>
-                    <td>${Number(p.amount_rub ?? 0).toLocaleString('ru-RU')} ₽</td>
-                    <td>${typeLabel}</td>
-                    <td><span class="payment-method-badge ${p.method || ''}">${methodLabel}</span></td>
+                    <td>${p.amount_rub ?? 0}</td>
+                    <td>${method}</td>
+                    <td>${description}</td> <!-- ВОТ НОВАЯ ЯЧЕЙКА С ОПИСАНИЕМ -->
                     <td>${createStatusBadge(p.status, 'payment')}</td>
                     <td>
                         <div>${dateStr}</div>
@@ -2264,30 +1509,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Ошибка загрузки платежей:', err);
         }
     }
-    // Update dashboard time
-    function updateDashboardTime() {
-        const timeElement = document.getElementById('dashboard-time');
-        if (timeElement) {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            timeElement.textContent = `${hours}:${minutes}`;
-        }
-    }
-
-    // Update time every minute
-    updateDashboardTime();
-    setInterval(updateDashboardTime, 60000);
-
     async function loadDashboardData() {
-        // Загружаем Chart.js если ещё не загружена
-        await window.loadChartJS();
-
         // 1. Load Bike Stats
-        const bikesContainer = document.getElementById('dashboard-bikes');
-        if (bikesContainer) {
+        const metricsContainer = document.getElementById('dashboard-metrics');
+        if (metricsContainer) {
+            metricsContainer.innerHTML = '<p>Загрузка метрик...</p>';
             try {
-                const { data, error } = await supabase.from('bikes').select('status');
+                const { data, error } = await supabase.from('bikes').select('status').eq('city', 'Новосибирск');
                 if (error) throw error;
 
                 const stats = data.reduce((acc, bike) => {
@@ -2300,161 +1528,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rented = stats.rented || 0;
                 const in_service = stats.in_service || 0;
 
-                bikesContainer.innerHTML = `
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">Всего велосипедов</span>
-                        <span class="dashboard-stat-value">${total}</span>
-                    </div>
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">Свободно</span>
-                        <span class="dashboard-stat-value accent">${available}</span>
-                    </div>
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">В аренде</span>
-                        <span class="dashboard-stat-value warning">${rented}</span>
-                    </div>
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">В ремонте</span>
-                        <span class="dashboard-stat-value danger">${in_service}</span>
-                    </div>
+                metricsContainer.innerHTML = `
+                    <div class="card"><div class="text-content"><span>Всего велосипедов</span><strong>${total}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>Свободно</span><strong>${available}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>В аренде</span><strong>${rented}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>В ремонте</span><strong>${in_service}</strong></div></div>
                 `;
             } catch (err) {
-                bikesContainer.innerHTML = `<p>Ошибка: ${err.message}</p>`;
+                metricsContainer.innerHTML = `<p>Ошибка загрузки статистики велосипедов: ${err.message}</p>`;
             }
         }
 
-        // 2. Load Operations Stats
-        const operationsContainer = document.getElementById('dashboard-operations');
-        if (operationsContainer) {
-            try {
-                // Active rentals
-                const { data: rentals, error: rentalsError } = await supabase
-                    .from('rentals')
-                    .select('id')
-                    .eq('status', 'active');
-                if (rentalsError) throw rentalsError;
-
-                // New clients this week
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                const { data: newClients, error: clientsError } = await supabase
-                    .from('clients')
-                    .select('id')
-                    .gte('created_at', weekAgo.toISOString());
-                if (clientsError) throw clientsError;
-
-                // Total batteries
-                const { data: batteries, error: batteriesError } = await supabase
-                    .from('batteries')
-                    .select('status');
-                if (batteriesError) throw batteriesError;
-
-                const availableBatteries = batteries.filter(b => b.status === 'available').length;
-
-                operationsContainer.innerHTML = `
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">Активные аренды</span>
-                        <span class="dashboard-stat-value warning">${rentals.length}</span>
-                    </div>
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">Новые клиенты (7 дн.)</span>
-                        <span class="dashboard-stat-value accent">${newClients.length}</span>
-                    </div>
-                    <div class="dashboard-stat-item">
-                        <span class="dashboard-stat-label">Свободные АКБ</span>
-                        <span class="dashboard-stat-value">${availableBatteries}</span>
-                    </div>
-                `;
-            } catch (err) {
-                operationsContainer.innerHTML = `<p>Ошибка: ${err.message}</p>`;
-            }
-        }
-
-        // 3. Load Revenue Data
-        const revenueContainer = document.getElementById('revenue-breakdown');
-        const weeklyIncomeDiv = document.getElementById('weekly-income');
-        try {
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            const { data: weekPayments, error } = await supabase
-                .from('payments')
-                .select('amount_rub, status, payment_type')
-                .gte('created_at', weekAgo.toISOString())
-                .eq('status', 'succeeded');
-            if (error) throw error;
-
-            const total = (weekPayments || []).reduce((sum, p) => sum + Number(p.amount_rub || 0), 0);
-            const avgPayment = weekPayments.length > 0 ? Math.round(total / weekPayments.length) : 0;
-            const rentalPayments = weekPayments.filter(p => p.payment_type === 'rental').length;
-            
-            // Рассчитываем платежи ожидаемые сегодня
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            
-            const { data: todayRentals } = await supabase
-                .from('rentals')
-                .select('id, current_period_ends_at')
-                .eq('status', 'active')
-                .gte('current_period_ends_at', today.toISOString())
-                .lt('current_period_ends_at', tomorrow.toISOString());
-            
-            // Для каждой аренды находим последний успешный платеж
-            let expectedToday = 0;
-                if (todayRentals && todayRentals.length > 0) {
-                    for (const rental of todayRentals) {
-                        const { data: lastPayment } = await supabase
-                            .from('payments')
-                            .select('amount_rub')
-                        .eq('rental_id', rental.id)
-                        .eq('status', 'succeeded')
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .single();
-
-                        if (lastPayment) {
-                        expectedToday += Math.abs(Number(lastPayment.amount_rub || 0));
-                    }
-                }
-            }
-
-            if (weeklyIncomeDiv) {
-                weeklyIncomeDiv.textContent = `${total.toLocaleString('ru-RU')} ₽`;
-            }
-
-            if (revenueContainer) {
-                console.groupCollapsed('[admin] dashboard revenue debug');
-                console.log('weekPayments:', weekPayments);
-                console.log('total:', total);
-                console.log('avgPayment:', avgPayment);
-                console.log('expectedToday:', expectedToday);
-                console.groupEnd();
-                revenueContainer.innerHTML = `
-                    <div class="revenue-stat-item">
-                        <div class="revenue-stat-label">Средний чек</div>
-                        <div class="revenue-stat-value">${avgPayment.toLocaleString('ru-RU')} ₽</div>
-                    </div>
-                    <div class="revenue-stat-item">
-                        <div class="revenue-stat-label">Всего платежей</div>
-                        <div class="revenue-stat-value">${weekPayments.length}</div>
-                    </div>
-                    <div class="revenue-stat-item">
-                        <div class="revenue-stat-label">Аренды</div>
-                        <div class="revenue-stat-value">${rentalPayments}</div>
-                    </div>
-                    <div class="revenue-stat-item">
-                        <div class="revenue-stat-label">Ожидается сегодня</div>
-                        <div class="revenue-stat-value">${expectedToday.toLocaleString('ru-RU')} ₽</div>
-                    </div>
-                `;
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки недельного дохода:', err);
-            if (weeklyIncomeDiv) weeklyIncomeDiv.textContent = 'Ошибка';
-        }
-
-        // 4. Load Payments for Chart
+        // 2. Load Payments for Chart
         try {
             const { data, error } = await supabase
                 .from('payments')
@@ -2466,11 +1551,33 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Ошибка загрузки данных для графика платежей:', err);
         }
 
+        // 3. Load Weekly Income
+        try {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const { data, error } = await supabase
+                .from('payments')
+                .select('amount_rub, status')
+                .gte('created_at', weekAgo.toISOString())
+                .eq('status', 'succeeded');
+            if (error) throw error;
+            const total = (data || []).reduce((sum, p) => sum + (p.amount_rub || 0), 0);
+            const weeklyIncomeDiv = document.getElementById('weekly-income');
+            if (weeklyIncomeDiv) {
+                weeklyIncomeDiv.textContent = `Общий доход: ${total} ₽`;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки недельного дохода:', err);
+            const weeklyIncomeDiv = document.getElementById('weekly-income');
+            if (weeklyIncomeDiv) {
+                weeklyIncomeDiv.textContent = 'Ошибка загрузки';
+            }
+        }
     }
 
     // --- Client Info/Edit Modals Logic ---
     // --- Client Info/Edit Modals Logic ---
-    // --- Client Info/Edit Modals Logic ---
+// --- Client Info/Edit Modals Logic ---
 
     if (clientsSection) {
         clientsSection.addEventListener('click', async (e) => {
@@ -2498,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clientEditCancelBtn) {
         clientEditCancelBtn.addEventListener('click', () => clientEditOverlay.classList.add('hidden'));
     }
-
+    
     if (clientEditSaveBtn) {
         clientEditSaveBtn.addEventListener('click', async () => {
             if (!currentEditingId) return;
@@ -2507,15 +1614,18 @@ document.addEventListener('DOMContentLoaded', () => {
             clientEditForm.querySelectorAll('input, textarea').forEach(inp => {
                 updatedRec[inp.name] = inp.value.trim();
             });
+            
+            // Создаем новый объект `extra` на основе старого, но с обновленными данными
+            const extraObj = JSON.parse(JSON.stringify(currentEditingExtra || {}));
+            extraObj.recognized_data = updatedRec;
 
             try {
-                // Сохраняем в recognized_passport_data вместо extra.recognized_data
                 const { error } = await supabase
                     .from('clients')
-                    .update({ recognized_passport_data: updatedRec })
+                    .update({ extra: extraObj })
                     .eq('id', currentEditingId);
                 if (error) throw error;
-
+                
                 alert('Данные клиента успешно обновлены.');
                 clientEditOverlay.classList.add('hidden');
                 await loadClients(); // Перезагружаем список клиентов для отображения изменений
@@ -2524,7 +1634,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+ 
 
     // --- Balance Adjustment Logic ---
     const balanceModal = document.getElementById('balance-modal');
@@ -2589,7 +1699,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) {
                     throw new Error(result.error || `Ошибка сервера: ${response.status}`);
                 }
-
+                
                 alert(result.message || 'Баланс успешно скорректирован.');
                 balanceModal.classList.add('hidden');
                 balanceAmountInput.value = '';
@@ -2658,8 +1768,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const tagEl = document.createElement('span');
             tagEl.className = 'chip'; // Re-using chip style for tags
             tagEl.style.cursor = 'pointer';
-            tagEl.style.backgroundColor = '#e0f3fb';
-            tagEl.style.borderColor = '#40A4DF';
+            tagEl.style.backgroundColor = '#e0f8f1';
+            tagEl.style.borderColor = '#26b999';
             tagEl.style.color = '#083830';
             tagEl.textContent = tag;
             const removeBtn = document.createElement('span');
@@ -2862,53 +1972,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!assignmentsTableBody) return;
         assignmentsTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
         try {
-            const query = window.dbClient
+            const { data, error } = await supabase
                 .from('rentals')
                 .select('id, created_at, user_id, tariff_id, status, clients(name), tariffs(title)')
-                .in('status', ['awaiting_battery_assignment', 'pending_return'])
+                .in('status', ['pending_assignment', 'pending_return']) // Fetch both types
                 .order('created_at', { ascending: true });
 
-            const { data, error } = await query;
+            if (error) throw error;
 
-            if (error) {
-                throw new Error(error?.message || 'Не удалось загрузить заявки');
-            }
-
-            const rentals = Array.isArray(data) ? data : [];
-
-            if (rentals.length === 0) {
-                const { data: rawRentals, error: rawError } = await window.dbClient
-                    .from('rentals')
-                    .select('id, status, created_at')
-                    .order('created_at', { ascending: false })
-                    .limit(10);
-                console.groupCollapsed('[admin] loadAssignments raw fallback');
-                console.log('rawError:', rawError);
-                console.log('rawRentals:', rawRentals);
-                console.groupEnd();
+            if (!data || data.length === 0) {
                 assignmentsTableBody.innerHTML = '<tr><td colspan="5">Нет активных заявок.</td></tr>';
                 return;
             }
 
             assignmentsTableBody.innerHTML = '';
-            rentals.forEach(assignment => {
+            data.forEach(assignment => {
                 const tr = document.createElement('tr');
-                let actionButton = '';
-
-                // ИЗМЕНЕНИЕ: Разная логика для разных статусов
-                if (assignment.status === 'pending_return') {
-                    actionButton = `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`;
-                } else if (assignment.status === 'awaiting_battery_assignment') { // <-- ОЖИДАЕТ АКБ
-                    actionButton = `<button class="btn btn-primary assign-batteries-btn" data-rental-id="${assignment.id}">Выбрать оборудование</button>`;
-                }
+                // Different button for different request types
+                const actionButton = assignment.status === 'pending_return'
+                    ? `<button class="btn btn-primary process-return-btn" data-rental-id="${assignment.id}">Принять</button>`
+                    : `<button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать</button>`;
 
                 tr.innerHTML = `
-                    <td>${assignment.clients?.name || `ID: ${assignment.user_id.slice(0, 8)}...`}</td>
+                    <td>${assignment.clients?.name || `ID: ${assignment.user_id.slice(0,8)}...`}</td>
                     <td>${assignment.tariffs?.title || `ID: ${assignment.tariff_id}`}</td>
-                    <td>${createStatusBadge(assignment.status, 'rental')}</td>
+                    <td>${createStatusBadge(assignment.status, 'assignment')}</td>
                     <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
                     <td class="table-actions">
                         ${actionButton}
+                        ${assignment.status !== 'pending_return' ? `<button class="btn btn-secondary reject-rental-btn" data-rental-id="${assignment.id}" style="background-color: #fff1f2; color: #e53e3e;">Отклонить</button>` : ''}
                     </td>
                 `;
                 assignmentsTableBody.appendChild(tr);
@@ -2919,132 +2011,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // +++ НОВАЯ ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ БРОНЕЙ В АДМИНКЕ +++
-    async function loadBookings() {
-        const tbody = document.querySelector('#bookings-table tbody');
-        if (!tbody) return;
-        // Останавливаем предыдущий таймер, если он был
-        if (bookingUpdateInterval) {
-            clearInterval(bookingUpdateInterval);
-            bookingUpdateInterval = null;
-        }
-        tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
-
-        try {
-            const { data, error } = await supabase
-                .from('bookings')
-                .select('*, clients(name, phone)')
-                .eq('status', 'active')
-                .gt('expires_at', new Date().toISOString()) // Только активные и неистекшие
-                .order('expires_at', { ascending: true });
-
-            if (error) throw error;
-
-            tbody.innerHTML = '';
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">Нет активных бронирований.</td></tr>';
-                return;
-            }
-
-            data.forEach(booking => {
-                const tr = document.createElement('tr');
-                tr.dataset.expiresAt = booking.expires_at; // Сохраняем дату для таймера
-
-                tr.innerHTML = `
-                    <td>${booking.clients?.name || 'ID: ' + booking.user_id}</td>
-                    <td>${booking.clients?.phone || '—'}</td>
-                    <td>${new Date(booking.expires_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                    <td class="progress-cell">
-                         <span class="time-left-display" style="font-size: 0.9em; color: #666;">Загрузка...</span>
-                         <div class="progress-bar-container" style="margin-top: 4px;">
-                            <div class="progress-bar progress-bar-fill" style="width: 100%;"></div>
-                         </div>
-                    </td>
-                    <td class="table-actions">
-                        <button class="btn btn-primary create-rental-from-booking-btn" data-booking-id="${booking.id}">Пришел</button>
-                        <button class="btn btn-danger reject-booking-btn" data-booking-id="${booking.id}">Отклонить</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // Функция для обновления таймеров
-            const updateBookingTimers = () => {
-                tbody.querySelectorAll('tr[data-expires-at]').forEach(row => {
-                    const expiresDate = new Date(row.dataset.expiresAt);
-                    const timeLeftMs = Math.max(0, expiresDate.getTime() - new Date().getTime());
-                    const totalDurationMs = 2 * 60 * 60 * 1000;
-                    const progress = (timeLeftMs / totalDurationMs) * 100;
-
-                    const minutes = Math.floor(timeLeftMs / 60000);
-                    const seconds = Math.floor((timeLeftMs % 60000) / 1000);
-
-                    let progressBarColor = '#f5a623'; // Orange by default
-                    if (progress < 15) progressBarColor = '#e53e3e'; // Red
-
-                    row.querySelector('.time-left-display').textContent = `${minutes} мин. ${seconds} сек.`;
-                    const progressBarFill = row.querySelector('.progress-bar-fill');
-                    progressBarFill.style.width = `${progress}%`;
-                    progressBarFill.style.backgroundColor = progressBarColor;
-                });
-            };
-
-            updateBookingTimers(); // Первый запуск
-            bookingUpdateInterval = setInterval(updateBookingTimers, 1000); // Обновляем каждую секунду
-
-        } catch (err) {
-            console.error('Ошибка загрузки броней:', err);
-            tbody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
-        }
-    }
-
-    // +++ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ КНОПОК БРОНИРОВАНИЙ +++
-    const bookingsTableBody = document.querySelector('#bookings-table tbody');
-    if (bookingsTableBody) {
-        bookingsTableBody.addEventListener('click', (e) => {
-            const createRentalBtn = e.target.closest('.create-rental-from-booking-btn');
-            const rejectBtn = e.target.closest('.reject-booking-btn');
-
-            if (createRentalBtn) {
-                const bookingId = createRentalBtn.dataset.bookingId;
-                if (confirm(`Клиент пришел? Бронь #${bookingId} будет закрыта.`)) {
-                    supabase.from('bookings').update({ status: 'completed' }).eq('id', bookingId)
-                        .then(({ error }) => {
-                            if (error) {
-                                alert('Ошибка закрытия брони: ' + error.message);
-                            } else {
-                                alert('Бронь успешно закрыта!');
-                                loadBookings();
-                            }
-                        });
-                }
-            }
-
-            if (rejectBtn) {
-                if (confirm('Вы уверены, что хотите отклонить эту бронь?')) {
-                    const bookingId = rejectBtn.dataset.bookingId;
-                    supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId)
-                        .then(({ error }) => {
-                            if (error) alert('Ошибка отмены брони: ' + error.message);
-                            else loadBookings();
-                        });
-                }
-            }
-        });
-    }
-
-    // ЗАМЕНИ ВЕСЬ ЭТОТ БЛОК В СВОЕМ ФАЙЛЕ ADMIN.JS
     if (assignmentsTableBody) {
         assignmentsTableBody.addEventListener('click', async (e) => {
-            console.log('Клик по таблице заявок:', e.target);
             const assignBtn = e.target.closest('.assign-bike-btn');
             const rejectBtn = e.target.closest('.reject-rental-btn');
             const processBtn = e.target.closest('.process-return-btn');
-            const assignBatteriesBtn = e.target.closest('.assign-batteries-btn'); // <-- Наша кнопка
 
-            console.log('assignBatteriesBtn найдена:', assignBatteriesBtn);
-
-            // --- Блок для старой кнопки "Привязать вел." ---
             if (assignBtn) {
                 const rentalId = assignBtn.dataset.rentalId;
                 assignRentalIdInput.value = rentalId;
@@ -3084,7 +2056,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // --- Блок для кнопки "Отклонить" ---
             if (rejectBtn) {
                 const rentalId = rejectBtn.dataset.rentalId;
                 if (confirm(`Вы уверены, что хотите отклонить заявку #${rentalId} и вернуть средства клиенту?`)) {
@@ -3097,7 +2068,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         const result = await response.json();
                         if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
-
+                        
                         alert(result.message);
                         loadAssignments();
 
@@ -3109,7 +2080,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // --- Блок для кнопки "Принять" (сдача велосипеда) ---
             if (processBtn) {
                 const rentalId = processBtn.dataset.rentalId;
                 const returnModal = document.getElementById('return-process-modal');
@@ -3123,10 +2093,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const defectsTextarea = document.getElementById('return-defects');
                     const bikeStatusRadios = document.querySelectorAll('input[name="bike-next-status"]');
                     const serviceReasonGroup = document.getElementById('service-reason-group');
+                    
+                    if(defectsTextarea) defectsTextarea.value = '';
+                    if(bikeStatusRadios.length > 0) bikeStatusRadios[0].checked = true;
+                    if(serviceReasonGroup) serviceReasonGroup.classList.add('hidden');
 
-                    if (defectsTextarea) defectsTextarea.value = '';
-                    if (bikeStatusRadios.length > 0) bikeStatusRadios[0].checked = true;
-                    if (serviceReasonGroup) serviceReasonGroup.classList.add('hidden');
+                    // 2.5 Загрузить и отобразить медиа-файлы возврата
+                    await loadReturnMedia(rentalId);
 
                     // 3. Показываем модальное окно
                     returnModal.classList.remove('hidden');
@@ -3136,134 +2109,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // ==========================================================
-            // === ВОТ НЕДОСТАЮЩИЙ БЛОК ДЛЯ КНОПКИ "ВЫБРАТЬ АКБ" ===
-            // ==========================================================
-            if (assignBatteriesBtn) {
-                console.log('СРАБОТАЛ ОБРАБОТЧИК КНОПКИ ВЫБРАТЬ АКБ!');
-                const rentalId = assignBatteriesBtn.dataset.rentalId;
-                console.log('Rental ID:', rentalId);
-
-                const searchInput = document.getElementById('battery-search-in-modal');
-                searchInput.value = ''; // Сбрасываем поиск при открытии
-
-                searchInput.addEventListener('input', () => {
-                    const query = searchInput.value.toLowerCase().trim();
-                    const batteryListContainer = document.getElementById('battery-select-list');
-                    batteryListContainer.querySelectorAll('label').forEach(label => {
-                        const batteryName = label.textContent.toLowerCase();
-                        if (batteryName.includes(query)) {
-                            label.style.display = 'block';
-                        } else {
-                            label.style.display = 'none';
-                        }
-                    });
-                });
-
-                console.log('Проверяем DOM элементы:');
-                console.log('assignBatteriesRentalIdInput:', assignBatteriesRentalIdInput);
-                console.log('batterySelectList:', batterySelectList);
-                console.log('assignBatteriesModal:', assignBatteriesModal);
-
-                if (!assignBatteriesRentalIdInput) {
-                    alert('Ошибка: не найден элемент assign-batteries-rental-id');
-                    return;
-                }
-                if (!batterySelectList) {
-                    alert('Ошибка: не найден элемент battery-select-list');
-                    return;
-                }
-                if (!assignBatteriesModal) {
-                    alert('Ошибка: не найден элемент assign-batteries-modal');
-                    return;
-                }
-
-                // Убеждаемся, что модальное окно находится в body
-                if (!document.body.contains(assignBatteriesModal)) {
-                    console.log('Модальное окно не в body, перемещаем...');
-                    document.body.appendChild(assignBatteriesModal);
-                }
-
-                assignBatteriesRentalIdInput.value = rentalId;
-                console.log('Значение установлено в поле:', assignBatteriesRentalIdInput.value);
-
-                searchInput.value = ''; // Сбрасываем поиск при открытии
-
-                searchInput.addEventListener('input', () => {
-                    const query = searchInput.value.toLowerCase().trim();
-                    const batteryListContainer = document.getElementById('battery-select-list');
-                    batteryListContainer.querySelectorAll('label').forEach(label => {
-                        const batteryName = label.textContent.toLowerCase();
-                        if (batteryName.includes(query)) {
-                            label.style.display = 'block';
-                        } else {
-                            label.style.display = 'none';
-                        }
-                    });
-                });
-
-                try {
-                    console.log('Загружаем аккумуляторы из базы данных...');
-                    // Загружаем только свободные аккумуляторы
-                    const { data, error } = await supabase.from('batteries').select('*').eq('status', 'available');
-                    if (error) throw error;
-
-                    console.log('Получены аккумуляторы:', data);
-
-                    batterySelectList.innerHTML = '';
-                    if (data.length === 0) {
-                        console.log('Нет свободных аккумуляторов');
-                        batterySelectList.innerHTML = '<p>Нет свободных аккумуляторов.</p>';
-                    } else {
-                        console.log('Создаем список из', data.length, 'аккумуляторов');
-                        data.forEach(battery => {
-                            const label = document.createElement('label');
-                            label.className = 'battery-checkbox-item';
-                            label.innerHTML = `<input type="checkbox" value="${battery.id}">
-                                <span>${battery.serial_number} (${battery.capacity_wh || 'N/A'} Wh)</span>`;
-                            batterySelectList.appendChild(label);
-                        });
-                    }
-                    
-                    // ВАЖНО: Показываем поле выбора велосипеда (для новой аренды)
-                    if (batteryModalBikeSelect) {
-                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
-                        if (bikeSelectGroup) {
-                            bikeSelectGroup.style.display = 'block';
-                        }
-                    }
-
-                    // Устанавливаем правильный заголовок для новой аренды
-                    const modalTitle = assignBatteriesModal.querySelector('.modal-header h3');
-                    if (modalTitle) {
-                        modalTitle.textContent = 'Выберите велосипед и аккумуляторы';
-                    }
-
-                    assignBatteriesModal.classList.remove('hidden');
-            
-                    // Load available bikes
-                    try {
-                        const { data: bikes, error: bikesError } = await supabase.from('bikes').select('*').eq('status', 'available');
-                        if (bikesError) throw bikesError;
-                        batteryModalBikeSelect.innerHTML = '<option value="">-- Выберите велосипед --</option>';
-                        bikes.forEach(bike => {
-                            const option = document.createElement('option');
-                            option.value = bike.id;
-                            option.textContent = `${bike.model_name} (#${bike.bike_code})`;
-                            batteryModalBikeSelect.appendChild(option);
-                        });
-                    } catch (err) {
-                        console.error('Ошибка загрузки велосипедов:', err);
-                        alert('Ошибка загрузки списка велосипедов: ' + err.message);
-                    }
-                } catch (err) {
-                    console.error('Ошибка при загрузке аккумуляторов:', err);
-                    alert('Ошибка загрузки списка аккумуляторов: ' + err.message);
-                }
-            }
-            // ==========================================================
-            // === КОНЕЦ НОВОГО БЛОКА ===
-            // ==========================================================
         });
     }
 
@@ -3313,198 +2158,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Ошибка активации аренды: ' + err.message);
             } finally {
                 toggleButtonLoading(assignBikeSubmitBtn, false, 'Привязать и активировать', 'Активация...');
-            }
-        });
-    }
-
-    // --- НОВЫЙ БЛОК: Логика модального окна выбора АКБ ---
-
-    if (assignBatteriesCancelBtn) {
-        assignBatteriesCancelBtn.addEventListener('click', () => {
-            assignBatteriesModal.classList.add('hidden');
-            // Показываем поле велосипеда обратно (для следующего использования)
-            if (batteryModalBikeSelect) {
-                const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
-                if (bikeSelectGroup) {
-                    bikeSelectGroup.style.display = 'block';
-                }
-            }
-            // Если была открыта форма редактирования аренды, возвращаемся к ней
-            if (rentalEditModal && rentalIdInput && rentalIdInput.value) {
-                rentalEditModal.classList.remove('hidden');
-            }
-        });
-    }
-
-    if (assignBatteriesSubmitBtn) {
-        assignBatteriesSubmitBtn.addEventListener('click', async () => {
-            const rentalId = assignBatteriesRentalIdInput.value;
-            const bikeId = batteryModalBikeSelect.value;
-            const selectedCheckboxes = batterySelectList.querySelectorAll('input[type="checkbox"]:checked');
-            const selectedBatteryIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value, 10));
-
-            if (!bikeId) {
-                alert('Пожалуйста, выберите велосипед.');
-                return;
-            }
-
-            if (selectedBatteryIds.length === 0) {
-                alert('Пожалуйста, выберите хотя бы один аккумулятор.');
-                return;
-            }
-
-            // Проверяем, это редактирование существующей аренды или новая аренда
-            // Получаем информацию об аренде
-            const { data: rentalData, error: rentalFetchError } = await supabase
-                .from('rentals')
-                .select('bike_id')
-                .eq('id', rentalId)
-                .single();
-            
-            if (rentalFetchError) {
-                alert('Ошибка получения данных аренды: ' + rentalFetchError.message);
-                return;
-            }
-
-            // Если у аренды уже есть bike_id, это редактирование
-            const isEditingExistingRental = rentalData && rentalData.bike_id;
-
-            toggleButtonLoading(assignBatteriesSubmitBtn, true, 'Подтвердить и активировать', 'Активация...');
-
-            try {
-                if (isEditingExistingRental) {
-                    // ЛОГИКА ДЛЯ РЕДАКТИРОВАНИЯ СУЩЕСТВУЮЩЕЙ АРЕНДЫ
-                    
-                    // Шаг 1: Получаем старые АКБ и освобождаем их
-                    const { data: oldBatteries, error: oldBattError } = await supabase
-                        .from('rental_batteries')
-                        .select('battery_id')
-                        .eq('rental_id', rentalId);
-                    
-                    if (!oldBattError && oldBatteries && oldBatteries.length > 0) {
-                        const oldBatteryIds = oldBatteries.map(b => b.battery_id);
-                        
-                        // Освобождаем старые АКБ
-                        await supabase
-                            .from('batteries')
-                            .update({ status: 'available' })
-                            .in('id', oldBatteryIds);
-                        
-                        // Удаляем старые связи
-                        await supabase
-                            .from('rental_batteries')
-                            .delete()
-                            .eq('rental_id', rentalId);
-                    }
-
-                    // Шаг 2: Обновить статус новых АКБ на 'in_use'
-                    const { error: batteryUpdateError } = await supabase
-                        .from('batteries')
-                        .update({ status: 'in_use' })
-                        .in('id', selectedBatteryIds);
-                    if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
-
-                    // Шаг 3: Создать новые записи в связующей таблице rental_batteries
-                    const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
-                        rental_id: rentalId,
-                        battery_id: battery_id
-                    }));
-                    const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
-                    if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
-
-                    alert('Аккумуляторы успешно обновлены!');
-                    assignBatteriesModal.classList.add('hidden');
-                    
-                    // Показываем поле велосипеда обратно
-                    if (batteryModalBikeSelect) {
-                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
-                        if (bikeSelectGroup) {
-                            bikeSelectGroup.style.display = 'block';
-                        }
-                    }
-
-                    // Обновляем список АКБ в окне редактирования
-                    const { data: newBatteries, error: newBattError } = await supabase
-                        .from('rental_batteries')
-                        .select('battery_id, batteries(serial_number)')
-                        .eq('rental_id', rentalId);
-
-                    if (!newBattError && newBatteries) {
-                        currentRentalBatteries = newBatteries.map(b => ({
-                            id: b.battery_id,
-                            serial: b.batteries?.serial_number || 'Неизвестно'
-                        }));
-                        renderRentalBatteriesList();
-                    }
-
-                    // Возвращаемся к окну редактирования аренды
-                    rentalEditModal.classList.remove('hidden');
-                    loadRentals(); // Обновляем список аренд
-
-                } else {
-                    // ЛОГИКА ДЛЯ НОВОЙ АРЕНДЫ
-                    
-                    // Шаг 1: Обновить статус велосипеда на 'rented'
-                    const { error: bikeUpdateError } = await supabase
-                        .from('bikes')
-                        .update({ status: 'rented' })
-                        .eq('id', bikeId);
-                    if (bikeUpdateError) throw new Error('Ошибка обновления статуса велосипеда: ' + bikeUpdateError.message);
-
-                    // Шаг 2: Привязать велосипед к аренде
-                    const { error: rentalBikeUpdateError } = await supabase
-                        .from('rentals')
-                        .update({ bike_id: bikeId })
-                        .eq('id', rentalId);
-                    if (rentalBikeUpdateError) throw new Error('Ошибка привязки велосипеда к аренде: ' + rentalBikeUpdateError.message);
-
-                    // Шаг 3: Обновить статус выбранных аккумуляторов на 'in_use'
-                    const { error: batteryUpdateError } = await supabase
-                        .from('batteries')
-                        .update({ status: 'in_use' })
-                        .in('id', selectedBatteryIds);
-                    if (batteryUpdateError) throw new Error('Ошибка обновления статуса АКБ: ' + batteryUpdateError.message);
-
-                    // Шаг 4: Создать записи в связующей таблице rental_batteries
-                    const rentalBatteryRecords = selectedBatteryIds.map(battery_id => ({
-                        rental_id: rentalId,
-                        battery_id: battery_id
-                    }));
-                    const { error: linkError } = await supabase.from('rental_batteries').insert(rentalBatteryRecords);
-                    if (linkError) throw new Error('Ошибка привязки АКБ к аренде: ' + linkError.message);
-
-                    // Шаг 5: Обновить статус самой аренды на 'awaiting_contract_signing'
-                    const { error: rentalUpdateError } = await supabase
-                        .from('rentals')
-                        .update({ status: 'awaiting_contract_signing' })
-                        .eq('id', rentalId);
-                    if (rentalUpdateError) throw new Error('Ошибка перевода аренды на подписание: ' + rentalUpdateError.message);
-
-                    // Отправляем запрос на сервер, чтобы он послал уведомление
-                    authedFetch('/api/admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'notify-battery-assignment', rentalId: parseInt(rentalId, 10) })
-                    });
-
-                    alert('Велосипед и аккумумуляторы назначены! Клиент получил уведомление о необходимости подписать договор.');
-                    assignBatteriesModal.classList.add('hidden');
-                    
-                    // Показываем поле велосипеда обратно
-                    if (batteryModalBikeSelect) {
-                        const bikeSelectGroup = batteryModalBikeSelect.closest('.form-group');
-                        if (bikeSelectGroup) {
-                            bikeSelectGroup.style.display = 'block';
-                        }
-                    }
-                    
-                    loadAssignments(); // Обновляем список заявок
-                }
-
-            } catch (err) {
-                alert('Произошла ошибка: ' + err.message);
-            } finally {
-                toggleButtonLoading(assignBatteriesSubmitBtn, false, 'Подтвердить и активировать', 'Активация...');
             }
         });
     }
@@ -3574,7 +2227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+    
     // Also close on overlay click
     if (invoiceModal) {
         invoiceModal.addEventListener('click', (e) => {
@@ -3610,7 +2263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const responseText = await response.text();
-
+                
                 // Если ответ пустой, считаем, что все прошло успешно
                 if (!responseText) {
                     alert('Счет успешно создан и отправлен на списание.');
@@ -3664,259 +2317,74 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Add Client Modal Logic ---
-    const addClientBtn = document.getElementById('add-client-btn');
-    const addClientModal = document.getElementById('add-client-modal');
-    const addClientCloseBtn = document.getElementById('add-client-close-btn');
-    const addClientSubmitBtn = document.getElementById('add-client-submit-btn');
-    const addClientForm = document.getElementById('add-client-form');
-    const clientPrevBtn = document.getElementById('client-prev-btn');
-    const clientNextBtn = document.getElementById('client-next-btn');
-    const clientStep1 = document.getElementById('client-step-1');
-    const clientStep2 = document.getElementById('client-step-2');
-    const clientStep3 = document.getElementById('client-step-3');
-
-    let currentClientStep = 1;
-
-    // Phone mask helper
-    function formatPhoneInput(input) {
-        input.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.startsWith('7')) value = value.substring(1);
-            else if (value.startsWith('8')) value = value.substring(1);
+    // === ФУНКЦИИ ДЛЯ РАБОТЫ С МЕДИА-ФАЙЛАМИ ВОЗВРАТА ===
+    
+    async function loadReturnMedia(rentalId) {
+        const container = document.getElementById('return-media-container');
+        if (!container) return;
+        
+        try {
+            // Загрузить данные аренды с extra_data
+            const { data: rental, error } = await supabase
+                .from('rentals')
+                .select('extra_data')
+                .eq('id', rentalId)
+                .single();
             
-            let formatted = '+7';
-            if (value.length > 0) formatted += ' (' + value.substring(0, 3);
-            if (value.length > 3) formatted += ') ' + value.substring(3, 6);
-            if (value.length > 6) formatted += '-' + value.substring(6, 8);
-            if (value.length > 8) formatted += '-' + value.substring(8, 10);
+            if (error) throw error;
             
-            e.target.value = formatted;
-        });
-    }
-
-    // Date mask helper (DD.MM.YYYY)
-    function formatDateInput(input) {
-        input.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            let formatted = '';
+            const returnMedia = rental?.extra_data?.return_media;
             
-            if (value.length > 0) formatted += value.substring(0, 2);
-            if (value.length > 2) formatted += '.' + value.substring(2, 4);
-            if (value.length > 4) formatted += '.' + value.substring(4, 8);
-            
-            e.target.value = formatted;
-        });
-    }
-
-    // Apply masks
-    const phoneInputs = [
-        document.getElementById('new-client-phone'),
-        document.getElementById('new-client-emergency-phone')
-    ];
-    phoneInputs.forEach(input => {
-        if (input) formatPhoneInput(input);
-    });
-
-    const dateInputs = [
-        document.getElementById('new-client-passport-date'),
-        document.getElementById('new-client-birth-date')
-    ];
-    dateInputs.forEach(input => {
-        if (input) formatDateInput(input);
-    });
-
-    // Update step display
-    function updateClientStepDisplay() {
-        [clientStep1, clientStep2, clientStep3].forEach((step, idx) => {
-            if (step) step.classList.toggle('hidden', idx + 1 !== currentClientStep);
-        });
-
-        if (clientPrevBtn) clientPrevBtn.classList.toggle('hidden', currentClientStep === 1);
-        if (clientNextBtn) clientNextBtn.classList.toggle('hidden', currentClientStep === 3);
-        if (addClientSubmitBtn) addClientSubmitBtn.classList.toggle('hidden', currentClientStep !== 3);
-
-        // Update step indicators
-        document.querySelectorAll('#add-client-modal .step-indicator').forEach((indicator, idx) => {
-            const circle = indicator.querySelector('.step-circle');
-            const stepNum = idx + 1;
-            
-            circle.classList.toggle('active', stepNum === currentClientStep);
-            circle.classList.toggle('completed', stepNum < currentClientStep);
-        });
-    }
-
-    // Open modal
-    if (addClientBtn) {
-        addClientBtn.addEventListener('click', () => {
-            addClientModal.classList.remove('hidden');
-            addClientForm.reset();
-            currentClientStep = 1;
-            updateClientStepDisplay();
-        });
-    }
-
-    // Navigation buttons
-    if (clientPrevBtn) {
-        clientPrevBtn.addEventListener('click', () => {
-            if (currentClientStep > 1) {
-                currentClientStep--;
-                updateClientStepDisplay();
-            }
-        });
-    }
-
-    if (clientNextBtn) {
-        clientNextBtn.addEventListener('click', () => {
-            // Validation for step 1
-            if (currentClientStep === 1) {
-                const phone = document.getElementById('new-client-phone').value.trim();
-                if (!phone) {
-                    alert('Пожалуйста, введите номер телефона');
-                    return;
-                }
+            if (!returnMedia || Object.keys(returnMedia).length === 0) {
+                container.innerHTML = '<p style="color: #999; font-style: italic; margin: 10px 0;">Медиа-файлы не загружены</p>';
+                return;
             }
             
-            if (currentClientStep < 3) {
-                currentClientStep++;
-                updateClientStepDisplay();
-            }
-        });
+            // Создать галерею
+            const mediaHTML = `
+                <div class="return-media-section">
+                    <h4>Фото и видео возврата</h4>
+                    <div class="media-gallery">
+                        ${returnMedia.photo_front ? `<div><img src="${returnMedia.photo_front}" alt="Спереди" onclick="openImageModal('${returnMedia.photo_front}')"><div class="media-label">Спереди</div></div>` : ''}
+                        ${returnMedia.photo_back ? `<div><img src="${returnMedia.photo_back}" alt="Сзади" onclick="openImageModal('${returnMedia.photo_back}')"><div class="media-label">Сзади</div></div>` : ''}
+                        ${returnMedia.photo_left ? `<div><img src="${returnMedia.photo_left}" alt="Слева" onclick="openImageModal('${returnMedia.photo_left}')"><div class="media-label">Слева</div></div>` : ''}
+                        ${returnMedia.photo_right ? `<div><img src="${returnMedia.photo_right}" alt="Справа" onclick="openImageModal('${returnMedia.photo_right}')"><div class="media-label">Справа</div></div>` : ''}
+                        ${returnMedia.video ? `<video src="${returnMedia.video}" controls></video>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = mediaHTML;
+        } catch (error) {
+            console.error('Error loading return media:', error);
+            container.innerHTML = '<p style="color: red;">Ошибка загрузки медиа-файлов</p>';
+        }
     }
-
-    // Close modal
-    const closeAddClientModal = () => {
-        addClientModal.classList.add('hidden');
-        addClientForm.reset();
-        currentClientStep = 1;
-        updateClientStepDisplay();
+    
+    // Функция для открытия изображения в полном размере
+    window.openImageModal = function(src) {
+        const modal = document.getElementById('image-viewer-modal');
+        const img = document.getElementById('image-viewer-img');
+        const closeBtn = document.getElementById('image-viewer-close-btn');
+        
+        if (modal && img) {
+            img.src = src;
+            modal.classList.remove('hidden');
+        }
+        
+        if (closeBtn) {
+            closeBtn.onclick = () => modal.classList.add('hidden');
+        }
+        
+        // Закрытие по клику вне изображения
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        };
     };
 
-    if (addClientCloseBtn) {
-        addClientCloseBtn.addEventListener('click', closeAddClientModal);
-    }
-
-    // Close on overlay click
-    if (addClientModal) {
-        addClientModal.addEventListener('click', (e) => {
-            if (e.target === addClientModal) {
-                closeAddClientModal();
-            }
-        });
-    }
-
-    // Helper: clean phone number
-    function cleanPhoneNumber(phone) {
-        // Remove all non-digit characters
-        let cleaned = phone.replace(/\D/g, '');
-        
-        // If starts with 8, replace with 7
-        if (cleaned.startsWith('8')) {
-            cleaned = '7' + cleaned.substring(1);
-        }
-        
-        // If doesn't start with 7, add it
-        if (!cleaned.startsWith('7')) {
-            cleaned = '7' + cleaned;
-        }
-        
-        return cleaned;
-    }
-
-    // Submit form
-    if (addClientSubmitBtn) {
-        addClientSubmitBtn.addEventListener('click', async () => {
-            const phoneRaw = document.getElementById('new-client-phone').value.trim();
-            
-            if (!phoneRaw) {
-                alert('Телефон обязателен для заполнения!');
-                return;
-            }
-
-            // Clean phone number for database
-            const phoneClean = cleanPhoneNumber(phoneRaw);
-            
-            // Validate phone length (should be 11 digits: 7XXXXXXXXXX)
-            if (phoneClean.length !== 11) {
-                alert('Неверный формат номера телефона. Ожидается 11 цифр.');
-                return;
-            }
-
-            try {
-                addClientSubmitBtn.disabled = true;
-                addClientSubmitBtn.textContent = 'Создание...';
-
-                // Собираем основные данные
-                const clientData = {
-                    phone: phoneClean, // Save cleaned phone
-                    name: document.getElementById('new-client-name').value.trim() || null,
-                    city: document.getElementById('new-client-city').value || null,
-                    verification_status: document.getElementById('new-client-status').value || 'pending',
-                };
-
-                // Собираем паспортные данные в recognized_passport_data
-                const passportData = {};
-                const passportSeries = document.getElementById('new-client-passport-series').value.trim();
-                const passportIssued = document.getElementById('new-client-passport-issued').value.trim();
-                const passportDate = document.getElementById('new-client-passport-date').value;
-                const birthDate = document.getElementById('new-client-birth-date').value;
-                const birthPlace = document.getElementById('new-client-birth-place').value.trim();
-                const registration = document.getElementById('new-client-registration').value.trim();
-
-                if (passportSeries) passportData.passport_series = passportSeries;
-                if (passportIssued) passportData.passport_issued_by = passportIssued;
-                if (passportDate) passportData.passport_issue_date = passportDate;
-                if (birthDate) passportData.birth_date = birthDate;
-                if (birthPlace) passportData.birth_place = birthPlace;
-                if (registration) passportData.registration_address = registration;
-
-                // Сохраняем в правильное поле
-                if (Object.keys(passportData).length > 0) {
-                    clientData.recognized_passport_data = passportData; // Правильное поле!
-                }
-
-                // Дополнительные данные в extra
-                const extraData = {};
-                const country = document.getElementById('new-client-country').value;
-                const emergencyPhoneRaw = document.getElementById('new-client-emergency-phone').value.trim();
-                const notes = document.getElementById('new-client-notes').value.trim();
-
-                if (country) extraData.country = country;
-                if (emergencyPhoneRaw) {
-                    // Clean emergency phone too
-                    extraData.emergency_contact = cleanPhoneNumber(emergencyPhoneRaw);
-                }
-                if (notes) extraData.admin_notes = notes;
-
-                if (Object.keys(extraData).length > 0) {
-                    clientData.extra = extraData;
-                }
-
-                // Создаем клиента в базе
-                const { data, error } = await supabase
-                    .from('clients')
-                    .insert([clientData])
-                    .select();
-
-                if (error) throw error;
-
-                alert('Клиент успешно создан!');
-                closeAddClientModal();
-                
-                // Обновляем таблицу клиентов
-                await loadClients();
-
-            } catch (err) {
-                console.error('Ошибка создания клиента:', err);
-                alert('Ошибка создания клиента: ' + err.message);
-            } finally {
-                addClientSubmitBtn.disabled = false;
-                addClientSubmitBtn.textContent = 'Создать клиента';
-            }
-        });
-    }
-
-    // --- New Step-by-Step Return Processing Logic ---
+    // --- New Return Processing Logic ---
     const returnProcessModal = document.getElementById('return-process-modal');
     if (returnProcessModal) {
         const returnProcessCloseBtn = document.getElementById('return-process-close-btn');
@@ -3925,128 +2393,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const bikeNextStatusRadios = document.querySelectorAll('input[name="bike-next-status"]');
         const serviceReasonGroup = document.getElementById('service-reason-group');
         const serviceReasonInput = document.getElementById('service-reason');
+        const issueInvoiceAfterReturnBtn = document.getElementById('issue-invoice-after-return-btn');
         const finalizeReturnBtn = document.getElementById('finalize-return-btn');
 
-        // Step navigation elements
-        const returnPrevBtn = document.getElementById('return-prev-btn');
-        const returnNextBtn = document.getElementById('return-next-btn');
-        const returnStep1 = document.getElementById('return-step-1');
-        const returnStep2 = document.getElementById('return-step-2');
-        const returnStep3 = document.getElementById('return-step-3');
-        const chargeDamageRadios = document.querySelectorAll('input[name="charge-damage"]');
-        const damageAmountGroup = document.getElementById('damage-amount-group');
-        const damageAmountInput = document.getElementById('damage-amount');
-        const damageDescriptionInput = document.getElementById('damage-description');
-
-        let currentStep = 1;
-
-        // Helper: Update step indicators
-        function updateStepIndicators() {
-            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
-                const stepNum = index + 1;
-                const circle = indicator.querySelector('.step-circle');
-
-                if (stepNum < currentStep) {
-                    circle.classList.add('completed');
-                    circle.classList.remove('active');
-                } else if (stepNum === currentStep) {
-                    circle.classList.add('active');
-                    circle.classList.remove('completed');
-                } else {
-                    circle.classList.remove('active', 'completed');
-                }
-
-                indicator.classList.toggle('active', stepNum === currentStep);
-            });
-        }
-
-        // Helper: Show specific step
-        function showStep(step) {
-            currentStep = step;
-
-            // Hide all steps
-            returnStep1.classList.add('hidden');
-            returnStep2.classList.add('hidden');
-            returnStep3.classList.add('hidden');
-
-            // Show current step
-            if (step === 1) returnStep1.classList.remove('hidden');
-            if (step === 2) returnStep2.classList.remove('hidden');
-            if (step === 3) returnStep3.classList.remove('hidden');
-
-            // Update buttons
-            returnPrevBtn.classList.toggle('hidden', step === 1);
-            returnNextBtn.classList.toggle('hidden', step === 3);
-            finalizeReturnBtn.classList.toggle('hidden', step !== 3);
-
-            updateStepIndicators();
-        }
-
-        // Helper: Reset modal to step 1
-        function resetModal() {
-            showStep(1);
-            returnDefectsTextarea.value = '';
-            serviceReasonInput.value = '';
-            damageAmountInput.value = '';
-            damageDescriptionInput.value = '';
-            document.querySelector('input[name="bike-next-status"][value="available"]').checked = true;
-            document.querySelector('input[name="charge-damage"][value="no"]').checked = true;
-            serviceReasonGroup.classList.add('hidden');
-            damageAmountGroup.classList.add('hidden');
-        }
-
         // Helper function to run the finalization sequence
-        const finalizeAndSendAct = async (rentalId, defects, newBikeStatus, serviceReason, shouldCharge, chargeAmount, chargeDescription) => {
-            toggleButtonLoading(finalizeReturnBtn, true, 'Завершить приемку', 'Обработка...');
+        const finalizeAndSendAct = async (rentalId, defects, newBikeStatus, serviceReason, buttonToToggle) => {
+            toggleButtonLoading(buttonToToggle, true, buttonToToggle.textContent, 'Обработка...');
             try {
                 const { data: rental, error: rentalFetchError } = await supabase.from('rentals').select('user_id').eq('id', rentalId).single();
                 if (rentalFetchError) throw new Error('Не удалось получить данные аренды для отправки акта.');
                 const userId = rental.user_id;
 
-                // Step 1: Charge for damages if needed
-                if (shouldCharge && chargeAmount > 0) {
-                    const chargeResponse = await authedFetch('/api/admin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'charge-for-damages',
-                            userId,
-                            rentalId,
-                            amount: chargeAmount,
-                            description: chargeDescription || 'Возмещение ущерба',
-                            defects
-                        })
-                    });
-
-                    const chargeResult = await chargeResponse.json();
-                    if (!chargeResponse.ok) throw new Error(chargeResult.error || 'Ошибка списания средств');
-                }
-
-                // Step 2: Generate return act PDF using our local admin API
-                const pdfResponse = await authedFetch('/api/admin', {
+                const pdfServerUrl = `${window.APP_CONFIG.CONTRACTS_API_URL}/api/user`;
+                const pdfResponse = await fetch(pdfServerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'generate-return-act-html',
-                        userId,
-                        rentalId,
-                        defects
-                    })
+                    body: JSON.stringify({ action: 'generate-return-act', userId, rentalId, defects })
                 });
                 const pdfResult = await pdfResponse.json();
                 if (!pdfResponse.ok) throw new Error(pdfResult.error || 'Ошибка генерации PDF акта.');
-
-                // Step 3: Finalize return
+                
                 const finalizeResponse = await authedFetch('/api/admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'finalize-return',
-                        rental_id: rentalId,
-                        new_bike_status: newBikeStatus,
-                        service_reason: serviceReason,
-                        return_act_url: pdfResult.publicUrl,
-                        defects
+                    body: JSON.stringify({ 
+                        action: 'finalize-return', 
+                        rental_id: rentalId, 
+                        new_bike_status: newBikeStatus, 
+                        service_reason: serviceReason, 
+                        return_act_url: pdfResult.publicUrl, 
+                        defects 
                     })
                 });
                 if (!finalizeResponse.ok) {
@@ -4054,17 +2430,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorResult.error || 'Ошибка завершения аренды.');
                 }
 
-                alert('✅ Приемка велосипеда успешно завершена! Акт отправлен клиенту на подпись.');
+                alert('Приемка велосипеда успешно завершена! Акт отправлен клиенту на подпись.');
                 returnProcessModal.classList.add('hidden');
-                resetModal();
                 loadAssignments();
                 loadBikes();
-                return true;
+                return true; // Indicate success
             } catch (err) {
-                alert('❌ Произошла ошибка: ' + err.message);
-                return false;
+                alert('Произошла ошибка на финальном шаге: ' + err.message);
+                return false; // Indicate failure
             } finally {
-                toggleButtonLoading(finalizeReturnBtn, false, 'Завершить приемку', 'Обработка...');
+                if (buttonToToggle) toggleButtonLoading(buttonToToggle, false, buttonToToggle.textContent, 'Обработка...');
             }
         };
 
@@ -4075,487 +2450,79 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Show/hide damage amount input
-        chargeDamageRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                damageAmountGroup.classList.toggle('hidden', radio.value !== 'yes');
-            });
-        });
-
         // Modal close events
-        returnProcessCloseBtn.addEventListener('click', () => {
-            returnProcessModal.classList.add('hidden');
-            resetModal();
-        });
+        returnProcessCloseBtn.addEventListener('click', () => returnProcessModal.classList.add('hidden'));
         returnProcessModal.addEventListener('click', (e) => {
-            if (e.target === returnProcessModal) {
-                returnProcessModal.classList.add('hidden');
-                resetModal();
-            }
+            if (e.target === returnProcessModal) returnProcessModal.classList.add('hidden');
         });
 
-        // Step navigation
-        returnPrevBtn.addEventListener('click', () => {
-            if (currentStep > 1) showStep(currentStep - 1);
-        });
+        // The main button for issuing an invoice AND finalizing
+        issueInvoiceAfterReturnBtn.addEventListener('click', async () => {
+            const rentalId = returnRentalIdInput.value;
+            if (!rentalId) return;
 
-        returnNextBtn.addEventListener('click', () => {
-            // Validation before moving to next step
-            if (currentStep === 1) {
-                const selectedStatus = document.querySelector('input[name="bike-next-status"]:checked').value;
-                if (selectedStatus === 'in_service' && !serviceReasonInput.value.trim()) {
-                    alert('Пожалуйста, укажите причину ремонта.');
+            try {
+                const { data: rental, error: rentalError } = await supabase.from('rentals').select('user_id, clients(balance_rub)').eq('id', rentalId).single();
+                if (rentalError) throw rentalError;
+                
+                const userId = rental.user_id;
+                const userBalance = rental.clients?.balance_rub || 0;
+
+                const amountStr = prompt(`Баланс клиента: ${userBalance} ₽. Введите сумму для списания за ущерб:`);
+                if (!amountStr) return; // User clicked cancel
+
+                const amount = parseFloat(amountStr);
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Введена некорректная сумма.');
                     return;
                 }
-            }
 
-            if (currentStep < 3) showStep(currentStep + 1);
+                toggleButtonLoading(issueInvoiceAfterReturnBtn, true, 'Выставить счет', 'Списание...');
+
+                const response = await authedFetch('/api/admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'charge-for-damages', 
+                        userId, 
+                        rentalId, 
+                        amount, 
+                        description: 'Возмещение ущерба', 
+                        defects: returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d) 
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
+
+                alert(result.message); // Show success message from backend
+
+                // --- AUTOMATICALLY FINALIZE ---
+                const defects = returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d);
+                const newBikeStatus = document.querySelector('input[name="bike-next-status"]:checked').value;
+                const serviceReason = serviceReasonInput.value.trim();
+                await finalizeAndSendAct(rentalId, defects, newBikeStatus, serviceReason, issueInvoiceAfterReturnBtn);
+
+            } catch (err) {
+                alert('Ошибка при выставлении счета: ' + err.message);
+            } finally {
+                toggleButtonLoading(issueInvoiceAfterReturnBtn, false, 'Выставить счет', 'Списание...');
+            }
         });
 
-        // Finalize button
+        // The secondary button to finalize without an invoice
         finalizeReturnBtn.addEventListener('click', async () => {
             const rentalId = returnRentalIdInput.value;
             const defects = returnDefectsTextarea.value.split('\n').map(d => d.trim()).filter(d => d);
             const newBikeStatus = document.querySelector('input[name="bike-next-status"]:checked').value;
             const serviceReason = serviceReasonInput.value.trim();
-            const shouldCharge = document.querySelector('input[name="charge-damage"]:checked').value === 'yes';
-            const chargeAmount = shouldCharge ? parseFloat(damageAmountInput.value) : 0;
-            const chargeDescription = damageDescriptionInput.value.trim();
 
-            // Validation
-            if (shouldCharge) {
-                if (!chargeAmount || chargeAmount <= 0) {
-                    alert('Пожалуйста, укажите корректную сумму для списания.');
-                    return;
-                }
-                if (!chargeDescription) {
-                    alert('Пожалуйста, укажите описание для счета.');
-                    return;
-                }
+            if (newBikeStatus === 'in_service' && !serviceReason) {
+                alert('Пожалуйста, укажите причину ремонта.');
+                return;
             }
-
-            await finalizeAndSendAct(rentalId, defects, newBikeStatus, serviceReason, shouldCharge, chargeAmount, chargeDescription);
+            await finalizeAndSendAct(rentalId, defects, newBikeStatus, serviceReason, finalizeReturnBtn);
         });
-
-        // Initialize modal on first open
-        resetModal();
-    }
-
-    // --- Step-by-Step Tariff Modal Logic ---
-    if (tariffModal) {
-        let currentTariffStep = 1;
-        let editingTariffId = null;
-
-        // Helper: Update step indicators
-        function updateTariffStepIndicators() {
-            document.querySelectorAll('#tariff-modal .step-indicator').forEach((indicator, index) => {
-                const stepNum = index + 1;
-                const circle = indicator.querySelector('.step-circle');
-
-                if (stepNum < currentTariffStep) {
-                    circle.classList.add('completed');
-                    circle.classList.remove('active');
-                } else if (stepNum === currentTariffStep) {
-                    circle.classList.add('active');
-                    circle.classList.remove('completed');
-                } else {
-                    circle.classList.remove('active', 'completed');
-                }
-
-                indicator.classList.toggle('active', stepNum === currentTariffStep);
-            });
-        }
-
-        // Helper: Show specific step
-        function showTariffStep(step) {
-            currentTariffStep = step;
-
-            // Hide all steps
-            tariffStep1.classList.add('hidden');
-            tariffStep2.classList.add('hidden');
-            tariffStep3.classList.add('hidden');
-
-            // Show current step
-            if (step === 1) tariffStep1.classList.remove('hidden');
-            if (step === 2) tariffStep2.classList.remove('hidden');
-            if (step === 3) tariffStep3.classList.remove('hidden');
-
-            // Update buttons
-            tariffPrevBtn.classList.toggle('hidden', step === 1);
-            tariffNextBtn.classList.toggle('hidden', step === 3);
-            tariffSaveBtn.classList.toggle('hidden', step !== 3);
-
-            updateTariffStepIndicators();
-        }
-
-        // Helper: Reset modal
-        function resetTariffModal() {
-            showTariffStep(1);
-            tariffIdInput.value = '';
-            tariffTitleInput.value = '';
-            tariffShortDescriptionInput.value = '';
-            tariffActiveCheckbox.checked = true;
-            extensionsList.innerHTML = '';
-            editingTariffId = null;
-            tariffModalTitle.textContent = 'Новый тариф';
-            addExtensionRow(); // Add one default row
-        }
-
-        // Helper: Add extension row
-        function addExtensionRow(days = '', price = '') {
-            const row = document.createElement('div');
-            row.className = 'extension-item';
-            row.innerHTML = `
-                <input type="number" placeholder="Дней" value="${days}" min="1" required>
-                <input type="number" placeholder="Цена (₽)" value="${price}" min="0" step="0.01" required>
-                <button type="button" class="remove-extension-btn">×</button>
-            `;
-
-            row.querySelector('.remove-extension-btn').addEventListener('click', () => {
-                if (extensionsList.children.length > 1) {
-                    row.remove();
-                } else {
-                    alert('Должен быть хотя бы один период аренды');
-                }
-            });
-
-            extensionsList.appendChild(row);
-        }
-
-        // Add extension button
-        if (addExtensionBtn) {
-            addExtensionBtn.addEventListener('click', () => addExtensionRow());
-        }
-
-        // Open modal for new tariff
-        if (tariffAddBtn) {
-            tariffAddBtn.addEventListener('click', () => {
-                resetTariffModal();
-                tariffModal.classList.remove('hidden');
-            });
-        }
-
-        // Close modal
-        if (tariffModalCloseBtn) {
-            tariffModalCloseBtn.addEventListener('click', () => {
-                tariffModal.classList.add('hidden');
-                resetTariffModal();
-            });
-        }
-
-        // Close on overlay click
-        tariffModal.addEventListener('click', (e) => {
-            if (e.target === tariffModal) {
-                tariffModal.classList.add('hidden');
-                resetTariffModal();
-            }
-        });
-
-        // Step navigation
-        if (tariffPrevBtn) {
-            tariffPrevBtn.addEventListener('click', () => {
-                if (currentTariffStep > 1) showTariffStep(currentTariffStep - 1);
-            });
-        }
-
-        if (tariffNextBtn) {
-            tariffNextBtn.addEventListener('click', () => {
-                // Validation before moving to next step
-                if (currentTariffStep === 1) {
-                    if (!tariffTitleInput.value.trim()) {
-                        alert('Пожалуйста, укажите название тарифа');
-                        return;
-                    }
-                }
-
-                if (currentTariffStep === 2) {
-                    const rows = extensionsList.querySelectorAll('.extension-item');
-                    let valid = true;
-                    rows.forEach(row => {
-                        const inputs = row.querySelectorAll('input');
-                        if (!inputs[0].value || !inputs[1].value) {
-                            valid = false;
-                        }
-                    });
-                    if (!valid) {
-                        alert('Пожалуйста, заполните все поля стоимости и длительности');
-                        return;
-                    }
-                }
-
-                if (currentTariffStep < 3) showTariffStep(currentTariffStep + 1);
-            });
-        }
-
-        // Save tariff
-        if (tariffSaveBtn) {
-            tariffSaveBtn.addEventListener('click', async () => {
-                try {
-                    toggleButtonLoading(tariffSaveBtn, true, 'Сохранить тариф', 'Сохранение...');
-
-                    // Collect extensions data
-                    const extensions = [];
-                    let hasInvalidExtension = false;
-                    extensionsList.querySelectorAll('.extension-item').forEach(row => {
-                        const [daysInput, priceInput] = row.querySelectorAll('input');
-                        const days = Number(String(daysInput.value).replace(',', '.'));
-                        const price = Number(String(priceInput.value).replace(',', '.'));
-
-                        if (!Number.isFinite(days) || days <= 0 || !Number.isFinite(price) || price < 0) {
-                            hasInvalidExtension = true;
-                            return;
-                        }
-
-                        extensions.push({
-                            days,
-                            price_rub: price,
-                        });
-                    });
-
-                    if (hasInvalidExtension || extensions.length === 0) {
-                        throw new Error('Проверьте длительность и стоимость каждого периода — значения должны быть числовыми.');
-                    }
-
-                    const tariffData = {
-                        title: tariffTitleInput.value.trim(),
-                        short_description: tariffShortDescriptionInput.value.trim(),
-                        extensions: extensions,
-                        is_active: tariffActiveCheckbox.checked
-                    };
-
-                    let result;
-                    if (editingTariffId) {
-                        result = await supabase.from('tariffs').update(tariffData).eq('id', editingTariffId);
-                    } else {
-                        result = await supabase.from('tariffs').insert([tariffData]);
-                    }
-
-                    if (result.error) throw result.error;
-
-                    alert(editingTariffId ? 'Тариф успешно обновлен' : 'Тариф успешно создан');
-                    tariffModal.classList.add('hidden');
-                    resetTariffModal();
-                    await loadTariffs();
-
-                } catch (err) {
-                    alert('Ошибка сохранения тарифа: ' + err.message);
-                } finally {
-                    toggleButtonLoading(tariffSaveBtn, false, 'Сохранить тариф', 'Сохранение...');
-                }
-            });
-        }
-
-        // Edit tariff function (will be called from table)
-        window.editTariffModal = async function (id) {
-            try {
-                const { data, error } = await supabase.from('tariffs').select('*').eq('id', id).single();
-                if (error) throw error;
-
-                editingTariffId = id;
-                tariffModalTitle.textContent = 'Редактировать тариф';
-                tariffIdInput.value = id;
-                tariffTitleInput.value = data.title || '';
-                tariffShortDescriptionInput.value = data.short_description || '';
-                tariffActiveCheckbox.checked = data.is_active !== false;
-
-                // Load extensions
-                extensionsList.innerHTML = '';
-                if (data.extensions && data.extensions.length > 0) {
-                    data.extensions.forEach(ext => {
-                        addExtensionRow(ext.days ?? '', ext.price_rub ?? '');
-                    });
-                } else {
-                    addExtensionRow();
-                }
-
-                showTariffStep(1);
-                tariffModal.classList.remove('hidden');
-
-            } catch (err) {
-                alert('Ошибка загрузки тарифа: ' + err.message);
-            }
-        };
-    }
-
-    // --- Step-by-Step Bike Modal Logic ---
-    if (bikeModal) {
-        let currentBikeStep = 1;
-        let editingBikeId = null;
-
-        // Helper: Update step indicators
-        function updateBikeStepIndicators() {
-            document.querySelectorAll('#bike-modal .step-indicator').forEach((indicator, index) => {
-                const stepNum = index + 1;
-                const circle = indicator.querySelector('.step-circle');
-
-                if (stepNum < currentBikeStep) {
-                    circle.classList.add('completed');
-                    circle.classList.remove('active');
-                } else if (stepNum === currentBikeStep) {
-                    circle.classList.add('active');
-                    circle.classList.remove('completed');
-                } else {
-                    circle.classList.remove('active', 'completed');
-                }
-
-                indicator.classList.toggle('active', stepNum === currentBikeStep);
-            });
-        }
-
-        // Helper: Show specific step
-        function showBikeStep(step) {
-            currentBikeStep = step;
-
-            // Hide all steps
-            bikeStep1.classList.add('hidden');
-            bikeStep2.classList.add('hidden');
-            bikeStep3.classList.add('hidden');
-
-            // Show current step
-            if (step === 1) bikeStep1.classList.remove('hidden');
-            if (step === 2) bikeStep2.classList.remove('hidden');
-            if (step === 3) bikeStep3.classList.remove('hidden');
-
-            // Update buttons
-            bikePrevBtn.classList.toggle('hidden', step === 1);
-            bikeNextBtn.classList.toggle('hidden', step === 3);
-            bikeSaveBtn.classList.toggle('hidden', step !== 3);
-
-            updateBikeStepIndicators();
-        }
-
-        // Helper: Reset modal
-        function resetBikeModal() {
-            showBikeStep(1);
-            bikeIdInput.value = '';
-            bikeCodeInput.value = '';
-            bikeModelInput.value = '';
-            bikeCitySelect.value = 'Москва';
-            bikeTariffSelect.value = '';
-            bikeFrameNumberInput.value = '';
-            bikeRegistrationNumberInput.value = '';
-            bikeIotDeviceIdInput.value = '';
-            bikeAdditionalEquipmentInput.value = '';
-            bikeStatusSelect.value = 'available';
-            editingBikeId = null;
-            bikeModalTitle.textContent = 'Новый велосипед';
-        }
-
-        // Open modal for new bike
-        if (bikeAddBtn) {
-            bikeAddBtn.addEventListener('click', () => {
-                resetBikeModal();
-                bikeModal.classList.remove('hidden');
-            });
-        }
-
-        // Close modal
-        if (bikeModalCloseBtn) {
-            bikeModalCloseBtn.addEventListener('click', () => {
-                bikeModal.classList.add('hidden');
-                resetBikeModal();
-            });
-        }
-
-        // Close on overlay click
-        bikeModal.addEventListener('click', (e) => {
-            if (e.target === bikeModal) {
-                bikeModal.classList.add('hidden');
-                resetBikeModal();
-            }
-        });
-
-        // Step navigation
-        if (bikePrevBtn) {
-            bikePrevBtn.addEventListener('click', () => {
-                if (currentBikeStep > 1) showBikeStep(currentBikeStep - 1);
-            });
-        }
-
-        if (bikeNextBtn) {
-            bikeNextBtn.addEventListener('click', () => {
-                // Validation before moving to next step
-                if (currentBikeStep === 1) {
-                    if (!bikeCodeInput.value.trim()) {
-                        alert('Пожалуйста, укажите код велосипеда');
-                        return;
-                    }
-                    if (!bikeModelInput.value.trim()) {
-                        alert('Пожалуйста, укажите модель велосипеда');
-                        return;
-                    }
-                }
-
-                if (currentBikeStep < 3) showBikeStep(currentBikeStep + 1);
-            });
-        }
-
-        // Save bike
-        if (bikeSaveBtn) {
-            bikeSaveBtn.addEventListener('click', async () => {
-                try {
-                    toggleButtonLoading(bikeSaveBtn, true, 'Сохранить велосипед', 'Сохранение...');
-
-                    const bikeData = {
-                        bike_code: bikeCodeInput.value.trim(),
-                        model_name: bikeModelInput.value.trim(),
-                        city: bikeCitySelect.value,
-                        status: bikeStatusSelect.value,
-                        frame_number: bikeFrameNumberInput.value.trim() || null,
-                        registration_number: bikeRegistrationNumberInput.value.trim() || null,
-                        iot_device_id: bikeIotDeviceIdInput.value.trim() || null,
-                        additional_equipment: bikeAdditionalEquipmentInput.value.trim() || null,
-                        tariff_id: bikeTariffSelect.value || null
-                    };
-
-                    let result;
-                    if (editingBikeId) {
-                        result = await supabase.from('bikes').update(bikeData).eq('id', editingBikeId);
-                    } else {
-                        result = await supabase.from('bikes').insert([bikeData]);
-                    }
-
-                    if (result.error) throw result.error;
-
-                    alert(editingBikeId ? 'Велосипед успешно обновлен' : 'Велосипед успешно создан');
-                    bikeModal.classList.add('hidden');
-                    resetBikeModal();
-                    await loadBikes();
-
-                } catch (err) {
-                    alert('Ошибка сохранения велосипеда: ' + err.message);
-                } finally {
-                    toggleButtonLoading(bikeSaveBtn, false, 'Сохранить велосипед', 'Сохранение...');
-                }
-            });
-        }
-
-        // Edit bike function (will be called from table)
-        window.editBikeModal = async function (id) {
-            try {
-                const { data, error } = await supabase.from('bikes').select('*').eq('id', id).single();
-                if (error) throw error;
-
-                editingBikeId = id;
-                bikeModalTitle.textContent = 'Редактировать велосипед';
-                bikeIdInput.value = id;
-                bikeCodeInput.value = data.bike_code || '';
-                bikeModelInput.value = data.model_name || '';
-                bikeCitySelect.value = data.city || 'Москва';
-                bikeStatusSelect.value = data.status || 'available';
-                bikeFrameNumberInput.value = data.frame_number || '';
-                bikeRegistrationNumberInput.value = data.registration_number || '';
-                bikeIotDeviceIdInput.value = data.iot_device_id || '';
-                bikeAdditionalEquipmentInput.value = data.additional_equipment || '';
-                bikeTariffSelect.value = data.tariff_id || '';
-
-                showBikeStep(1);
-                bikeModal.classList.remove('hidden');
-
-            } catch (err) {
-                alert('Ошибка загрузки велосипеда: ' + err.message);
-            }
-        };
     }
 
     // --- Page Transitions ---
@@ -4588,156 +2555,153 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==== Templates Manager (Шаблоны договоров) ====
 
     const PLACEHOLDERS = {
-        client: [
-            ['client.full_name', 'ФИО'], ['client.first_name', 'Имя'], ['client.last_name', 'Фамилия'], ['client.middle_name', 'Отчество'],
-            ['client.passport_series', 'Серия паспорта'], ['client.passport_number', 'Номер паспорта'], ['client.issued_by', 'Кем выдан'],
-            ['client.issued_at', 'Дата выдачи'], ['client.birth_date', 'Дата рождения'], ['client.city', 'Город'], ['client.address', 'Адрес'],
-            ['client.phone', 'Телефон'], ['client.inn', 'ИНН'], ['client.emergency_phone', 'Экстренный телефон'], ['client.citizenship', 'Гражданство']
-        ],
-        bike: [
-            ['bike.name', 'Наименование'], ['bike.code', 'Код'], ['bike.frame_number', 'Номер рамы'], ['bike.battery_numbers', 'Номера аккумуляторов'],
-            ['bike.registration_number', 'Рег. номер'], ['bike.iot_device_id', 'Номер IOT'], ['bike.additional_equipment', 'Доп. оборудование']
-        ],
-        tariff: [['tariff.title', 'Тариф'], ['tariff.duration_days', 'Дней'], ['tariff.price_rub', 'Сумма ₽']],
-        rental: [['rental.id', '№ аренды'], ['rental.starts_at', 'Начало'], ['rental.ends_at', 'Конец'], ['rental.bike_id', 'ID велосипеда']],
-        aux: [['now.date', 'Дата'], ['now.time', 'Время'], ['contract.city', 'Город акта']]
+      client: [
+        ['client.full_name','ФИО'], ['client.first_name','Имя'], ['client.last_name','Фамилия'], ['client.middle_name','Отчество'],
+        ['client.passport_series','Серия паспорта'], ['client.passport_number','Номер паспорта'], ['client.issued_by','Кем выдан'],
+        ['client.issued_at','Дата выдачи'], ['client.birth_date','Дата рождения'], ['client.city','Город'], ['client.address','Адрес'],
+        ['client.phone','Телефон'], ['client.inn','ИНН'], ['client.emergency_phone','Экстренный телефон'], ['client.citizenship','Гражданство']
+      ],
+      bike: [
+        ['bike.name','Наименование'], ['bike.code','Код'], ['bike.frame_number','Номер рамы'], ['bike.battery_numbers','Номера аккумуляторов'],
+        ['bike.registration_number','Рег. номер'], ['bike.iot_device_id','Номер IOT'], ['bike.additional_equipment','Доп. оборудование']
+      ],
+      tariff: [ ['tariff.title','Тариф'], ['tariff.duration_days','Дней'], ['tariff.price_rub','Сумма ₽'] ],
+      rental: [ ['rental.id','№ аренды'], ['rental.starts_at','Начало'], ['rental.ends_at','Конец'], ['rental.bike_id','ID велосипеда'] ],
+      aux: [ ['now.date','Дата'], ['now.time','Время'], ['contract.city','Город акта'] ]
     };
 
     function mountChips(container, items) {
-        if (!container) return;
-        container.innerHTML = '';
-        items.forEach(([value, label]) => {
-            const chip = document.createElement('span');
-            chip.className = 'chip';
-            chip.textContent = label;
-            chip.title = `Вставить {{${value}}}`;
-            chip.addEventListener('click', () => insertAtCaret(`{{${value}}}`));
-            container.appendChild(chip);
-        });
+      if (!container) return;
+      container.innerHTML = '';
+      items.forEach(([value,label]) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = label;
+        chip.title = `Вставить {{${value}}}`;
+        chip.addEventListener('click', () => insertAtCaret(`{{${value}}}`));
+        container.appendChild(chip);
+      });
     }
 
     function insertAtCaret(text) {
-        if (!templateEditor) return;
-        templateEditor.focus();
-        document.execCommand('insertText', false, text);
+      if (!templateEditor) return;
+      templateEditor.focus();
+      document.execCommand('insertText', false, text);
     }
 
     function toolbarAction(e) {
-        const btn = e.target.closest('button[data-cmd]');
-        if (!btn) return;
-        const cmd = btn.dataset.cmd;
-        const editorElement = document.getElementById('template-editor');
-        if (!editorElement) return;
-        
-        editorElement.focus();
-        if (cmd === 'bold') {
-            document.execCommand('bold', false);
-        } else if (cmd === 'italic') {
-            document.execCommand('italic', false);
-        } else if (cmd === 'underline') {
-            document.execCommand('underline', false);
-        } else if (cmd === 'insertParagraph') {
-            document.execCommand('formatBlock', false, 'p');
-        }
+      const btn = e.target.closest('button[data-cmd]');
+      if (!btn || !templateEditorInstance) return;
+      const cmd = btn.dataset.cmd;
+      if (cmd === 'bold') {
+        templateEditorInstance.chain().focus().toggleBold().run();
+      } else if (cmd === 'italic') {
+        templateEditorInstance.chain().focus().toggleItalic().run();
+      } else if (cmd === 'underline') {
+        // Underline not in StarterKit, need to add extension
+        // For now, skip or add later
+      } else if (cmd === 'insertParagraph') {
+        templateEditorInstance.chain().focus().setParagraph().run();
+      }
     }
 
     // selection tracking inside editor
-    function isWithinEditor(node) { return templateEditor && node && (node === templateEditor || templateEditor.contains(node)); }
+    function isWithinEditor(node){ return templateEditor && node && (node === templateEditor || templateEditor.contains(node)); }
     document.addEventListener('selectionchange', () => {
-        const sel = window.getSelection ? window.getSelection() : null;
-        if (!sel || sel.rangeCount === 0) return;
-        const r = sel.getRangeAt(0);
-        if (isWithinEditor(r.startContainer)) {
-            lastSelRange = r.cloneRange();
-        }
+      const sel = window.getSelection ? window.getSelection() : null;
+      if (!sel || sel.rangeCount === 0) return;
+      const r = sel.getRangeAt(0);
+      if (isWithinEditor(r.startContainer)) {
+        lastSelRange = r.cloneRange();
+      }
     });
 
-    function insertAtSavedRange(token) {
-        if (!templateEditor) return;
-        templateEditor.focus();
-        const sel = window.getSelection();
-        try {
-            if (lastSelRange && isWithinEditor(lastSelRange.startContainer)) {
-                sel.removeAllRanges();
-                sel.addRange(lastSelRange);
-            }
-            const range = sel.rangeCount ? sel.getRangeAt(0) : null;
-            if (range) {
-                range.deleteContents();
-                const span = document.createElement('span');
-                span.className = 'ph';
-                span.textContent = token;
-                range.insertNode(span);
-                // move caret after inserted
-                range.setStartAfter(span);
-                range.collapse(true);
-                sel.removeAllRanges(); sel.addRange(range);
-            } else {
-                document.execCommand('insertText', false, token);
-            }
-        } catch {
-            document.execCommand('insertText', false, token);
+    function insertAtSavedRange(token){
+      if (!templateEditor) return;
+      templateEditor.focus();
+      const sel = window.getSelection();
+      try{
+        if (lastSelRange && isWithinEditor(lastSelRange.startContainer)) {
+          sel.removeAllRanges();
+          sel.addRange(lastSelRange);
         }
-        // highlight
-        highlightPlaceholdersInEditor();
+        const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+        if (range) {
+          range.deleteContents();
+          const span = document.createElement('span');
+          span.className = 'ph';
+          span.textContent = token;
+          range.insertNode(span);
+          // move caret after inserted
+          range.setStartAfter(span);
+          range.collapse(true);
+          sel.removeAllRanges(); sel.addRange(range);
+        } else {
+          document.execCommand('insertText', false, token);
+        }
+      } catch {
+        document.execCommand('insertText', false, token);
+      }
+      // highlight
+      highlightPlaceholdersInEditor();
     }
 
     // --- Drag&Drop и подсветка плейсхолдеров ---
     function enableDnDForChips() {
-        document.querySelectorAll('.chips .chip').forEach(chip => {
-            if (chip.dataset.dnd === '1') return;
-            chip.dataset.dnd = '1';
-            chip.setAttribute('draggable', 'true');
-            chip.addEventListener('dragstart', (e) => {
-                const token = `{{${chip.title.replace('Вставить ', '').replace(/[{}]/g, '').trim()}}}`;
-                e.dataTransfer.setData('text/plain', token);
-                chip.classList.add('dragging');
-            });
-            chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
-            // после клика (вставки) подсветить
-            chip.addEventListener('click', () => setTimeout(highlightPlaceholdersInEditor, 0));
+      document.querySelectorAll('.chips .chip').forEach(chip => {
+        if (chip.dataset.dnd === '1') return;
+        chip.dataset.dnd = '1';
+        chip.setAttribute('draggable', 'true');
+        chip.addEventListener('dragstart', (e) => {
+          const token = `{{${chip.title.replace('Вставить ', '').replace(/[{}]/g,'').trim()}}}`;
+          e.dataTransfer.setData('text/plain', token);
+          chip.classList.add('dragging');
         });
-        if (templateEditor) {
-            templateEditor.addEventListener('dragover', (e) => { e.preventDefault(); templateEditor.classList.add('drag-over'); });
-            templateEditor.addEventListener('dragleave', () => templateEditor.classList.remove('drag-over'));
-            templateEditor.addEventListener('drop', (e) => {
-                e.preventDefault();
-                templateEditor.classList.remove('drag-over');
-                const text = e.dataTransfer.getData('text/plain');
-                if (text) {
-                    templateEditor.focus();
-                    document.execCommand('insertText', false, text);
-                    highlightPlaceholdersInEditor();
-                    templateEditor.classList.add('drop-anim');
-                    setTimeout(() => templateEditor.classList.remove('drop-anim'), 300);
-                }
-            });
-            templateEditor.addEventListener('blur', highlightPlaceholdersInEditor);
-        }
+        chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+        // после клика (вставки) подсветить
+        chip.addEventListener('click', () => setTimeout(highlightPlaceholdersInEditor, 0));
+      });
+      if (templateEditor) {
+        templateEditor.addEventListener('dragover', (e)=>{ e.preventDefault(); templateEditor.classList.add('drag-over'); });
+        templateEditor.addEventListener('dragleave', ()=> templateEditor.classList.remove('drag-over'));
+        templateEditor.addEventListener('drop', (e)=>{
+          e.preventDefault();
+          templateEditor.classList.remove('drag-over');
+          const text = e.dataTransfer.getData('text/plain');
+          if (text) {
+            templateEditor.focus();
+            document.execCommand('insertText', false, text);
+            highlightPlaceholdersInEditor();
+            templateEditor.classList.add('drop-anim');
+            setTimeout(()=>templateEditor.classList.remove('drop-anim'), 300);
+          }
+        });
+        templateEditor.addEventListener('blur', highlightPlaceholdersInEditor);
+      }
     }
 
     function highlightPlaceholdersInEditor() {
-        if (!templateEditor) return;
-        try {
-            let html = templateEditor.innerHTML;
-            html = html.replace(/<span class=\"ph\">(.*?)<\/span>/g, '$1');
-            html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1<\/span>');
-            templateEditor.innerHTML = html;
-        } catch { }
+      if (!templateEditor) return;
+      try {
+        let html = templateEditor.innerHTML;
+        html = html.replace(/<span class=\"ph\">(.*?)<\/span>/g, '$1');
+        html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1<\/span>');
+        templateEditor.innerHTML = html;
+      } catch {}
     }
 
     // Навешиваем кликовую вставку, которая сохраняет позицию курсора
     function addChipClickHandlers() {
-        document.querySelectorAll('.chips .chip').forEach(chip => {
-            if (chip.dataset.clickBound === '1') return;
-            chip.dataset.clickBound = '1';
-            chip.addEventListener('mousedown', (e) => e.preventDefault());
-            chip.addEventListener('click', () => {
-                const m = /\{\{.*?\}\}/.exec(chip.title || '');
-                const token = m ? m[0] : `{{${chip.textContent.trim()}}}`;
-                insertAtSavedRange(token);
-            });
+      document.querySelectorAll('.chips .chip').forEach(chip => {
+        if (chip.dataset.clickBound === '1') return;
+        chip.dataset.clickBound = '1';
+        chip.addEventListener('mousedown', (e) => e.preventDefault());
+        chip.addEventListener('click', () => {
+          const m = /\{\{.*?\}\}/.exec(chip.title || '');
+          const token = m ? m[0] : `{{${chip.textContent.trim()}}}`;
+          insertAtSavedRange(token);
         });
+      });
     }
 
     // --- Предпросмотр шаблона ---
@@ -4746,125 +2710,138 @@ document.addEventListener('DOMContentLoaded', () => {
     const templatePreviewContent = document.getElementById('template-preview-content');
     const templatePreviewClose = document.getElementById('template-preview-close');
 
-    function pathGet(obj, path) { try { return path.split('.').reduce((o, k) => (o && o[k] != null) ? o[k] : '', obj); } catch { return '' } }
-    function buildPreviewHTML() {
-        const ctx = {
-            client: { full_name: 'Иванов Иван Иванович', first_name: 'Иван', last_name: 'Иванов', middle_name: 'Иванович', passport_series: '12 34', passport_number: '567890', issued_by: 'ОВД г. Москва', issued_at: '01.01.2020', birth_date: '02.02.1990', city: 'Москва', address: 'ул. Пушкина, д.1' },
-            tariff: { title: 'Золотой', duration_days: 7, price_rub: 3750 },
-            rental: { id: 12345, starts_at: '2025-09-01', ends_at: '2025-09-08', bike_id: '00001' },
-            now: { date: new Date().toLocaleDateString('ru-RU'), time: new Date().toLocaleTimeString('ru-RU') }
-        };
-        let html = templateEditor ? templateEditor.innerHTML : '';
-        html = html.replace(/\{\{\s*([\w\.\-]+)\s*\}\}/g, (_, k) => { const v = pathGet(ctx, k); return v === undefined ? '' : String(v) });
-        return html;
+    function pathGet(obj, path){ try{ return path.split('.').reduce((o,k)=>(o&&o[k]!=null)?o[k]:'', obj); }catch{return ''} }
+    function buildPreviewHTML(){
+      const ctx = {
+        client:{ full_name:'Иванов Иван Иванович', first_name:'Иван', last_name:'Иванов', middle_name:'Иванович', passport_series:'12 34', passport_number:'567890', issued_by:'ОВД г. Москва', issued_at:'01.01.2020', birth_date:'02.02.1990', city:'Москва', address:'ул. Пушкина, д.1' },
+        tariff:{ title:'Золотой', duration_days:7, price_rub:3750 },
+        rental:{ id:12345, starts_at:'2025-09-01', ends_at:'2025-09-08', bike_id:'00001' },
+        now:{ date: new Date().toLocaleDateString('ru-RU'), time: new Date().toLocaleTimeString('ru-RU') }
+      };
+      let html = templateEditor ? templateEditor.innerHTML : '';
+      html = html.replace(/\{\{\s*([\w\.\-]+)\s*\}\}/g, (_,k)=>{ const v = pathGet(ctx,k); return v===undefined? '': String(v)});
+      return html;
     }
-    function openTemplatePreview() {
-        if (!templatePreviewOverlay || !templatePreviewContent) return;
-        const editorElement = document.getElementById('template-editor');
-        if (!editorElement) return;
-        templatePreviewContent.innerHTML = editorElement.innerHTML;
-        templatePreviewOverlay.classList.remove('hidden');
-    }
-    function closeTemplatePreview() { if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
+    function openTemplatePreview(){ if (!templatePreviewOverlay||!templatePreviewContent) return; templatePreviewContent.innerHTML = buildPreviewHTML(); templatePreviewOverlay.classList.remove('hidden'); }
+    function closeTemplatePreview(){ if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
     if (templatePreviewBtn) templatePreviewBtn.addEventListener('click', openTemplatePreview);
     if (templatePreviewClose) templatePreviewClose.addEventListener('click', closeTemplatePreview);
-    if (templatePreviewOverlay) templatePreviewOverlay.addEventListener('click', (e) => { if (e.target === templatePreviewOverlay) closeTemplatePreview(); });
+    if (templatePreviewOverlay) templatePreviewOverlay.addEventListener('click', (e)=>{ if (e.target === templatePreviewOverlay) closeTemplatePreview(); });
 
-    // TipTap удалён - используем обычный contenteditable
+    function initTemplateEditor() {
+      if (templateEditorInstance) {
+        templateEditorInstance.destroy();
+      }
+      const editorElement = document.getElementById('template-editor');
+      if (editorElement) {
+        templateEditorInstance = new TipTap.Editor({
+          element: editorElement,
+          extensions: [
+            TipTap.StarterKit,
+          ],
+          content: '',
+          onUpdate: ({ editor }) => {
+            // Optional: handle updates
+          },
+        });
+      }
+    }
 
     async function loadTemplates() {
-        try {
-            // chips
-            mountChips(chipsClient, PLACEHOLDERS.client);
-            mountChips(chipsTariff, PLACEHOLDERS.tariff);
-            mountChips(chipsRental, PLACEHOLDERS.rental);
-            mountChips(chipsAux, PLACEHOLDERS.aux);
-            addChipClickHandlers();
+      try {
+        // chips
+        mountChips(chipsClient, PLACEHOLDERS.client);
+        mountChips(chipsTariff, PLACEHOLDERS.tariff);
+        mountChips(chipsRental, PLACEHOLDERS.rental);
+        mountChips(chipsAux, PLACEHOLDERS.aux);
+        addChipClickHandlers();
 
-            // включаем перетаскивание и постподсветку
-            enableDnDForChips();
+        // включаем перетаскивание и постподсветку
+        enableDnDForChips();
 
-            const { data, error } = await supabase.from('contract_templates').select('*').order('id', { ascending: true });
-            if (error) throw error;
-            if (templatesTableBody) {
-                templatesTableBody.innerHTML = '';
-                (data || []).forEach(t => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
+        // Initialize TipTap editor
+        initTemplateEditor();
+
+        const { data, error } = await supabase.from('contract_templates').select('*').order('id', { ascending: true });
+        if (error) throw error;
+        if (templatesTableBody) {
+          templatesTableBody.innerHTML = '';
+          (data||[]).forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
               <td>${t.name}</td>
               <td>${t.is_active ? 'Да' : 'Нет'}</td>
               <td class="table-actions">
                 <button type="button" class="template-edit-btn" data-id="${t.id}">Ред.</button>
                 <button type="button" class="template-delete-btn" data-id="${t.id}">Удалить</button>
               </td>`;
-                    templatesTableBody.appendChild(tr);
-                });
-            }
-            if (contractTemplateSelect) {
-                const selected = contractTemplateSelect.value;
-                contractTemplateSelect.innerHTML = '<option value="">— Не выбран —</option>' + (data || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-                if (selected) contractTemplateSelect.value = selected;
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки шаблонов:', err);
+            templatesTableBody.appendChild(tr);
+          });
         }
+        if (contractTemplateSelect) {
+          const selected = contractTemplateSelect.value;
+          contractTemplateSelect.innerHTML = '<option value="">— Не выбран —</option>' + (data||[]).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+          if (selected) contractTemplateSelect.value = selected;
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки шаблонов:', err);
+      }
     }
 
     async function saveTemplate() {
-        const editorElement = document.getElementById('template-editor');
-        if (!editorElement) return;
-        const id = (document.getElementById('template-id') || {}).value;
-        const name = (document.getElementById('template-name') || {}).value || 'Без названия';
-        const isActive = (document.getElementById('template-active') || { checked: true }).checked;
-        const content = editorElement.innerHTML || '';
-        const rec = { name, content, is_active: isActive, placeholders: PLACEHOLDERS };
-        try {
-            let resp;
-            if (id) resp = await supabase.from('contract_templates').update(rec).eq('id', id).select('id').single();
-            else resp = await supabase.from('contract_templates').insert([rec]).select('id').single();
-            if (resp.error) throw resp.error;
-            document.getElementById('template-id').value = resp.data?.id || id || '';
-            await loadTemplates();
-            alert('Шаблон сохранён');
-        } catch (err) {
-            alert('Ошибка сохранения шаблона: ' + err.message);
-        }
+      if (!templateEditorInstance) return;
+      const id = (document.getElementById('template-id')||{}).value;
+      const name = (document.getElementById('template-name')||{}).value || 'Без названия';
+      const isActive = (document.getElementById('template-active')||{checked:true}).checked;
+      const content = templateEditorInstance.getHTML() || '';
+      const rec = { name, content, is_active: isActive, placeholders: PLACEHOLDERS };
+      try {
+        let resp;
+        if (id) resp = await supabase.from('contract_templates').update(rec).eq('id', id).select('id').single();
+        else resp = await supabase.from('contract_templates').insert([rec]).select('id').single();
+        if (resp.error) throw resp.error;
+        document.getElementById('template-id').value = resp.data?.id || id || '';
+        await loadTemplates();
+        alert('Шаблон сохранён');
+      } catch (err) {
+        alert('Ошибка сохранения шаблона: ' + err.message);
+      }
     }
 
     function newTemplate() {
-        (document.getElementById('template-id') || {}).value = '';
-        (document.getElementById('template-name') || {}).value = '';
-        (document.getElementById('template-active') || {}).checked = true;
-        if (templateEditor) templateEditor.innerHTML = '';
+      (document.getElementById('template-id')||{}).value = '';
+      (document.getElementById('template-name')||{}).value = '';
+      (document.getElementById('template-active')||{}).checked = true;
+      if (templateEditor) templateEditor.innerHTML = '';
     }
 
     if (editorToolbar) editorToolbar.addEventListener('click', toolbarAction);
     document.getElementById('templates-table')?.addEventListener('click', async (e) => {
-        const editBtn = e.target.closest('.template-edit-btn');
-        const delBtn = e.target.closest('.template-delete-btn');
-        if (editBtn) {
-            const id = editBtn.dataset.id;
-            const { data, error } = await supabase.from('contract_templates').select('*').eq('id', id).single();
-            if (!error && data) {
-                document.getElementById('template-id').value = data.id;
-                document.getElementById('template-name').value = data.name;
-                document.getElementById('template-active').checked = !!data.is_active;
-                if (templateEditor) templateEditor.innerHTML = data.content || '';
-            }
+      const editBtn = e.target.closest('.template-edit-btn');
+      const delBtn = e.target.closest('.template-delete-btn');
+      if (editBtn) {
+        const id = editBtn.dataset.id;
+        const { data, error } = await supabase.from('contract_templates').select('*').eq('id', id).single();
+        if (!error && data) {
+          document.getElementById('template-id').value = data.id;
+          document.getElementById('template-name').value = data.name;
+          document.getElementById('template-active').checked = !!data.is_active;
+          if (templateEditor) templateEditor.innerHTML = data.content || '';
         }
-        if (delBtn) {
-            const id = delBtn.dataset.id;
-            if (!confirm('Удалить шаблон?')) return;
-            const { error } = await supabase.from('contract_templates').delete().eq('id', id);
-            if (error) alert('Ошибка удаления: ' + error.message);
-            await loadTemplates();
-        }
+      }
+      if (delBtn) {
+        const id = delBtn.dataset.id;
+        if (!confirm('Удалить шаблон?')) return;
+        const { error } = await supabase.from('contract_templates').delete().eq('id', id);
+        if (error) alert('Ошибка удаления: ' + error.message);
+        await loadTemplates();
+      }
     });
     if (templateSaveBtn) templateSaveBtn.addEventListener('click', saveTemplate);
     if (templateNewBtn) templateNewBtn.addEventListener('click', newTemplate);
 
     // Попробуем заранее загрузить шаблоны (для выпадающего списка у тарифов)
-    loadTemplates().catch(() => { });
+    loadTemplates().catch(()=>{});
 
     // --- НОВЫЙ БЛОК: Логика предпросмотра тарифов как у клиента ---
 
@@ -4916,7 +2893,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const extensions = (t.extensions && Array.isArray(t.extensions) && t.extensions.length > 0)
             ? t.extensions
-            : [{ days: t.duration_days, price_rub: t.price_rub }];
+            : [{ days: t.duration_days, cost: t.price_rub }];
 
         extensions.forEach((ext, idx) => {
             const isSelectedClass = (idx === 0) ? ' selected' : '';
@@ -4926,7 +2903,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="option-details">
                         <span class="option-duration">${ext.days} дней</span>
                     </div>
-                    <span class="option-price">${ext.price_rub || ext.cost || 0} ₽</span>
+                    <span class="option-price">${ext.cost} ₽</span>
                 </label>
             `;
             optionsContainer.insertAdjacentHTML('beforeend', optionHTML);
@@ -4958,86 +2935,5 @@ document.addEventListener('DOMContentLoaded', () => {
     clientViewTariffDetailModal?.addEventListener('click', (e) => {
         if (e.target === clientViewTariffDetailModal) clientViewTariffDetailModal.classList.add('hidden');
     });
-
-    // --- НОВЫЙ БЛОК: Логика настройки стоимости бронирования ---
-
-    // Загрузка текущей стоимости бронирования
-    async function loadBookingCost() {
-        try {
-            const { data, error } = await supabase
-                .from('app_settings')
-                .select('value')
-                .eq('key', 'booking_cost_rub')
-                .single();
-
-            if (error && error.code !== 'PGRST116') throw error;
-
-            const currentCost = data ? parseFloat(data.value) : 0;
-            if (bookingCostInput) {
-                bookingCostInput.value = currentCost;
-            }
-        } catch (err) {
-            console.error('Ошибка загрузки стоимости бронирования:', err);
-            if (bookingCostInput) {
-                bookingCostInput.value = 0;
-            }
-        }
-    }
-
-    // Сохранение стоимости бронирования
-    async function saveBookingCost() {
-        const cost = parseFloat(bookingCostInput.value);
-        if (isNaN(cost) || cost < 0) {
-            alert('Пожалуйста, введите корректную стоимость (неотрицательное число).');
-            return;
-        }
-
-        toggleButtonLoading(bookingCostSaveBtn, true, 'Сохранить', 'Сохранение...');
-
-        try {
-            const { error } = await supabase
-                .from('app_settings')
-                .upsert({
-                    key: 'booking_cost_rub',
-                    value: cost.toString()
-                });
-
-            if (error) throw error;
-
-            alert('Стоимость бронирования успешно сохранена.');
-            bookingCostModal.classList.add('hidden');
-
-        } catch (err) {
-            alert('Ошибка сохранения стоимости бронирования: ' + err.message);
-        } finally {
-            toggleButtonLoading(bookingCostSaveBtn, false, 'Сохранить', 'Сохранение...');
-        }
-    }
-
-    // Обработчики событий для модального окна стоимости бронирования
-    if (setupBookingCostBtn) {
-        setupBookingCostBtn.addEventListener('click', () => {
-            loadBookingCost();
-            bookingCostModal.classList.remove('hidden');
-        });
-    }
-
-    if (bookingCostCancelBtn) {
-        bookingCostCancelBtn.addEventListener('click', () => {
-            bookingCostModal.classList.add('hidden');
-        });
-    }
-
-    if (bookingCostModal) {
-        bookingCostModal.addEventListener('click', (e) => {
-            if (e.target === bookingCostModal) {
-                bookingCostModal.classList.add('hidden');
-            }
-        });
-    }
-
-    if (bookingCostSaveBtn) {
-        bookingCostSaveBtn.addEventListener('click', saveBookingCost);
-    }
 
 });
