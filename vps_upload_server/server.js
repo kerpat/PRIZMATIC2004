@@ -31,6 +31,10 @@ app.post("/upload", upload.array("files", 5), async (req, res) => {
         return res.status(400).json({ error: "Файлы не получены" });
     }
 
+    // Получаем userId из body
+    const userId = req.body.userId || 'unknown';
+    console.log(`[Upload] Uploading ${req.files.length} files for userId: ${userId}`);
+
     try {
         // Ensure the bucket exists
         const bucketExists = await minioClient.bucketExists(BUCKET_NAME);
@@ -40,7 +44,10 @@ app.post("/upload", upload.array("files", 5), async (req, res) => {
 
         const uploadPromises = req.files.map(file => {
             const ext = path.extname(file.originalname);
-            const objectName = `${randomUUID()}${ext}`;
+            // Формируем имя: userId_timestamp_random.ext
+            const objectName = `${userId}_${Date.now()}_${randomUUID().substring(0, 8)}${ext}`;
+            
+            console.log(`[Upload] Saving file: ${objectName}`);
             
             const metaData = {
                 'Content-Type': file.mimetype,

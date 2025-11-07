@@ -80,19 +80,19 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'File type not allowed' });
       }
 
-      // Генерируем уникальное имя файла
+      // Генерируем уникальное имя файла ВСЕГДА с userId в начале
       const ext = ALLOWED_TYPES[file.mimetype];
-      let relativePath;
-      if (requestedPath) {
-        const normalized = String(requestedPath).replace(/\\/g, '/').replace(/^\/+/, '');
-        if (!normalized || normalized.includes('..')) {
-          return res.status(400).json({ error: 'Invalid file path' });
-        }
-        relativePath = normalized;
-      } else {
-        const randomName = `${userId || 'unknown'}_${Date.now()}_${crypto.randomBytes(8).toString('hex')}.${ext}`;
-        relativePath = randomName;
-      }
+      const randomSuffix = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
+      
+      // Формируем имя: userId_timestamp_random.ext
+      // Даже если указан requestedPath - игнорируем его и используем userId
+      const fileName = userId 
+        ? `${userId}_${randomSuffix}.${ext}`
+        : `unknown_${randomSuffix}.${ext}`;
+      
+      const relativePath = fileName; // Сохраняем в корень бакета
+      
+      console.log(`[storage-upload] Saving file: userId="${userId}", fileName="${relativePath}"`);
 
       if (STORAGE_TYPE === 'filesystem') {
         // Сохраняем в файловую систему

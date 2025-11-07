@@ -621,10 +621,17 @@ originalFormSubmit.addEventListener('submit', async (e) => {
         // 2. Upload files to the dedicated VPS server
         finishBtn.textContent = 'Загрузка документов...';
         const vpsFormData = new FormData();
+        
+        // Добавляем userId (используем phone как идентификатор до создания пользователя)
+        const tempUserId = localStorage.getItem('userId') || registrationData.phone || 'unknown';
+        vpsFormData.append('userId', tempUserId);
+        
         filesToUpload.forEach(f => {
             // The backend expects the field name to be 'files'
             vpsFormData.append('files', f.file, f.file.name);
         });
+
+        console.log(`[Registration] Uploading files with userId: ${tempUserId}`);
 
         const vpsResponse = await fetch('https://xn----7sbudcwsigrzv.space/upload', {
             method: 'POST',
