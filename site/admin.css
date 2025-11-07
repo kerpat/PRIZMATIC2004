@@ -1183,7 +1183,7 @@ select:focus::placeholder {
   background: rgba(8, 56, 48, 0.8);
   /* Сделаем фон темнее для лучшей видимости */
   backdrop-filter: blur(5px);
-  z-index: 99999 !important;
+  z-index: 3000;
   /* Увеличиваем z-index чтобы точно быть поверх всего */
   padding: 20px;
   /* Уменьшаем padding */
@@ -1195,8 +1195,6 @@ select:focus::placeholder {
   min-height: 100vh !important;
   /* Принудительно устанавливаем полную высоту */
 }
-
-/* Повышенный z-index для модалок редактирования, чтобы они были над основной модалкой аренды */
 
 .overlay:not(.hidden) {
   opacity: 1;
@@ -2048,6 +2046,8 @@ select:focus::placeholder {
 #admin-nav button:hover svg,
 #admin-nav button.active svg {
     color: var(--accent-2); /* Darker icon color on hover/active */
+}
+  margin-bottom: 24px;
 }
 
 .tariff-option-item {
