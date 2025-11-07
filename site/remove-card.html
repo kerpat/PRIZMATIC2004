@@ -191,11 +191,19 @@
         <p class="subtitle">Тестовая страница для удаления автоплатежей</p>
 
         <div class="form-group">
-            <label for="userId">🆔 User ID (telegram_user_id)</label>
-            <input type="text" id="userId" placeholder="Введите ID пользователя" required>
+            <label for="showAllClients">
+                <input type="checkbox" id="showAllClients" onchange="toggleClientSelection()">
+                Показать всех клиентов со списком карт
+            </label>
         </div>
 
-        <button class="btn btn-secondary" onclick="loadUserCards()">📋 Загрузить карты пользователя</button>
+        <div class="form-group" id="userIdGroup">
+            <label for="userId">🆔 User ID (ID клиента в БД)</label>
+            <input type="text" id="userId" placeholder="Введите ID клиента" required>
+        </div>
+
+        <button class="btn btn-secondary" id="loadBtn" onclick="loadUserCards()">📋 Загрузить карты пользователя</button>
+        <button class="btn btn-secondary" id="loadAllBtn" onclick="loadAllClients()" style="display: none;">📋 Загрузить всех клиентов</button>
 
         <div class="card-info" id="cardInfo"></div>
 
@@ -226,12 +234,82 @@
         import { apiRequest } from './api.js';
 
         let userData = null;
+        let allClientsData = [];
+
+        window.toggleClientSelection = function() {
+            const showAll = document.getElementById('showAllClients').checked;
+            const userIdGroup = document.getElementById('userIdGroup');
+            const loadBtn = document.getElementById('loadBtn');
+            const loadAllBtn = document.getElementById('loadAllBtn');
+            
+            if (showAll) {
+                userIdGroup.style.display = 'none';
+                loadBtn.style.display = 'none';
+                loadAllBtn.style.display = 'block';
+            } else {
+                userIdGroup.style.display = 'block';
+                loadBtn.style.display = 'block';
+                loadAllBtn.style.display = 'none';
+            }
+            
+            // Скрываем результаты при переключении
+            document.getElementById('cardInfo').innerHTML = '';
+            document.getElementById('cardSelectGroup').style.display = 'none';
+            document.getElementById('warning').style.display = 'none';
+            document.getElementById('removeBtn').style.display = 'none';
+        };
+
+        window.loadAllClients = async function() {
+            showLoading(true);
+            hideStatus();
+
+            try {
+                // Получаем всех клиентов
+                const response = await apiRequest('/api/data', {
+                    action: 'get-all-clients'
+                });
+
+                console.log('All clients:', response);
+
+                if (!response || !response.data) {
+                    showStatus('Не удалось загрузить клиентов', 'error');
+                    showLoading(false);
+                    return;
+                }
+
+                allClientsData = response.data;
+                
+                // Фильтруем клиентов с картами
+                const clientsWithCards = allClientsData.filter(client => 
+                    client.yookassa_payment_method_id && 
+                    client.yookassa_payment_method_id.trim() !== ''
+                );
+
+                console.log('Clients with cards:', clientsWithCards);
+
+                if (clientsWithCards.length === 0) {
+                    showStatus('Нет клиентов с привязанными картами', 'info');
+                    showLoading(false);
+                    return;
+                }
+
+                // Показываем всех клиентов с картами
+                displayAllClientsWithCards(clientsWithCards);
+                
+                showLoading(false);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Ошибка загрузки: ' + error.message, 'error');
+                showLoading(false);
+            }
+        };
 
         window.loadUserCards = async function() {
             const userId = document.getElementById('userId').value.trim();
             
             if (!userId) {
-                showStatus('Введите ID пользователя', 'error');
+                showStatus('Введите ID клиента', 'error');
                 return;
             }
 
@@ -239,21 +317,21 @@
             hideStatus();
 
             try {
-                // Получаем данные пользователя
+                // Получаем данные клиента
                 const response = await apiRequest('/api/data', {
-                    action: 'get',
-                    telegram_user_id: userId
+                    action: 'get-client',
+                    userId: userId
                 });
 
-                console.log('User data:', response);
+                console.log('Client data:', response);
 
-                if (!response || !response.user) {
-                    showStatus('Пользователь не найден', 'error');
+                if (!response || !response.data) {
+                    showStatus('Клиент не найден', 'error');
                     showLoading(false);
                     return;
                 }
 
-                userData = response.user;
+                userData = response.data;
 
                 // Показываем информацию о картах
                 displayCardInfo(userData);
@@ -278,10 +356,10 @@
             cardInfo.innerHTML = '';
             cardSelect.innerHTML = '<option value="">-- Выберите карту --</option>';
 
-            if (!user.saved_payment_method_id) {
+            if (!user.yookassa_payment_method_id) {
                 cardInfo.innerHTML = `
                     <div style="text-align: center; padding: 20px; color: #999;">
-                        ℹ️ У пользователя нет привязанных карт
+                        ℹ️ У клиента нет привязанных карт
                     </div>
                 `;
                 cardInfo.classList.add('show');
@@ -291,24 +369,37 @@
                 return;
             }
 
+            // Получаем данные карты из поля extra
+            const extra = typeof user.extra === 'string' ? JSON.parse(user.extra) : (user.extra || {});
+            const cardLast4 = extra.card_last4 || 'XXXX';
+            const cardType = extra.card_type || 'Карта';
+
             // Показываем информацию о карте
             cardInfo.innerHTML = `
                 <div class="card-detail">
+                    <span>👤 Имя клиента:</span>
+                    <span><strong>${user.name || 'N/A'}</strong></span>
+                </div>
+                <div class="card-detail">
+                    <span>📞 Телефон:</span>
+                    <span>${user.phone || 'N/A'}</span>
+                </div>
+                <div class="card-detail">
                     <span>💳 Последние цифры:</span>
-                    <span><strong>${user.card_last4 || 'N/A'}</strong></span>
+                    <span><strong>${cardLast4}</strong></span>
                 </div>
                 <div class="card-detail">
                     <span>🏦 Тип карты:</span>
-                    <span>${user.card_type || 'N/A'}</span>
+                    <span>${cardType}</span>
                 </div>
                 <div class="card-detail">
-                    <span>🔑 Payment Method ID:</span>
-                    <span style="font-family: monospace; font-size: 11px;">${user.saved_payment_method_id}</span>
+                    <span>🔑 YooKassa Payment Method ID:</span>
+                    <span style="font-family: monospace; font-size: 11px;">${user.yookassa_payment_method_id}</span>
                 </div>
                 <div class="card-detail">
                     <span>🔄 Автоплатеж:</span>
-                    <span style="color: ${user.auto_payment_enabled ? '#4caf50' : '#ff6b6b'};">
-                        ${user.auto_payment_enabled ? '✅ Включен' : '❌ Отключен'}
+                    <span style="color: ${user.autopay_enabled ? '#4caf50' : '#ff6b6b'};">
+                        ${user.autopay_enabled ? '✅ Включен' : '❌ Отключен'}
                     </span>
                 </div>
             `;
@@ -317,8 +408,8 @@
 
             // Добавляем опцию в select
             cardSelect.innerHTML += `
-                <option value="${user.saved_payment_method_id}">
-                    💳 ${user.card_type || 'Card'} •••• ${user.card_last4 || 'XXXX'}
+                <option value="${user.id}">
+                    💳 ${cardType} •••• ${cardLast4} (${user.name || 'Клиент'})
                 </option>
             `;
 
@@ -330,16 +421,58 @@
             showStatus('✅ Карты загружены', 'success');
         }
 
-        window.removeCard = async function() {
-            const userId = document.getElementById('userId').value.trim();
-            const paymentMethodId = document.getElementById('cardSelect').value;
+        function displayAllClientsWithCards(clients) {
+            const cardInfo = document.getElementById('cardInfo');
+            const cardSelect = document.getElementById('cardSelect');
+            const warning = document.getElementById('warning');
+            const removeBtn = document.getElementById('removeBtn');
+            const cardSelectGroup = document.getElementById('cardSelectGroup');
 
-            if (!userId || !paymentMethodId) {
-                showStatus('Выберите карту для удаления', 'error');
+            // Очищаем предыдущие данные
+            cardInfo.innerHTML = '';
+            cardSelect.innerHTML = '<option value="">-- Выберите клиента --</option>';
+
+            // Показываем заголовок
+            cardInfo.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px; color: #4caf50;">
+                    🎯 Найдено ${clients.length} клиентов с привязанными картами
+                </div>
+            `;
+
+            // Добавляем каждого клиента в список
+            clients.forEach(client => {
+                const extra = typeof client.extra === 'string' ? JSON.parse(client.extra) : (client.extra || {});
+                const cardLast4 = extra.card_last4 || 'XXXX';
+                const cardType = extra.card_type || 'Карта';
+
+                // Добавляем опцию в select
+                cardSelect.innerHTML += `
+                    <option value="${client.id}">
+                        💳 ${cardType} •••• ${cardLast4} - ${client.name || 'Без имени'} (${client.phone || 'No phone'})
+                    </option>
+                `;
+            });
+
+            cardInfo.classList.add('show');
+
+            // Показываем элементы управления
+            cardSelectGroup.style.display = 'block';
+            warning.style.display = 'block';
+            removeBtn.style.display = 'block';
+
+            showStatus(`✅ Загружено ${clients.length} клиентов с картами`, 'success');
+        }
+
+        window.removeCard = async function() {
+            const clientId = document.getElementById('cardSelect').value;
+            const showAllClients = document.getElementById('showAllClients').checked;
+
+            if (!clientId) {
+                showStatus('Выберите клиента для удаления карты', 'error');
                 return;
             }
 
-            if (!confirm('Вы уверены, что хотите удалить эту карту и отключить автоплатеж?')) {
+            if (!confirm('Вы уверены, что хотите удалить карту этого клиента и отключить автоплатеж?')) {
                 return;
             }
 
@@ -347,14 +480,16 @@
             hideStatus();
 
             try {
-                // Обновляем данные пользователя - удаляем карту
+                // Обновляем данные клиента - удаляем карту через API
                 const response = await apiRequest('/api/data', {
                     action: 'update',
-                    telegram_user_id: userId,
-                    saved_payment_method_id: null,
-                    card_type: null,
-                    card_last4: null,
-                    auto_payment_enabled: false
+                    table: 'clients',
+                    filters: [{ field: 'id', operator: 'eq', value: clientId }],
+                    data: {
+                        yookassa_payment_method_id: null,
+                        autopay_enabled: false,
+                        extra: {}
+                    }
                 });
 
                 console.log('Remove response:', response);
@@ -363,7 +498,11 @@
                 
                 // Перезагружаем данные
                 setTimeout(() => {
-                    loadUserCards();
+                    if (showAllClients) {
+                        loadAllClients();
+                    } else {
+                        loadUserCards();
+                    }
                 }, 1500);
 
             } catch (error) {

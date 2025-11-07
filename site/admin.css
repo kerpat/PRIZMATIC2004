@@ -2058,8 +2058,6 @@ select:focus::placeholder {
 #admin-nav button.active svg {
     color: var(--accent-2); /* Darker icon color on hover/active */
 }
-  margin-bottom: 24px;
-}
 
 .tariff-option-item {
   display: flex;
