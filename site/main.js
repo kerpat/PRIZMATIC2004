@@ -11,6 +11,7 @@ import {
 } from './ui.js?v=13.5';
 import './sse-client.js?v=13.5';
 import { createQrScanner } from './qr-scanner.js?v=13.5';
+import { openPaymentUrl } from './payment-helper.js?v=13.5';
 
 let qrScanner = null;
 
@@ -521,7 +522,7 @@ async function handleExtendConfirm(event) {
         });
 
         if (response?.confirmation_url) {
-            window.location.href = response.confirmation_url;
+            await openPaymentUrl(response.confirmation_url);
             return;
         }
 
@@ -698,7 +699,7 @@ async function checkoutTariff(tariff, option, { trigger } = {}) {
         });
 
         if (response?.confirmation_url) {
-            window.location.href = response.confirmation_url;
+            await openPaymentUrl(response.confirmation_url);
             return;
         }
         
@@ -766,7 +767,7 @@ async function handleTopup(event) {
         });
 
         if (response?.confirmation_url) {
-            window.location.href = response.confirmation_url;
+            await openPaymentUrl(response.confirmation_url);
             return;
         }
 

@@ -11,6 +11,7 @@ import {
     markSupportMessagesRead,
 } from './api.js?v=13.5';
 import './sse-client.js?v=13.5';
+import { openSaveCardUrl } from './payment-helper.js?v=13.5';
 
 const state = {
     userId: null,
@@ -134,7 +135,7 @@ async function handleAddCardClick() {
     try {
         const response = await savePaymentMethod(state.userId);
         if (response?.confirmation_url) {
-            window.location.href = response.confirmation_url;
+            await openSaveCardUrl(response.confirmation_url);
             return;
         }
         throw new Error('Не удалось получить ссылку для привязки карты.');
