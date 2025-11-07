@@ -29,16 +29,18 @@ module.exports = async function handler(req, res) {
   // Проверяем существование пользователя (пропускаем проверку для админа)
   if (userId !== 'admin') {
     try {
-      console.log(`[Realtime] Verifying user with ID: ${userId}`);
-      const userQuery = await query('SELECT id FROM clients WHERE id = $1', [userId]);
+      console.log(`[Realtime] Verifying user with ID: ${userId}, type: ${typeof userId}`);
+      const userQuery = await query('SELECT id FROM clients WHERE id = $1::uuid', [userId]);
       console.log(`[Realtime] User query found ${userQuery.rowCount} rows.`);
 
       if (userQuery.rowCount === 0) {
         console.log(`[Realtime] User not found for ID: ${userId}. Returning 404.`);
         return res.status(404).json({ error: 'User not found' });
       }
+      
+      console.log(`[Realtime] User ${userId} verified successfully. Setting up SSE connection...`);
     } catch (error) {
-      console.error('Error checking user:', error);
+      console.error('[Realtime] Error checking user:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   } else {
@@ -63,7 +65,8 @@ module.exports = async function handler(req, res) {
     lastUpdate: Date.now(),
     intervalId: null,
     lastBalance: null,
-    lastVerificationStatus: null
+    lastVerificationStatus: null,
+    sentMessageIds: new Set() // Отслеживаем отправленные сообщения
   });
 
   // Отправляем приветствие
@@ -132,6 +135,8 @@ async function checkUserUpdates(connection) {
   const { userId } = connection;
 
   try {
+    const { sentMessageIds } = connection;
+
     // Для админа проверяем новые сообщения поддержки
     if (userId === 'admin') {
       const supportMessagesQuery = await query(`
@@ -142,7 +147,13 @@ async function checkUserUpdates(connection) {
         LIMIT 50
       `);
 
+      console.log(`[Realtime][Admin] Found ${supportMessagesQuery.rowCount} support messages`);
+
       for (const row of supportMessagesQuery.rows) {
+        // Пропускаем уже отправленные сообщения
+        if (sentMessageIds.has(row.id)) continue;
+        
+        sentMessageIds.add(row.id);
         updates.push({
           type: 'support_message',
           data: row,
@@ -155,18 +166,36 @@ async function checkUserUpdates(connection) {
       return updates;
     }
 
-    // Для обычных пользователей - проверяем сообщения поддержки, адресованные им
+    // Для обычных пользователей - проверяем ВСЕ новые сообщения поддержки
     const supportMessagesQuery = await query(`
       SELECT id, client_id, anonymous_chat_id, message_text, sender, created_at
       FROM support_messages
-      WHERE (client_id = $1 OR anonymous_chat_id = $1)
+      WHERE (client_id = $1::uuid OR anonymous_chat_id = $1)
       AND created_at > NOW() - INTERVAL '10 seconds'
-      AND sender = 'admin'
       ORDER BY created_at DESC
       LIMIT 10
     `, [userId]);
 
+    console.log(`[Realtime][User ${userId}] Found ${supportMessagesQuery.rowCount} support messages for this user`);
+    
+    if (supportMessagesQuery.rowCount > 0) {
+      console.log(`[Realtime][User ${userId}] Messages:`, supportMessagesQuery.rows.map(r => ({
+        id: r.id,
+        sender: r.sender,
+        text: r.message_text?.substring(0, 50)
+      })));
+    }
+
     for (const row of supportMessagesQuery.rows) {
+      // Пропускаем уже отправленные сообщения
+      if (sentMessageIds.has(row.id)) {
+        console.log(`[Realtime][User ${userId}] Skipping already sent message ${row.id}`);
+        continue;
+      }
+      
+      console.log(`[Realtime][User ${userId}] Sending message ${row.id} from ${row.sender} to client`);
+      
+      sentMessageIds.add(row.id);
       updates.push({
         type: 'support_message',
         data: row,

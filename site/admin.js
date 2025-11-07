@@ -1928,9 +1928,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
                     try {
+                        // Получаем user_id перед обновлением
+                        const { data: rentalData } = await supabase
+                            .from('rentals')
+                            .select('user_id')
+                            .eq('id', rentalId)
+                            .single();
+                        
                         const { error } = await supabase
                             .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
                         if (error) throw error;
+                        
+                        // Отправляем SSE уведомление
+                        if (rentalData?.user_id) {
+                            authedFetch('/api/admin', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    action: 'notify-rental-update', 
+                                    userId: rentalData.user_id,
+                                    rentalId,
+                                    status: 'completed_by_admin'
+                                })
+                            }).catch(err => console.error('SSE notification failed:', err));
+                        }
+                        
                         alert('Аренда завершена!');
                         loadRentals();
                     } catch (err) {
@@ -2075,9 +2097,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rentalId = endBtn.dataset.id;
                 if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
                     try {
+                        // Получаем user_id перед обновлением
+                        const { data: rentalData } = await supabase
+                            .from('rentals')
+                            .select('user_id')
+                            .eq('id', rentalId)
+                            .single();
+                        
                         const { error } = await supabase
                             .from('rentals').update({ status: 'completed_by_admin' }).eq('id', rentalId);
                         if (error) throw error;
+                        
+                        // Отправляем SSE уведомление
+                        if (rentalData?.user_id) {
+                            authedFetch('/api/admin', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    action: 'notify-rental-update', 
+                                    userId: rentalData.user_id,
+                                    rentalId,
+                                    status: 'completed_by_admin'
+                                })
+                            }).catch(err => console.error('SSE notification failed:', err));
+                        }
+                        
                         alert('Аренда успешно завершена.');
                         loadRentals();
                     } catch (err) {
@@ -2302,8 +2346,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
             toggleButtonLoading(rentalEditSaveBtn, true, 'Сохранить', 'Сохранение...');
             try {
+                // Сначала получаем user_id аренды
+                const { data: rentalData, error: fetchError } = await supabase
+                    .from('rentals')
+                    .select('user_id')
+                    .eq('id', id)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+                
                 const { error } = await supabase.from('rentals').update(updateData).eq('id', id);
                 if (error) throw error;
+                
+                // Отправляем SSE уведомление клиенту
+                if (rentalData?.user_id) {
+                    try {
+                        await authedFetch('/api/admin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                action: 'notify-rental-update', 
+                                userId: rentalData.user_id,
+                                rentalId: id,
+                                status: updateData.status
+                            })
+                        });
+                    } catch (sseError) {
+                        console.error('Failed to send SSE notification:', sseError);
+                    }
+                }
+                
                 alert('Аренда успешно обновлена!');
                 rentalEditModal.classList.add('hidden');
                 loadRentals();

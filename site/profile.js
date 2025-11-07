@@ -1101,6 +1101,28 @@ async function bootstrap() {
     updateNotifications();
 }
 
+// Функция обновления данных пользователя
+async function refreshUserData() {
+    if (!state.userId) return;
+    
+    try {
+        console.log('[Profile] Refreshing user data...');
+        const freshUser = await getClient(state.userId);
+        
+        if (!freshUser) {
+            console.warn('[Profile] User not found during refresh');
+            return;
+        }
+        
+        state.user = freshUser;
+        updateUserBanner(freshUser);
+        
+        console.log('[Profile] User data refreshed successfully');
+    } catch (error) {
+        console.error('[Profile] Failed to refresh user data:', error);
+    }
+}
+
 // SSE клиент для профиля
 let profileSSEClient = null;
 
@@ -1111,22 +1133,40 @@ function connectProfileSSE(userId) {
         
         // Обработчики SSE событий для профиля
         profileSSEClient.on('rental_update', async (data) => {
-            console.log('Получено обновление аренды в профиле:', data);
+            console.log('[Profile SSE] Получено обновление аренды:', data);
+            // Обновляем данные пользователя для отображения актуального статуса
+            await refreshUserData();
             await updateNotifications();
         });
         
-        profileSSEClient.on('balance_update', (data) => {
-            console.log('Получено обновление баланса в профиле:', data);
-            // Обновление баланса на странице профиля может реализоваться позже
+        profileSSEClient.on('balance_update', async (data) => {
+            console.log('[Profile SSE] Получено обновление баланса:', data);
+            // Обновляем данные пользователя для отображения актуального баланса
+            await refreshUserData();
         });
         
         profileSSEClient.on('support_message', async (data) => {
-            console.log('Получено новое сообщение поддержки в профиле:', data);
-            // Обновляем чат, если модальное окно поддержки открыто
-            const supportModal = document.getElementById('support-modal');
-            if (supportModal && !supportModal.classList.contains('hidden')) {
+            console.log('[Profile SSE] Получено новое сообщение поддержки:', data);
+            
+            // Проверяем, это сообщение для нас
+            const isForMe = data.data && (
+                (data.data.client_id && data.data.client_id === userId) ||
+                (data.data.anonymous_chat_id && data.data.anonymous_chat_id === userId)
+            );
+            
+            console.log('[Profile SSE] Message is for me:', isForMe, 'sender:', data.data?.sender);
+            
+            if (!isForMe) {
+                console.log('[Profile SSE] Ignoring message not for this user');
+                return;
+            }
+            
+            // Обновляем чат только если это сообщение от админа
+            if (data.data?.sender === 'admin') {
+                console.log('[Profile SSE] Reloading support messages...');
                 await loadSupportMessages();
             }
+            
             // Обновляем счетчик уведомлений
             await updateNotifications();
         });

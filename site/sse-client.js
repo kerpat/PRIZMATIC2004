@@ -56,29 +56,35 @@ class SSEClient {
   }
 
   handleMessage(data) {
-    console.log('Получено SSE сообщение:', data);
+    console.log('[SSEClient] Получено SSE сообщение:', data);
     
     // Обрабатываем различные типы сообщений
     switch (data.type) {
       case 'connected':
+        console.log('[SSEClient] Dispatching connected event');
         this.dispatch('connected', data);
         break;
       case 'rental_update':
+        console.log('[SSEClient] Dispatching rental_update event');
         this.dispatch('rental_update', data);
         break;
       case 'balance_update':
+        console.log('[SSEClient] Dispatching balance_update event');
         this.dispatch('balance_update', data);
         break;
       case 'verification_update':
+        console.log('[SSEClient] Dispatching verification_update event');
         this.dispatch('verification_update', data);
         break;
       case 'support_message':
+        console.log('[SSEClient] Dispatching support_message event, data:', data);
         this.dispatch('support_message', data);
         break;
       case 'heartbeat':
         this.dispatch('heartbeat', data);
         break;
       default:
+        console.log('[SSEClient] Unknown message type:', data.type);
         this.dispatch('message', data);
     }
   }

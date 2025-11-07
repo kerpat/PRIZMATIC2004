@@ -1350,6 +1350,29 @@ async function handleNotifyVerification({ userId, status }) {
     return { status: 200, body: { message: 'Статус верификации обновлен и уведомления отправлены.' } };
 }
 
+async function handleNotifyRentalUpdate({ userId, rentalId, status }) {
+    if (!userId) {
+        return { status: 400, body: { error: 'userId обязателен.' } };
+    }
+
+    console.log(`[admin] Notifying rental update for user ${userId}, rental ${rentalId}, status: ${status}`);
+
+    // Отправляем SSE уведомление о изменении аренды
+    try {
+        const { notifyUserUpdate } = require('./_lib_sse_helpers');
+        notifyUserUpdate(userId, 'rental_update', { 
+            rentalId, 
+            status,
+            timestamp: Date.now()
+        });
+        console.log(`[admin] SSE rental_update sent to user ${userId}`);
+    } catch (error) {
+        console.error('[admin] Failed to send rental_update SSE:', error);
+    }
+
+    return { status: 200, body: { message: 'Rental update notification sent.' } };
+}
+
 async function handleNotifyOverdue({ rentalId, messageText }) {
     if (!rentalId || !messageText) {
         return { status: 400, body: { error: 'rentalId и messageText обязательны.' } };
@@ -1548,6 +1571,9 @@ async function handler(req, res) {
                 break;
             case 'notify-verification':
                 result = await handleNotifyVerification(body);
+                break;
+            case 'notify-rental-update':
+                result = await handleNotifyRentalUpdate(body);
                 break;
             case 'generate-return-act-html':
                 result = await handleGenerateReturnActHTML(body);

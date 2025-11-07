@@ -1266,16 +1266,16 @@ function connectSSE(userId) {
         
         // Обработчики SSE событий
         sseClient.on('rental_update', async (data) => {
-            console.log('Получено обновление аренды:', data);
+            console.log('[Main SSE] Получено обновление аренды:', data);
+            // Обновляем данные пользователя для отображения актуального статуса аренды
+            await refreshUser();
             await refreshRentalView();
         });
         
-        sseClient.on('balance_update', (data) => {
-            console.log('Получено обновление баланса:', data);
-            if (state.user) {
-                state.user.balance_rub = data.data.balance;
-                updateBalanceDisplay(data.data.balance);
-            }
+        sseClient.on('balance_update', async (data) => {
+            console.log('[Main SSE] Получено обновление баланса:', data);
+            // Обновляем все данные пользователя включая баланс
+            await refreshUser();
         });
 
         sseClient.on('verification_update', async (data) => {

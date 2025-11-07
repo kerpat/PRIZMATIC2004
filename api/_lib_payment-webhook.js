@@ -320,6 +320,50 @@ async function processRenewalPayment(payment, metadata) {
             }, dbClient);
         }
     });
+
+    // Отправляем SSE уведомления после успешного продления
+    try {
+        const { notifyUserUpdate } = require('./_lib_sse_helpers');
+        const payloadTimestamp = new Date().toISOString();
+
+        // Уведомление об обновлении баланса
+        if (amountToDebit > 0) {
+            const balanceResult = await query(
+                'SELECT balance_rub FROM clients WHERE id = $1',
+                [userId]
+            );
+            const updatedBalance = balanceResult.rows?.[0]?.balance_rub;
+            if (typeof updatedBalance === 'number') {
+                notifyUserUpdate(userId, 'balance_update', {
+                    balance: updatedBalance,
+                    change: -amountToDebit,
+                    timestamp: payloadTimestamp
+                });
+            }
+        }
+
+        // Уведомление об обновлении аренды
+        const rentalData = await query(
+            'SELECT * FROM rentals WHERE id = $1',
+            [rentalId]
+        );
+        const rental = rentalData.rows[0];
+        
+        notifyUserUpdate(userId, 'rental_update', {
+            rentalId,
+            status: rental?.status,
+            rental: {
+                id: rentalId,
+                status: rental?.status,
+                current_period_ends_at: rental?.current_period_ends_at,
+            },
+            timestamp: payloadTimestamp
+        });
+        
+        console.log(`[payment-webhook] SSE notifications sent for renewal payment`);
+    } catch (error) {
+        console.error('[payment-webhook] Failed to send SSE notifications for renewal:', error.message);
+    }
 }
 
 async function processTopUpPayment(payment, metadata) {
@@ -351,6 +395,27 @@ async function processTopUpPayment(payment, metadata) {
             createdAt: payment.created_at ? new Date(payment.created_at) : new Date(),
         }, dbClient);
     });
+
+    // Отправляем SSE уведомление об обновлении баланса
+    try {
+        const { notifyUserUpdate } = require('./_lib_sse_helpers');
+        const balanceResult = await query(
+            'SELECT balance_rub FROM clients WHERE id = $1',
+            [userId]
+        );
+        const updatedBalance = balanceResult.rows?.[0]?.balance_rub;
+        
+        if (typeof updatedBalance === 'number') {
+            notifyUserUpdate(userId, 'balance_update', {
+                balance: updatedBalance,
+                change: cardPaymentAmount,
+                timestamp: new Date().toISOString()
+            });
+            console.log(`[payment-webhook] SSE balance_update sent for top-up payment`);
+        }
+    } catch (error) {
+        console.error('[payment-webhook] Failed to send SSE notification for top-up:', error.message);
+    }
 }
 
 async function processSucceededPayment(notification) {
